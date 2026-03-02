@@ -22,6 +22,9 @@ class EncryptedIdentityRepository(
 
     override suspend fun save(identity: LifeFlowIdentity) {
         mutex.withLock {
+            // 🔐 B: hard gate (must be within recent biometric session window)
+            SecurityAccessSession.requireAuthorized("save(identity) requires active auth session")
+
             val plain = serialize(identity)
             // AAD binds ciphertext to identity id (prevents swapping ciphertexts across ids)
             val aad = identity.id.toString().toByteArray(StandardCharsets.UTF_8)
@@ -38,6 +41,9 @@ class EncryptedIdentityRepository(
         return mutex.withLock {
             val cipher = encryptedStore[id]
             if (cipher != null) {
+                // 🔐 B: hard gate
+                SecurityAccessSession.requireAuthorized("getById(id) requires active auth session")
+
                 val aad = id.toString().toByteArray(StandardCharsets.UTF_8)
                 val plain = encryptionService.decrypt(cipher, aad)
                 return@withLock deserialize(plain)
@@ -50,6 +56,11 @@ class EncryptedIdentityRepository(
 
     override suspend fun getActiveIdentity(): LifeFlowIdentity? {
         return mutex.withLock {
+            if (encryptedStore.isNotEmpty()) {
+                // 🔐 B: hard gate (decrypt loop)
+                SecurityAccessSession.requireAuthorized("getActiveIdentity() requires active auth session")
+            }
+
             // Prefer encrypted store (authoritative)
             for ((id, cipher) in encryptedStore) {
                 val aad = id.toString().toByteArray(StandardCharsets.UTF_8)
@@ -65,6 +76,9 @@ class EncryptedIdentityRepository(
 
     override suspend fun delete(identity: LifeFlowIdentity) {
         mutex.withLock {
+            // 🔐 B: treat delete as sensitive (mutating protected storage)
+            SecurityAccessSession.requireAuthorized("delete(identity) requires active auth session")
+
             encryptedStore.remove(identity.id)
             delegate.delete(identity)
         }
