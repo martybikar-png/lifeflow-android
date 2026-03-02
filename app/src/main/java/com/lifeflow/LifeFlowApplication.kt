@@ -5,6 +5,9 @@ import com.lifeflow.data.repository.LocalIdentityRepository
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.usecase.GetActiveIdentityUseCase
 import com.lifeflow.domain.usecase.SaveIdentityUseCase
+import com.lifeflow.security.EncryptedIdentityRepository
+import com.lifeflow.security.EncryptionService
+import com.lifeflow.security.KeyManager
 
 class LifeFlowApplication : Application() {
 
@@ -20,8 +23,21 @@ class LifeFlowApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        identityRepository = LocalIdentityRepository()
+        // Base repository (data layer)
+        val localRepository = LocalIdentityRepository()
 
+        // Security layer (Phase II wiring)
+        val keyManager = KeyManager()
+        keyManager.generateKey()
+
+        val encryptionService = EncryptionService(keyManager)
+
+        identityRepository = EncryptedIdentityRepository(
+            delegate = localRepository,
+            encryptionService = encryptionService
+        )
+
+        // UseCases depend only on the interface
         getActiveIdentityUseCase = GetActiveIdentityUseCase(identityRepository)
         saveIdentityUseCase = SaveIdentityUseCase(identityRepository)
     }
