@@ -5,13 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.lifeflow"
-    compileSdk {
-        version = release(36)
-    }
+    namespace = "com.lifeflow"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.lifeflow"
+        applicationId = "com.lifeflow"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -46,21 +44,32 @@ android {
 
 dependencies {
 
-    // 🔹 Clean Architecture dependency
+    // Clean Architecture modules
+    implementation(project(":core"))
     implementation(project(":domain"))
+    implementation(project(":data"))
+    implementation(project(":security"))
 
+    // JSON
+    implementation(libs.org.json)
+
+    // Biometric
+    implementation(libs.androidx.biometric)
+
+    // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // Testing
     testImplementation(libs.junit)
-
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

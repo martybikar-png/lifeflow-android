@@ -1,4 +1,4 @@
-package com.example.lifeflow.ui.theme
+package com.lifeflow.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

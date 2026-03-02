@@ -16,8 +16,8 @@ kotlin {
 
 dependencies {
 
-    // Coroutines (needed for suspend + Mutex)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    // Coroutines (via version catalog)
+    implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(kotlin("test"))
 }

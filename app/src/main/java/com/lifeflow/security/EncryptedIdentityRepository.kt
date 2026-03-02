@@ -1,41 +1,41 @@
-package com.lifeflow.domain.core
+package com.lifeflow.security
 
+import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
-import java.util.UUID
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.UUID
 
-/**
- * Simple in-memory implementation of IdentityRepository.
- * Used for testing and early development.
- */
-class InMemoryIdentityRepository : IdentityRepository {
+class EncryptedIdentityRepository(
+    private val delegate: IdentityRepository,
+    @Suppress("UNUSED_PARAMETER")
+    private val encryptionService: EncryptionService
+) : IdentityRepository {
 
     private val mutex = Mutex()
 
-    private val identities = mutableMapOf<UUID, LifeFlowIdentity>()
-
     override suspend fun save(identity: LifeFlowIdentity) {
         mutex.withLock {
-            identities[identity.id] = identity
+            // Encryption layer placeholder: no-op for now.
+            delegate.save(identity)
         }
     }
 
     override suspend fun getById(id: UUID): LifeFlowIdentity? {
         return mutex.withLock {
-            identities[id]
+            delegate.getById(id)
         }
     }
 
     override suspend fun getActiveIdentity(): LifeFlowIdentity? {
         return mutex.withLock {
-            identities.values.firstOrNull { it.isActive }
+            delegate.getActiveIdentity()
         }
     }
 
     override suspend fun delete(identity: LifeFlowIdentity) {
         mutex.withLock {
-            identities.remove(identity.id)
+            delegate.delete(identity)
         }
     }
 }
