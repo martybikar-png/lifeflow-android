@@ -2,44 +2,32 @@ package com.lifeflow
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.mutableStateOf
 import androidx.fragment.app.FragmentActivity
-import com.lifeflow.data.repository.LocalIdentityRepository
+import androidx.lifecycle.ViewModelProvider
 import com.lifeflow.security.BiometricAuthManager
-import com.lifeflow.security.EncryptedIdentityRepository
-import com.lifeflow.security.EncryptionService
-import com.lifeflow.security.KeyManager
+import com.lifeflow.security.SecurityAccessSession
 
 class MainActivity : FragmentActivity() {
 
     private lateinit var biometricAuthManager: BiometricAuthManager
+    private lateinit var viewModel: MainViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // --- Security setup ---
+        // --- Get repository from Application (single source of truth) ---
+        val app = application as LifeFlowApplication
 
-        val keyManager = KeyManager()
-        keyManager.generateKey()
-
-        val encryptionService = EncryptionService(keyManager)
-
-        // ✅ PRODUCTION repository (from :data), not test repo
-        val localRepository = LocalIdentityRepository()
-
-        val repository = EncryptedIdentityRepository(
-            delegate = localRepository,
-            encryptionService = encryptionService
-        )
+        viewModel = ViewModelProvider(
+            this,
+            MainViewModelFactory(app.identityRepository)
+        )[MainViewModel::class.java]
 
         biometricAuthManager = BiometricAuthManager(this)
 
-        // --- UI state ---
-
-        val uiState = mutableStateOf<UiState>(UiState.Loading)
-
+        // --- UI ---
         setContent {
-            when (val state = uiState.value) {
+            when (val state = viewModel.uiState.value) {
                 UiState.Loading -> LoadingScreen()
                 UiState.Authenticated -> DashboardScreen()
                 is UiState.Error -> ErrorScreen(state.message)
@@ -47,17 +35,14 @@ class MainActivity : FragmentActivity() {
         }
 
         // --- Biometric auth ---
-
         biometricAuthManager.authenticate(
             onSuccess = {
-                uiState.value = UiState.Authenticated
+                SecurityAccessSession.grant(durationMs = 30_000)
+                viewModel.onAuthenticationSuccess()
             },
             onError = { error ->
-                uiState.value = UiState.Error(error)
+                viewModel.onAuthenticationError(error)
             }
         )
-
-        // NOTE: "repository" is now ready for use (save/load identity) once you wire UI actions.
-        // For now, authentication flow stays the same.
     }
 }

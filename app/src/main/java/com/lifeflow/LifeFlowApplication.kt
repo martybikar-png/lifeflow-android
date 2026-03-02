@@ -1,7 +1,7 @@
 package com.lifeflow
 
 import android.app.Application
-import com.lifeflow.data.repository.LocalIdentityRepository
+import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.domain.core.DataSovereigntyVault
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.usecase.GetActiveIdentityUseCase
@@ -28,9 +28,6 @@ class LifeFlowApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Base repository (data layer)
-        val localRepository = LocalIdentityRepository()
-
         // Vault + Security layer (Phase II)
         val keyManager = KeyManager()
         vault = AndroidDataSovereigntyVault(applicationContext, keyManager)
@@ -38,8 +35,11 @@ class LifeFlowApplication : Application() {
 
         val encryptionService = EncryptionService(keyManager)
 
+        // Phase II.5: authoritative ciphertext persistence (encrypted-at-rest)
+        val blobStore = EncryptedIdentityBlobStore(applicationContext)
+
         identityRepository = EncryptedIdentityRepository(
-            delegate = localRepository,
+            blobStore = blobStore,
             encryptionService = encryptionService
         )
 

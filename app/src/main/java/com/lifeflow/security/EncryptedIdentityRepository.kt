@@ -1,5 +1,6 @@
 package com.lifeflow.security
 
+import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
 import kotlinx.coroutines.sync.Mutex
@@ -7,86 +8,83 @@ import kotlinx.coroutines.sync.withLock
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
+/**
+ * Authoritative encrypted-at-rest identity repository.
+ *
+ * Storage:
+ * - Persisted ciphertext blobs (IV + ciphertext) in EncryptedIdentityBlobStore
+ *
+ * Enforcement:
+ * - Phase III RuleEngine (V1): denied-by-default, requires active SecurityAccessSession
+ *
+ * Crypto:
+ * - AAD binds ciphertext to identity UUID to prevent ciphertext swapping across ids
+ */
 class EncryptedIdentityRepository(
-    private val delegate: IdentityRepository,
+    private val blobStore: EncryptedIdentityBlobStore,
     private val encryptionService: EncryptionService
 ) : IdentityRepository {
 
     private val mutex = Mutex()
 
-    /**
-     * Encrypted-at-rest storage inside this repository.
-     * Stores: id -> (IV + ciphertext) produced by EncryptionService.encrypt()
-     */
-    private val encryptedStore: MutableMap<UUID, ByteArray> = mutableMapOf()
-
     override suspend fun save(identity: LifeFlowIdentity) {
         mutex.withLock {
-            // 🔐 B: hard gate (must be within recent biometric session window)
-            SecurityAccessSession.requireAuthorized("save(identity) requires active auth session")
+            SecurityRuleEngine.requireAllowed(
+                action = RuleAction.WRITE_SAVE,
+                reason = "save(identity) requires active auth session"
+            )
 
             val plain = serialize(identity)
-            // AAD binds ciphertext to identity id (prevents swapping ciphertexts across ids)
             val aad = identity.id.toString().toByteArray(StandardCharsets.UTF_8)
 
             val cipher = encryptionService.encrypt(plain, aad)
-            encryptedStore[identity.id] = cipher
-
-            // Optional: keep delegate updated for compatibility/migration (non-authoritative)
-            delegate.save(identity)
+            blobStore.put(identity.id, cipher)
         }
     }
 
     override suspend fun getById(id: UUID): LifeFlowIdentity? {
         return mutex.withLock {
-            val cipher = encryptedStore[id]
-            if (cipher != null) {
-                // 🔐 B: hard gate
-                SecurityAccessSession.requireAuthorized("getById(id) requires active auth session")
+            SecurityRuleEngine.requireAllowed(
+                action = RuleAction.READ_BY_ID,
+                reason = "getById(id) requires active auth session"
+            )
 
-                val aad = id.toString().toByteArray(StandardCharsets.UTF_8)
-                val plain = encryptionService.decrypt(cipher, aad)
-                return@withLock deserialize(plain)
-            }
+            val cipher = blobStore.get(id) ?: return@withLock null
+            val aad = id.toString().toByteArray(StandardCharsets.UTF_8)
 
-            // Fallback if something exists only in the delegate (pre-encryption state)
-            delegate.getById(id)
+            val plain = encryptionService.decrypt(cipher, aad)
+            deserialize(plain)
         }
     }
 
     override suspend fun getActiveIdentity(): LifeFlowIdentity? {
         return mutex.withLock {
-            if (encryptedStore.isNotEmpty()) {
-                // 🔐 B: hard gate (decrypt loop)
-                SecurityAccessSession.requireAuthorized("getActiveIdentity() requires active auth session")
-            }
+            SecurityRuleEngine.requireAllowed(
+                action = RuleAction.READ_ACTIVE,
+                reason = "getActiveIdentity() requires active auth session"
+            )
 
-            // Prefer encrypted store (authoritative)
-            for ((id, cipher) in encryptedStore) {
+            for ((id, cipher) in blobStore.entries()) {
                 val aad = id.toString().toByteArray(StandardCharsets.UTF_8)
                 val plain = encryptionService.decrypt(cipher, aad)
                 val identity = deserialize(plain)
                 if (identity.isActive) return@withLock identity
             }
-
-            // Fallback (pre-encryption state)
-            delegate.getActiveIdentity()
+            null
         }
     }
 
     override suspend fun delete(identity: LifeFlowIdentity) {
         mutex.withLock {
-            // 🔐 B: treat delete as sensitive (mutating protected storage)
-            SecurityAccessSession.requireAuthorized("delete(identity) requires active auth session")
-
-            encryptedStore.remove(identity.id)
-            delegate.delete(identity)
+            SecurityRuleEngine.requireAllowed(
+                action = RuleAction.WRITE_DELETE,
+                reason = "delete(identity) requires active auth session"
+            )
+            blobStore.delete(identity.id)
         }
     }
 
     private fun serialize(identity: LifeFlowIdentity): ByteArray {
-        // Stable, minimal serialization (no Android deps)
-        // Format: uuid|createdAtEpochMillis|isActive
         val s = buildString {
             append(identity.id.toString())
             append("|")
