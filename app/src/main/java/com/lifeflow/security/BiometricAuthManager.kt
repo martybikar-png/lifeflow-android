@@ -16,12 +16,10 @@ class BiometricAuthManager(
 
         val biometricManager = BiometricManager.from(activity)
 
-        val authenticators =
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        // ✅ Security policy: BIOMETRIC_STRONG only
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
         val canAuthenticate = biometricManager.canAuthenticate(authenticators)
-
         if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
             onError("Biometric authentication not available: $canAuthenticate")
             return
@@ -37,7 +35,15 @@ class BiometricAuthManager(
                 override fun onAuthenticationSucceeded(
                     result: BiometricPrompt.AuthenticationResult
                 ) {
-                    onSuccess()
+                    // ✅ Fail-closed: accept ONLY real biometric
+                    val authType = result.authenticationType
+                    if (authType == BiometricPrompt.AUTHENTICATION_RESULT_TYPE_BIOMETRIC) {
+                        onSuccess()
+                    } else {
+                        // Some OEM UIs can still surface credential options.
+                        // Even if Android returns success (rare), we deny here.
+                        onError("Device credential is not allowed. Please use biometric authentication.")
+                    }
                 }
 
                 override fun onAuthenticationError(
@@ -48,7 +54,7 @@ class BiometricAuthManager(
                 }
 
                 override fun onAuthenticationFailed() {
-                    // uživatel položil jiný prst – neukončujeme
+                    // user presented a different biometric; do not fail the whole flow
                 }
             }
         )
@@ -57,6 +63,8 @@ class BiometricAuthManager(
             .setTitle("LifeFlow Security")
             .setSubtitle("Authenticate to access encrypted identity")
             .setAllowedAuthenticators(authenticators)
+            // ✅ Without DEVICE_CREDENTIAL, provide an explicit cancel button
+            .setNegativeButtonText("Cancel")
             .build()
 
         biometricPrompt.authenticate(promptInfo)

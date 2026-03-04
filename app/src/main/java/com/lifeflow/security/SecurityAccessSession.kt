@@ -21,10 +21,12 @@ object SecurityAccessSession {
     }
 
     fun isAuthorized(): Boolean {
+        if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) return false
         val now = System.currentTimeMillis()
         return now <= validUntilEpochMs.get()
     }
 
+    @Suppress("unused")
     fun requireAuthorized(reason: String) {
         if (!isAuthorized()) {
             throw SecurityException("SecurityAccessSession denied: $reason")
