@@ -6,6 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun LoadingScreen() {
@@ -23,6 +27,7 @@ fun DashboardScreen(
     stepsLast24h: Long?,
     avgHrLast24h: Long?,
     message: String?,
+    digitalTwinState: DigitalTwinState?,
     onConnectHealth: () -> Unit,
     onReadSteps: () -> Unit,
     onReadHeartRate: () -> Unit
@@ -33,6 +38,7 @@ fun DashboardScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+
         Text(
             text = "Authentication Successful",
             style = MaterialTheme.typography.headlineMedium
@@ -46,12 +52,45 @@ fun DashboardScreen(
             }
         }
 
+        // 🧠 DIGITAL TWIN PANEL
         Card {
             Column(modifier = Modifier.padding(16.dp)) {
+
+                Text(
+                    text = "Digital Twin",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (digitalTwinState != null) {
+
+                    Text("Identity initialized: ${digitalTwinState.identityInitialized}")
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text("Steps (24h): ${digitalTwinState.stepsLast24h ?: "—"}")
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text("Avg HR (24h): ${digitalTwinState.avgHeartRateLast24h ?: "—"}")
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text("Last update: ${formatEpochMillis(digitalTwinState.lastUpdatedEpochMillis)}")
+
+                } else {
+                    Text("Digital Twin not initialized.")
+                }
+            }
+        }
+
+        // ❤️ HEALTH CONNECT
+        Card {
+            Column(modifier = Modifier.padding(16.dp)) {
+
                 Text(
                     text = "Health Connect",
                     style = MaterialTheme.typography.titleMedium
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text("Status: ${healthStateLabel(healthState)}")
@@ -75,6 +114,7 @@ fun DashboardScreen(
                     OutlinedButton(onClick = onReadSteps) {
                         Text("Read Steps (24h)")
                     }
+
                     OutlinedButton(onClick = onReadHeartRate) {
                         Text("Read HR Avg (24h)")
                     }
@@ -106,11 +146,17 @@ private fun healthStateLabel(state: HealthConnectUiState): String =
         HealthConnectUiState.UpdateRequired -> "Update required"
     }
 
+private fun formatEpochMillis(epochMillis: Long): String {
+    val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    return formatter.format(Date(epochMillis))
+}
+
 @Composable
 fun ErrorScreen(
     message: String,
     onResetVault: (() -> Unit)? = null
 ) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -132,6 +178,7 @@ fun ErrorScreen(
         )
 
         if (onResetVault != null) {
+
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(

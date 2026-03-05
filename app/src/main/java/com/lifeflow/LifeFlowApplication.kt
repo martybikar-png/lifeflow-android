@@ -5,6 +5,8 @@ import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.data.wellbeing.HealthConnectWellbeingRepository
 import com.lifeflow.domain.core.DataSovereigntyVault
 import com.lifeflow.domain.core.IdentityRepository
+import com.lifeflow.domain.core.digitaltwin.DigitalTwinEngine
+import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.usecase.GetActiveIdentityUseCase
 import com.lifeflow.domain.usecase.SaveIdentityUseCase
 import com.lifeflow.domain.wellbeing.WellbeingRepository
@@ -23,7 +25,6 @@ class LifeFlowApplication : Application() {
     lateinit var identityRepository: IdentityRepository
         private set
 
-    // Concrete references (for SecurityAdversarialSuite runner)
     lateinit var encryptedIdentityRepository: EncryptedIdentityRepository
         private set
 
@@ -33,11 +34,9 @@ class LifeFlowApplication : Application() {
     lateinit var vault: DataSovereigntyVault
         private set
 
-    // Concrete vault (needed by repo)
     lateinit var androidVault: AndroidDataSovereigntyVault
         private set
 
-    // Concrete key manager (Phase F tests: key loss / reset flow)
     lateinit var keyManager: KeyManager
         private set
 
@@ -47,7 +46,7 @@ class LifeFlowApplication : Application() {
     lateinit var saveIdentityUseCase: SaveIdentityUseCase
         private set
 
-    // ✅ Wellbeing (domain + data)
+    // Wellbeing
     lateinit var wellbeingRepository: WellbeingRepository
         private set
 
@@ -66,9 +65,14 @@ class LifeFlowApplication : Application() {
     lateinit var getAvgHeartRateLast24hUseCase: GetAvgHeartRateLast24hUseCase
         private set
 
+    // Digital Twin
+    lateinit var digitalTwinOrchestrator: DigitalTwinOrchestrator
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
+        // Security
         keyManager = KeyManager()
 
         androidVault = AndroidDataSovereigntyVault(applicationContext, keyManager)
@@ -90,7 +94,7 @@ class LifeFlowApplication : Application() {
         getActiveIdentityUseCase = GetActiveIdentityUseCase(identityRepository)
         saveIdentityUseCase = SaveIdentityUseCase(identityRepository)
 
-        // ✅ Wellbeing wiring
+        // Wellbeing
         wellbeingRepository = HealthConnectWellbeingRepository(applicationContext)
 
         getHealthConnectStatusUseCase = GetHealthConnectStatusUseCase(wellbeingRepository)
@@ -98,5 +102,9 @@ class LifeFlowApplication : Application() {
         getGrantedHealthPermissionsUseCase = GetGrantedHealthPermissionsUseCase(wellbeingRepository)
         getStepsLast24hUseCase = GetStepsLast24hUseCase(wellbeingRepository)
         getAvgHeartRateLast24hUseCase = GetAvgHeartRateLast24hUseCase(wellbeingRepository)
+
+        // Digital Twin (FIX: engine must be passed)
+        val digitalTwinEngine = DigitalTwinEngine()
+        digitalTwinOrchestrator = DigitalTwinOrchestrator(digitalTwinEngine)
     }
 }
