@@ -3,6 +3,7 @@ package com.lifeflow.wellbeing
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,9 +37,10 @@ private fun PermissionsRationaleScreen(onClose: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Text(
                 text = "Health Data Permissions",
                 style = MaterialTheme.typography.headlineSmall
@@ -58,4 +60,4 @@ private fun PermissionsRationaleScreen(onClose: () -> Unit) {
             }
         }
     }
-}○
+}
