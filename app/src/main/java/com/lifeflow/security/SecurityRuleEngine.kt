@@ -39,7 +39,8 @@ object SecurityRuleEngine {
     private var denyCount: Int = 0
 
     // --- Trust state (observable for UI) ---
-    private val _trustState = MutableStateFlow(TrustState.VERIFIED)
+    // Start fail-closed: until a successful biometric auth happens, we are in locked/limited mode.
+    private val _trustState = MutableStateFlow(TrustState.DEGRADED)
     val trustState: StateFlow<TrustState> = _trustState.asStateFlow()
 
     @Synchronized

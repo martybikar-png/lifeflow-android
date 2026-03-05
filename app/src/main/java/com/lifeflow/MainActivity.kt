@@ -1,52 +1,38 @@
 package com.lifeflow
 
 import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
-import androidx.health.connect.client.PermissionController
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import com.lifeflow.domain.wellbeing.WellbeingRepository
+import androidx.health.connect.client.PermissionController
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.StepsRecord
 import com.lifeflow.security.BiometricAuthManager
 import com.lifeflow.security.SecurityAccessSession
-import com.lifeflow.security.SecurityAdversarialSuite
-import com.lifeflow.security.SecurityRuleEngine
-import com.lifeflow.security.TrustState
-import kotlinx.coroutines.launch
-import kotlin.math.roundToLong
 
 class MainActivity : FragmentActivity() {
 
     private lateinit var biometricAuthManager: BiometricAuthManager
     private lateinit var viewModel: MainViewModel
-
-    // ✅ Suite is a checkpoint tool; keep OFF by default
-    private val runAdversarialSuiteOnStart: Boolean = false
-
-    // UI states owned by Activity (simple & explicit)
-    private val stepsLast24h = mutableStateOf<Long?>(null)
-    private val avgHrLast24h = mutableStateOf<Long?>(null)
-    private val healthMessage = mutableStateOf<String?>(null)
-
-    private val healthPermissionsLauncher = registerForActivityResult(
-        PermissionController.createRequestPermissionResultContract()
-    ) { grantedPermissions ->
-        val app = application as LifeFlowApplication
-        val required = app.getHealthPermissionsUseCase()
-        val allGranted = grantedPermissions.containsAll(required)
-
-        if (allGranted) {
-            healthMessage.value = "Health Connect permissions granted."
-            // Best-effort reads after permissions
-            readStepsLast24h()
-            readAvgHeartRateLast24h()
-        } else {
-            healthMessage.value = "Health permissions not granted."
-        }
-
-        viewModel.refreshHealthConnectStatus()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,206 +41,119 @@ class MainActivity : FragmentActivity() {
 
         viewModel = ViewModelProvider(
             this,
-            MainViewModelFactory(
-                repository = app.identityRepository,
-                getHealthConnectStatus = app.getHealthConnectStatusUseCase
-            )
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+                        return MainViewModel(
+                            repository = app.identityRepository,
+                            getHealthConnectStatus = app.getHealthConnectStatusUseCase,
+                            getHealthPermissions = app.getHealthPermissionsUseCase,
+                            getGrantedHealthPermissions = app.getGrantedHealthPermissionsUseCase,
+                            getStepsLast24h = app.getStepsLast24hUseCase,
+                            getAvgHeartRateLast24h = app.getAvgHeartRateLast24hUseCase
+                        ) as T
+                    }
+                    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+                }
+            }
         )[MainViewModel::class.java]
+
+        viewModel.bindDigitalTwin(app.digitalTwinOrchestrator)
 
         biometricAuthManager = BiometricAuthManager(this)
 
         setContent {
-            when (val state = viewModel.uiState.value) {
-                UiState.Loading -> LoadingScreen()
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
 
-                UiState.Authenticated -> DashboardScreen(
-                    healthState = viewModel.healthConnectState.value,
-                    stepsLast24h = stepsLast24h.value,
-                    avgHrLast24h = avgHrLast24h.value,
-                    message = healthMessage.value,
-                    onConnectHealth = { connectHealth() },
-                    onReadSteps = { readStepsLast24h() },
-                    onReadHeartRate = { readAvgHeartRateLast24h() }
-                )
+                    var authRequested by remember { mutableStateOf(false) }
 
-                is UiState.Error -> ErrorScreen(
-                    message = state.message,
-                    onResetVault = { resetVaultAndReauth(app) }
-                )
-            }
-        }
+                    val uiState = viewModel.uiState.value
+                    val hcState = viewModel.healthConnectState.value
+                    val twin = viewModel.digitalTwinState.value
 
-        startAuthentication(app)
-    }
+                    val required = viewModel.requiredHealthPermissions.value
+                    val granted = viewModel.grantedHealthPermissions.value
 
-    private fun startAuthentication(app: LifeFlowApplication) {
-        biometricAuthManager.authenticate(
-            onSuccess = {
-                // 1) Grant session first (your security gate)
-                SecurityAccessSession.grant(durationMs = 30_000)
+                    val stepsReadPerm = HealthPermission.getReadPermission(StepsRecord::class)
+                    val hrReadPerm = HealthPermission.getReadPermission(HeartRateRecord::class)
 
-                // 2) Refresh Health Connect availability right after auth
-                viewModel.refreshHealthConnectStatus()
+                    val stepsRequired = required.contains(stepsReadPerm)
+                    val hrRequired = required.contains(hrReadPerm)
 
-                if (runAdversarialSuiteOnStart) {
-                    lifecycleScope.launch {
-                        SecurityAdversarialSuite.runAll(
-                            repository = app.encryptedIdentityRepository,
-                            blobStore = app.identityBlobStore,
-                            keyManager = app.keyManager,
-                            vault = app.androidVault
+                    val stepsGranted = stepsRequired && granted.contains(stepsReadPerm)
+                    val hrGranted = hrRequired && granted.contains(hrReadPerm)
+
+                    // Health Connect permissions contract (works with connect-client alpha line)
+                    val permissionsLauncher = rememberLauncherForActivityResult(
+                        contract = PermissionController.createRequestPermissionResultContract()
+                    ) { grantedPermissions: Set<String> ->
+                        viewModel.onHealthPermissionsResult(grantedPermissions)
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("LifeFlow", style = MaterialTheme.typography.headlineMedium)
+
+                        Spacer(Modifier.height(12.dp))
+                        Text(uiState.toString(), style = MaterialTheme.typography.bodyMedium)
+
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = "HealthConnect: ${hcState::class.simpleName ?: hcState.toString()}",
+                            style = MaterialTheme.typography.bodyMedium
                         )
 
-                        if (SecurityRuleEngine.getTrustState() != TrustState.COMPROMISED) {
-                            viewModel.onAuthenticationSuccess()
-                        } else {
-                            SecurityAccessSession.clear()
-                            viewModel.onAuthenticationError("Security compromised (adversarial suite).")
-                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text("Read Steps: ${if (stepsGranted) "Granted" else "Denied"}")
+                        Text("Read Heart Rate: ${if (hrGranted) "Granted" else "Denied"}")
+
+                        Spacer(Modifier.height(12.dp))
+                        Text("DigitalTwin: steps=${twin?.stepsLast24h ?: "?"}, hr=${twin?.avgHeartRateLast24h ?: "?"}")
+
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Twin updated: ${twin?.lastUpdatedEpochMillis ?: "?"}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                if (required.isNotEmpty()) {
+                                    permissionsLauncher.launch(required)
+                                }
+                            }
+                        ) { Text("Grant Health permissions") }
+
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                authRequested = true
+                                biometricAuthManager.authenticate(
+                                    onSuccess = {
+                                        // ✅ Fail-closed guard:
+                                        // If biometric "succeeds" but session is not active,
+                                        // we do NOT touch secured repository.
+                                        if (!SecurityAccessSession.isAuthorized()) {
+                                            viewModel.onAuthenticationError(
+                                                "Biometric OK, but auth session is NOT active. " +
+                                                        "This usually means you're not running the updated BiometricAuthManager (missing SecurityAccessSession.grant...)."
+                                            )
+                                        } else {
+                                            viewModel.onAuthenticationSuccess()
+                                        }
+                                    },
+                                    onError = { msg -> viewModel.onAuthenticationError(msg) }
+                                )
+                            }
+                        ) { Text(if (authRequested) "Re-authenticate" else "Authenticate") }
                     }
-                } else {
-                    viewModel.onAuthenticationSuccess()
                 }
-            },
-            onError = { error ->
-                SecurityAccessSession.clear()
-                viewModel.onAuthenticationError(error)
-            }
-        )
-    }
-
-    private fun connectHealth() {
-        val app = application as LifeFlowApplication
-        val status = app.getHealthConnectStatusUseCase()
-
-        when (status) {
-            WellbeingRepository.SdkStatus.NotSupported -> {
-                healthMessage.value = "Health Connect not supported on this device."
-                return
-            }
-
-            WellbeingRepository.SdkStatus.NotInstalled -> {
-                healthMessage.value = "Health Connect not installed."
-                return
-            }
-
-            WellbeingRepository.SdkStatus.UpdateRequired -> {
-                healthMessage.value = "Health Connect update required."
-                return
-            }
-
-            WellbeingRepository.SdkStatus.Available -> Unit
-        }
-
-        lifecycleScope.launch {
-            try {
-                val granted = app.getGrantedHealthPermissionsUseCase()
-                val required = app.getHealthPermissionsUseCase()
-
-                if (granted.containsAll(required)) {
-                    healthMessage.value = "Health Connect already connected."
-                    return@launch
-                }
-
-                healthMessage.value = "Requesting Health permissions…"
-                healthPermissionsLauncher.launch(required)
-
-            } catch (t: Throwable) {
-                healthMessage.value = "Health Connect error: ${t.message ?: "unknown error"}"
-            }
-        }
-    }
-
-    private fun ensureSessionAndAvailabilityOrExplain(): Boolean {
-        if (!SecurityAccessSession.isAuthorized()) {
-            healthMessage.value = "Session expired. Please re-authenticate."
-            return false
-        }
-
-        val app = application as LifeFlowApplication
-        val status = app.getHealthConnectStatusUseCase()
-        if (status != WellbeingRepository.SdkStatus.Available) {
-            healthMessage.value = "Health Connect not available: $status"
-            return false
-        }
-
-        return true
-    }
-
-    private fun readStepsLast24h() {
-        if (!ensureSessionAndAvailabilityOrExplain()) return
-
-        lifecycleScope.launch {
-            try {
-                val app = application as LifeFlowApplication
-                val granted = app.getGrantedHealthPermissionsUseCase()
-                val required = app.getHealthPermissionsUseCase()
-
-                if (!granted.containsAll(required)) {
-                    healthMessage.value = "Missing permissions. Tap Connect Health first."
-                    return@launch
-                }
-
-                val steps = app.getStepsLast24hUseCase()
-                stepsLast24h.value = steps
-                healthMessage.value = "Steps loaded."
-
-            } catch (t: Throwable) {
-                healthMessage.value = "Read steps failed: ${t.message ?: "unknown error"}"
-            }
-        }
-    }
-
-    private fun readAvgHeartRateLast24h() {
-        if (!ensureSessionAndAvailabilityOrExplain()) return
-
-        lifecycleScope.launch {
-            try {
-                val app = application as LifeFlowApplication
-                val granted = app.getGrantedHealthPermissionsUseCase()
-                val required = app.getHealthPermissionsUseCase()
-
-                if (!granted.containsAll(required)) {
-                    healthMessage.value = "Missing permissions. Tap Connect Health first."
-                    return@launch
-                }
-
-                val avg = app.getAvgHeartRateLast24hUseCase()
-                avgHrLast24h.value = avg?.roundToLong()
-
-                healthMessage.value =
-                    if (avg != null) "Heart rate loaded." else "No heart rate data found (24h)."
-
-            } catch (t: Throwable) {
-                healthMessage.value = "Read heart rate failed: ${t.message ?: "unknown error"}"
-            }
-        }
-    }
-
-    private fun resetVaultAndReauth(app: LifeFlowApplication) {
-        lifecycleScope.launch {
-            try {
-                SecurityAccessSession.clear()
-
-                app.androidVault.resetVault()
-                app.identityBlobStore.clearAll()
-                app.androidVault.ensureInitialized()
-
-                SecurityRuleEngine.setTrustState(
-                    TrustState.VERIFIED,
-                    reason = "User initiated vault reset"
-                )
-
-                // clear wellbeing UI states
-                stepsLast24h.value = null
-                avgHrLast24h.value = null
-                healthMessage.value = "Vault reset complete. Please authenticate again."
-
-                startAuthentication(app)
-
-            } catch (t: Throwable) {
-                SecurityAccessSession.clear()
-                viewModel.onAuthenticationError("Vault reset failed: ${t.message ?: "unknown error"}")
             }
         }
     }

@@ -38,6 +38,17 @@ class BiometricAuthManager(
                     // ✅ Fail-closed: accept ONLY real biometric
                     val authType = result.authenticationType
                     if (authType == BiometricPrompt.AUTHENTICATION_RESULT_TYPE_BIOMETRIC) {
+
+                        // ✅ CRITICAL: open an active session BEFORE allowing any secured reads
+                        SecurityAccessSession.grantDefault()
+
+                        // ✅ Reset to VERIFIED after a successful biometric
+                        // (prevents "stuck in DEGRADED" after pre-auth denies)
+                        SecurityRuleEngine.setTrustState(
+                            TrustState.VERIFIED,
+                            reason = "Biometric verified"
+                        )
+
                         onSuccess()
                     } else {
                         // Some OEM UIs can still surface credential options.
