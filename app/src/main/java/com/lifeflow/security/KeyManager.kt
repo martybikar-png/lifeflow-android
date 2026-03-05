@@ -9,7 +9,8 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 class KeyManager(
-    private val alias: String = "LifeFlow_Master_Key"
+    private val alias: String = "LifeFlow_Master_Key",
+    private val requireUserAuth: Boolean = true
 ) {
 
     private companion object {
@@ -52,25 +53,29 @@ class KeyManager(
             .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setRandomizedEncryptionRequired(true)
-            .setUserAuthenticationRequired(true)
 
-        // Invalidate key when new biometric is enrolled (only supported API 24+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            builder.setInvalidatedByBiometricEnrollment(true)
-        }
+        // --- User auth requirement (prod default = true; androidTest can disable) ---
+        if (requireUserAuth) {
+            builder.setUserAuthenticationRequired(true)
 
-        // Auth rules differ by API level:
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // API 30+: biometric strong only, 30s window after auth
-            builder.setUserAuthenticationParameters(
-                AUTH_VALIDITY_SECONDS,
-                KeyProperties.AUTH_BIOMETRIC_STRONG
-            )
-        } else {
-            // API 23–29: cannot strictly force "biometric strong" at keystore level.
-            // We enforce biometric in UI (BiometricPrompt), and use a short validity window here.
-            @Suppress("DEPRECATION")
-            builder.setUserAuthenticationValidityDurationSeconds(AUTH_VALIDITY_SECONDS)
+            // Invalidate key when new biometric is enrolled (API 24+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                builder.setInvalidatedByBiometricEnrollment(true)
+            }
+
+            // Auth rules differ by API level:
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // API 30+: biometric strong only, 30s window after auth
+                builder.setUserAuthenticationParameters(
+                    AUTH_VALIDITY_SECONDS,
+                    KeyProperties.AUTH_BIOMETRIC_STRONG
+                )
+            } else {
+                // API 23–29: cannot strictly force "biometric strong" at keystore level.
+                // We enforce biometric in UI (BiometricPrompt), and use a short validity window here.
+                @Suppress("DEPRECATION")
+                builder.setUserAuthenticationValidityDurationSeconds(AUTH_VALIDITY_SECONDS)
+            }
         }
 
         // StrongBox preference (API 28+)

@@ -73,7 +73,19 @@ class LifeFlowApplication : Application() {
         super.onCreate()
 
         // Security
-        keyManager = KeyManager()
+        val isInstrumentation = isRunningInstrumentation()
+
+        // IMPORTANT:
+        // - Production key stays user-auth gated (biometric window).
+        // - Instrumentation tests use a separate alias without user-auth, so crypto roundtrips can run non-interactively.
+        keyManager = if (isInstrumentation) {
+            KeyManager(
+                alias = "LifeFlow_Test_Key",
+                requireUserAuth = false
+            )
+        } else {
+            KeyManager()
+        }
 
         androidVault = AndroidDataSovereigntyVault(applicationContext, keyManager)
         vault = androidVault
@@ -103,8 +115,17 @@ class LifeFlowApplication : Application() {
         getStepsLast24hUseCase = GetStepsLast24hUseCase(wellbeingRepository)
         getAvgHeartRateLast24hUseCase = GetAvgHeartRateLast24hUseCase(wellbeingRepository)
 
-        // Digital Twin (FIX: engine must be passed)
+        // Digital Twin
         val digitalTwinEngine = DigitalTwinEngine()
         digitalTwinOrchestrator = DigitalTwinOrchestrator(digitalTwinEngine)
+    }
+
+    private fun isRunningInstrumentation(): Boolean {
+        return try {
+            Class.forName("androidx.test.platform.app.InstrumentationRegistry")
+            true
+        } catch (_: Throwable) {
+            false
+        }
     }
 }
