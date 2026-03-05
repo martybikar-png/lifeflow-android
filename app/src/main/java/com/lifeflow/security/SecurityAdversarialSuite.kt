@@ -33,6 +33,10 @@ object SecurityAdversarialSuite {
         vault: AndroidDataSovereigntyVault
     ): List<TestResult> {
 
+        // ✅ Deterministic baseline for suite start
+        SecurityAccessSession.clear()
+        SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite baseline")
+
         val results = mutableListOf<TestResult>()
 
         blobStore.clearAll()
@@ -51,11 +55,12 @@ object SecurityAdversarialSuite {
         results += testLegacyDowngradeInjectionIsBlocked(repository, blobStore)
         blobStore.clearAll()
 
-        // Phase F
-        results += testKeyLossFailsClosed(repository, blobStore, keyManager)
+        // IMPORTANT: G before F so key-loss doesn't poison later tests.
+        results += testVaultVersionLossFailsClosed(repository, blobStore, vault)
         blobStore.clearAll()
 
-        results += testVaultVersionLossFailsClosed(repository, blobStore, vault)
+        // IMPORTANT: F last + restore baseline key after simulation.
+        results += testKeyLossFailsClosedAndRestoreBaseline(repository, blobStore, keyManager)
         blobStore.clearAll()
 
         results.forEach { r ->
@@ -75,6 +80,8 @@ object SecurityAdversarialSuite {
         val name = "A) No-session fails closed"
 
         return try {
+            // ✅ Make this test strictly about "no session" (not leftover compromised state)
+            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite A baseline")
             SecurityAccessSession.clear()
 
             try {
@@ -268,42 +275,6 @@ object SecurityAdversarialSuite {
     }
 
     // ---------------------------
-    // F) Key loss simulation
-    // ---------------------------
-    private suspend fun testKeyLossFailsClosed(
-        repository: EncryptedIdentityRepository,
-        blobStore: EncryptedIdentityBlobStore,
-        keyManager: KeyManager
-    ): TestResult {
-        val name = "F) Key loss -> fail-closed + COMPROMISED"
-
-        return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
-
-            val id = UUID.randomUUID()
-            repository.save(LifeFlowIdentity(id, System.currentTimeMillis(), isActive = true))
-
-            // simulate key loss
-            keyManager.deleteKey()
-
-            try {
-                repository.getById(id)
-                TestResult(name, false, "Decrypt unexpectedly succeeded after key deletion")
-            } catch (_: SecurityException) {
-                val stateOk = SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED
-                val sessionOk = !SecurityAccessSession.isAuthorized()
-                if (stateOk && sessionOk) TestResult(name, true, "Fail-closed OK (COMPROMISED + session cleared)")
-                else TestResult(name, false, "Mismatch: trustState=${SecurityRuleEngine.getTrustState()}, sessionAuthorized=${SecurityAccessSession.isAuthorized()}")
-            } catch (t: Throwable) {
-                TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
-            }
-        } catch (t: Throwable) {
-            TestResult(name, false, "Unexpected failure: ${t::class.java.simpleName}: ${t.message}")
-        }
-    }
-
-    // ---------------------------
     // G) Vault version loss simulation
     // ---------------------------
     private suspend fun testVaultVersionLossFailsClosed(
@@ -336,6 +307,49 @@ object SecurityAdversarialSuite {
             }
         } catch (t: Throwable) {
             TestResult(name, false, "Unexpected failure: ${t::class.java.simpleName}: ${t.message}")
+        }
+    }
+
+    // ---------------------------
+    // F) Key loss simulation (LAST) + restore baseline
+    // ---------------------------
+    private suspend fun testKeyLossFailsClosedAndRestoreBaseline(
+        repository: EncryptedIdentityRepository,
+        blobStore: EncryptedIdentityBlobStore,
+        keyManager: KeyManager
+    ): TestResult {
+        val name = "F) Key loss -> fail-closed + COMPROMISED (baseline restored)"
+
+        return try {
+            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
+            SecurityAccessSession.grant(durationMs = 30_000)
+
+            val id = UUID.randomUUID()
+            repository.save(LifeFlowIdentity(id, System.currentTimeMillis(), isActive = true))
+
+            // simulate key loss
+            keyManager.deleteKey()
+
+            val result = try {
+                repository.getById(id)
+                TestResult(name, false, "Decrypt unexpectedly succeeded after key deletion")
+            } catch (_: SecurityException) {
+                val stateOk = SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED
+                val sessionOk = !SecurityAccessSession.isAuthorized()
+                if (stateOk && sessionOk) TestResult(name, true, "Fail-closed OK (COMPROMISED + session cleared)")
+                else TestResult(name, false, "Mismatch: trustState=${SecurityRuleEngine.getTrustState()}, sessionAuthorized=${SecurityAccessSession.isAuthorized()}")
+            } catch (t: Throwable) {
+                TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
+            }
+
+            result
+        } catch (t: Throwable) {
+            TestResult(name, false, "Unexpected failure: ${t::class.java.simpleName}: ${t.message}")
+        } finally {
+            // restore baseline so app/dev flow can continue safely
+            try { keyManager.generateKey() } catch (_: Throwable) {}
+            SecurityAccessSession.clear()
+            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite baseline restore")
         }
     }
 }
