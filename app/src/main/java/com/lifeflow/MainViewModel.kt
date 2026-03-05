@@ -43,6 +43,10 @@ class MainViewModel(
     var grantedHealthPermissions = mutableStateOf<Set<String>>(emptySet())
         private set
 
+    // Visible reason if permissions init fails (never silent)
+    var healthPermissionsInitError = mutableStateOf<String?>(null)
+        private set
+
     // Digital Twin state exposed to UI
     var digitalTwinState = mutableStateOf<DigitalTwinState?>(null)
         private set
@@ -63,11 +67,14 @@ class MainViewModel(
             }
         }
 
-        // Static required permissions (safe to compute anytime)
-        requiredHealthPermissions.value = try {
-            getHealthPermissions()
-        } catch (_: Throwable) {
-            emptySet()
+        // Static required permissions (safe to compute anytime) — NEVER silent failure
+        try {
+            requiredHealthPermissions.value = getHealthPermissions()
+            healthPermissionsInitError.value = null
+        } catch (t: Throwable) {
+            requiredHealthPermissions.value = emptySet()
+            healthPermissionsInitError.value =
+                "${t::class.java.simpleName}: ${t.message ?: "unknown error"}"
         }
     }
 
@@ -108,13 +115,16 @@ class MainViewModel(
         }
     }
 
-    fun onHealthPermissionsResult(granted: Set<String>) {
-        // Health Connect returns the granted set after user action
-        grantedHealthPermissions.value = granted
+    fun refreshGrantedPermissions() {
+        viewModelScope.launch { refreshGrantedPermissionsSafe() }
+    }
 
-        // After granting, try to refresh metrics + twin (best-effort)
+    fun onHealthPermissionsResult(@Suppress("UNUSED_PARAMETER") granted: Set<String>) {
+        // Do NOT trust callback payload as the only source of truth (OEM/HC can be flaky)
         viewModelScope.launch {
-            // Only attempt metrics if already authenticated
+            refreshGrantedPermissionsSafe()
+
+            // After granting, try to refresh metrics + twin (best-effort)
             if (uiState.value is UiState.Authenticated) {
                 refreshMetricsAndTwinBestEffort()
             }
@@ -127,7 +137,6 @@ class MainViewModel(
         viewModelScope.launch {
             try {
                 // ✅ HARD FAIL-CLOSED GATE:
-                // If Activity/UI called this without an active auth session, we stop here.
                 if (!SecurityAccessSession.isAuthorized()) {
                     uiState.value = UiState.Error(
                         "Active auth session missing. Please authenticate again."
@@ -135,8 +144,7 @@ class MainViewModel(
                     return@launch
                 }
 
-                // (Optional but useful) Ensure we are not stuck in a degraded state after pre-auth denies.
-                // This does NOT bypass security, because it only happens if session is already active.
+                // This does NOT bypass security (only runs if session already active)
                 SecurityRuleEngine.setTrustState(
                     TrustState.VERIFIED,
                     reason = "Auth session active (post-biometric)"
@@ -153,23 +161,19 @@ class MainViewModel(
                     repository.save(newIdentity)
                 }
 
-                // Security gate passed
                 uiState.value = UiState.Authenticated
 
             } catch (e: SecurityException) {
-                // Security failures always clear the session (fail-closed)
                 SecurityAccessSession.clear()
                 uiState.value = UiState.Error(e.message ?: "Security denied")
                 return@launch
             } catch (t: Throwable) {
-                // Bootstrap failure: also fail-closed
                 SecurityAccessSession.clear()
                 uiState.value = UiState.Error(t.message ?: "Bootstrap failed")
                 return@launch
             }
 
-            // ✅ Non-security best-effort work AFTER successful identity bootstrap:
-            // Do not break auth just because Health Connect is flaky.
+            // ✅ Non-security best-effort AFTER successful identity bootstrap
             try { refreshHealthConnectStatus() } catch (_: Throwable) {}
             try { refreshGrantedPermissionsSafe() } catch (_: Throwable) {}
             try { refreshMetricsAndTwinBestEffort() } catch (_: Throwable) {}
