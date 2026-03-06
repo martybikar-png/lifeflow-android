@@ -48,7 +48,6 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":domain"))
     implementation(project(":data"))
-    implementation(project(":security"))
 
     // ✅ Health Connect (needed for PermissionController)
     implementation("androidx.health.connect:connect-client:1.1.0")
