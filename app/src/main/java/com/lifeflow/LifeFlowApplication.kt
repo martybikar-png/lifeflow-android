@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import android.app.Application
+import com.lifeflow.core.LifeFlowOrchestrator
 import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.data.wellbeing.HealthConnectWellbeingRepository
 import com.lifeflow.domain.core.DataSovereigntyVault
@@ -19,6 +20,7 @@ import com.lifeflow.security.AndroidDataSovereigntyVault
 import com.lifeflow.security.EncryptedIdentityRepository
 import com.lifeflow.security.EncryptionService
 import com.lifeflow.security.KeyManager
+import com.lifeflow.security.ResetVaultUseCase
 
 class LifeFlowApplication : Application() {
 
@@ -69,15 +71,34 @@ class LifeFlowApplication : Application() {
     lateinit var digitalTwinOrchestrator: DigitalTwinOrchestrator
         private set
 
+    // Recovery
+    lateinit var resetVaultUseCase: ResetVaultUseCase
+        private set
+
+    val mainOrchestrator: LifeFlowOrchestrator by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        LifeFlowOrchestrator(
+            identityRepository = identityRepository,
+            digitalTwinOrchestrator = digitalTwinOrchestrator,
+            getHealthConnectStatus = getHealthConnectStatusUseCase,
+            getHealthPermissions = getHealthPermissionsUseCase,
+            getGrantedHealthPermissions = getGrantedHealthPermissionsUseCase,
+            getStepsLast24h = getStepsLast24hUseCase,
+            getAvgHeartRateLast24h = getAvgHeartRateLast24hUseCase
+        )
+    }
+
+    val mainViewModelFactory: MainViewModelFactory by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        MainViewModelFactory(
+            orchestrator = mainOrchestrator,
+            resetVaultUseCase = resetVaultUseCase
+        )
+    }
+
     override fun onCreate() {
         super.onCreate()
 
-        // Security
         val isInstrumentation = isRunningInstrumentation()
 
-        // IMPORTANT:
-        // - Production key stays user-auth gated (biometric window).
-        // - Instrumentation tests use a separate alias without user-auth, so crypto roundtrips can run non-interactively.
         keyManager = if (isInstrumentation) {
             KeyManager(
                 alias = "LifeFlow_Test_Key",
@@ -106,7 +127,6 @@ class LifeFlowApplication : Application() {
         getActiveIdentityUseCase = GetActiveIdentityUseCase(identityRepository)
         saveIdentityUseCase = SaveIdentityUseCase(identityRepository)
 
-        // Wellbeing
         wellbeingRepository = HealthConnectWellbeingRepository(applicationContext)
 
         getHealthConnectStatusUseCase = GetHealthConnectStatusUseCase(wellbeingRepository)
@@ -115,9 +135,13 @@ class LifeFlowApplication : Application() {
         getStepsLast24hUseCase = GetStepsLast24hUseCase(wellbeingRepository)
         getAvgHeartRateLast24hUseCase = GetAvgHeartRateLast24hUseCase(wellbeingRepository)
 
-        // Digital Twin
         val digitalTwinEngine = DigitalTwinEngine()
         digitalTwinOrchestrator = DigitalTwinOrchestrator(digitalTwinEngine)
+
+        resetVaultUseCase = ResetVaultUseCase(
+            blobStore = identityBlobStore,
+            vault = androidVault
+        )
     }
 
     private fun isRunningInstrumentation(): Boolean {

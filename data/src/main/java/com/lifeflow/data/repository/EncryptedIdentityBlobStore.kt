@@ -54,11 +54,19 @@ class EncryptedIdentityBlobStore(
         }
     }
 
+    /**
+     * Deterministic wipe:
+     * - removes all stored ciphertext blobs + index
+     * - uses commit() so reset flow can be fail-closed and reliable
+     */
     fun clearAll() {
         val keys = prefs.getStringSet(KEY_INDEX, emptySet()) ?: emptySet()
         val editor = prefs.edit()
         keys.forEach { editor.remove(it) }
-        editor.remove(KEY_INDEX).apply()
+        editor.remove(KEY_INDEX)
+
+        val ok = editor.commit()
+        if (!ok) throw IllegalStateException("BlobStore clearAll commit failed")
     }
 
     private fun keyFor(id: UUID): String = "id_$id"
