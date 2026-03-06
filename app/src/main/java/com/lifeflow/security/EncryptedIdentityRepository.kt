@@ -21,6 +21,12 @@ import java.util.UUID
  * - Old stored blobs had NO scheme marker and used legacy AAD = "$UUID"
  * - We treat "no marker" as legacy, allow decrypt only in legacy mode,
  *   and after successful read we migrate to versioned scheme (if allowed).
+ *
+ * Consistency hardening:
+ * - Encrypt for the next version first
+ * - Write blob first
+ * - Commit vault version second
+ * - If vault version commit fails, roll blob back best-effort and fail closed
  */
 class EncryptedIdentityRepository(
     private val blobStore: EncryptedIdentityBlobStore,
@@ -39,18 +45,17 @@ class EncryptedIdentityRepository(
 
             val plain = serialize(identity)
 
-            // Monotonic version bump: any new save advances version
-            val version = vault.nextIdentityVersion(identity.id)
-            val aad = aadVersioned(identity.id, version)
-
             try {
-                val cipher = encryptionService.encrypt(plain, aad)
-                val stored = wrapWithSchemeMarker(SCHEME_VERSIONED, cipher)
-                blobStore.put(identity.id, stored)
+                writeVersionedBlob(
+                    id = identity.id,
+                    plain = plain,
+                    action = RuleAction.WRITE_SAVE,
+                    operation = "save()"
+                )
             } catch (t: Throwable) {
                 SecurityRuleEngine.reportCryptoFailure(
                     action = RuleAction.WRITE_SAVE,
-                    reason = "encrypt/store failed for id=${identity.id}",
+                    reason = "save failed for id=${identity.id}",
                     throwable = t
                 )
                 throw SecurityException("EncryptedIdentityRepository: save() crypto failure", t)
@@ -70,7 +75,9 @@ class EncryptedIdentityRepository(
 
             try {
                 val plain = decryptStrict(id, version, stored)
-                deserialize(plain)
+                val identity = deserialize(plain)
+                require(identity.id == id) { "Identity id mismatch for requested id=$id" }
+                identity
             } catch (t: Throwable) {
                 SecurityRuleEngine.reportCryptoFailure(
                     action = RuleAction.READ_BY_ID,
@@ -94,6 +101,11 @@ class EncryptedIdentityRepository(
                     val version = vault.getIdentityVersion(id)
                     val plain = decryptStrict(id, version, stored)
                     val identity = deserialize(plain)
+
+                    if (identity.id != id) {
+                        throw SecurityException("Identity id mismatch during active scan for id=$id")
+                    }
+
                     if (identity.isActive) return@withLock identity
                 }
                 null
@@ -142,18 +154,13 @@ class EncryptedIdentityRepository(
 
         return when (scheme) {
             SCHEME_VERSIONED -> {
-                // Fail-closed if vault does not know version
                 require(version > 0L) { "Missing vault version for versioned blob id=$id" }
                 encryptionService.decrypt(cipher, aadVersioned(id, version))
             }
 
             SCHEME_LEGACY -> {
                 val plain = encryptionService.decrypt(cipher, aadLegacy(id))
-
-                // Best-effort migration: once legacy decrypt works, rewrite as versioned.
-                // This closes downgrade window over time.
                 migrateLegacyToVersioned(id, plain)
-
                 plain
             }
 
@@ -167,17 +174,16 @@ class EncryptedIdentityRepository(
      * we report and fail-closed.
      */
     private suspend fun migrateLegacyToVersioned(id: UUID, plain: ByteArray) {
-        // parse to ensure it's a valid identity payload for this id (optional hardening)
         val identity = runCatching { deserialize(plain) }.getOrNull() ?: return
         if (identity.id != id) return
 
-        val nextV = vault.nextIdentityVersion(id)
-        val aad = aadVersioned(id, nextV)
-
         try {
-            val cipher = encryptionService.encrypt(plain, aad)
-            val stored = wrapWithSchemeMarker(SCHEME_VERSIONED, cipher)
-            blobStore.put(id, stored)
+            writeVersionedBlob(
+                id = id,
+                plain = plain,
+                action = RuleAction.WRITE_SAVE,
+                operation = "legacy migration"
+            )
         } catch (t: Throwable) {
             SecurityRuleEngine.reportCryptoFailure(
                 action = RuleAction.WRITE_SAVE,
@@ -185,6 +191,72 @@ class EncryptedIdentityRepository(
                 throwable = t
             )
             throw SecurityException("EncryptedIdentityRepository: migration crypto failure", t)
+        }
+    }
+
+    /**
+     * Writes a versioned blob with best-effort consistency:
+     * 1) compute next version without mutating vault
+     * 2) encrypt for that next version
+     * 3) write blob
+     * 4) commit vault version
+     * 5) if step 4 fails, restore previous blob and fail closed
+     */
+    private fun writeVersionedBlob(
+        id: UUID,
+        plain: ByteArray,
+        action: RuleAction,
+        operation: String
+    ) {
+        val previousVersion = vault.getIdentityVersion(id)
+        val nextVersion = previousVersion + 1L
+        require(nextVersion > 0L) { "Version overflow for id=$id" }
+
+        val previousStored = blobStore.get(id)
+        val aad = aadVersioned(id, nextVersion)
+
+        val stored = try {
+            val cipher = encryptionService.encrypt(plain, aad)
+            wrapWithSchemeMarker(SCHEME_VERSIONED, cipher)
+        } catch (t: Throwable) {
+            throw SecurityException(
+                "EncryptedIdentityRepository: $operation encrypt failed for id=$id",
+                t
+            )
+        }
+
+        try {
+            blobStore.put(id, stored)
+
+            val committedVersion = vault.nextIdentityVersion(id)
+            check(committedVersion == nextVersion) {
+                "Vault version mismatch for id=$id: expected=$nextVersion actual=$committedVersion"
+            }
+        } catch (t: Throwable) {
+            restorePreviousBlob(id, previousStored, t)
+
+            SecurityRuleEngine.reportCryptoFailure(
+                action = action,
+                reason = "$operation consistency failure for id=$id",
+                throwable = t
+            )
+
+            throw SecurityException(
+                "EncryptedIdentityRepository: $operation consistency failure for id=$id",
+                t
+            )
+        }
+    }
+
+    private fun restorePreviousBlob(id: UUID, previousStored: ByteArray?, original: Throwable) {
+        runCatching {
+            if (previousStored == null) {
+                blobStore.delete(id)
+            } else {
+                blobStore.put(id, previousStored)
+            }
+        }.onFailure { rollbackFailure ->
+            original.addSuppressed(rollbackFailure)
         }
     }
 
@@ -220,7 +292,6 @@ class EncryptedIdentityRepository(
             }
 
             else -> {
-                // No marker => treat as legacy V0 storage (backward compatibility)
                 SCHEME_LEGACY to stored
             }
         }
@@ -244,7 +315,8 @@ class EncryptedIdentityRepository(
 
         val id = UUID.fromString(parts[0])
         val createdAt = parts[1].toLong()
-        val isActive = parts[2].toBooleanStrictOrNull() ?: false
+        val isActive = parts[2].toBooleanStrictOrNull()
+            ?: throw IllegalArgumentException("Invalid identity active flag")
 
         return LifeFlowIdentity(
             id = id,
@@ -254,7 +326,6 @@ class EncryptedIdentityRepository(
     }
 
     private companion object {
-        // Explicit scheme markers (avoid 12..16 so we never confuse with ivLen).
         private const val MARKER_VERSIONED: Int = 0xA1
         private const val MARKER_LEGACY: Int = 0xA2
 
