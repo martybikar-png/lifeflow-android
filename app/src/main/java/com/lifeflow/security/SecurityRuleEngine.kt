@@ -34,12 +34,9 @@ object SecurityRuleEngine {
     private const val MAX_EVENTS = 200
     private val auditEvents: ArrayDeque<AuditEvent> = ArrayDeque(MAX_EVENTS)
 
-    // --- Auto-degrade threshold (V1) ---
     private const val DENY_THRESHOLD_TO_DEGRADE = 3
     private var denyCount: Int = 0
 
-    // --- Trust state (observable for UI) ---
-    // Start fail-closed: until a successful biometric auth happens, we are in locked/limited mode.
     private val _trustState = MutableStateFlow(TrustState.DEGRADED)
     val trustState: StateFlow<TrustState> = _trustState.asStateFlow()
 
@@ -93,9 +90,6 @@ object SecurityRuleEngine {
             state = newState
         )
 
-        // Fail-closed session handling:
-        // - DEGRADED: force re-auth (soft lock)
-        // - COMPROMISED: immediate lockdown
         if (newState == TrustState.DEGRADED || newState == TrustState.COMPROMISED) {
             SecurityAccessSession.clear()
         }
@@ -120,7 +114,6 @@ object SecurityRuleEngine {
                 reason = "DENY_TRUST_OVERRIDE: COMPROMISED -> $state blocked. $reason",
                 state = current
             )
-            // keep COMPROMISED (fail-closed)
             SecurityAccessSession.clear()
             return
         }
@@ -130,6 +123,33 @@ object SecurityRuleEngine {
             decision = Decision.ALLOW,
             action = RuleAction.READ_ACTIVE,
             reason = "TrustState set to $state: $reason"
+        )
+    }
+
+    /**
+     * Dedicated manual-suite reset hook.
+     *
+     * IMPORTANT:
+     * - This bypasses the normal COMPROMISED -> VERIFIED/DEGRADED block on purpose.
+     * - It exists only so the adversarial manual suite can deterministically reset baseline
+     *   between destructive test cases.
+     * - Normal production/auth flows must NOT use this.
+     */
+    @Synchronized
+    internal fun forceResetForAdversarialSuite(
+        state: TrustState,
+        reason: String
+    ) {
+        auditEvents.clear()
+        denyCount = 0
+        _trustState.value = state
+        SecurityAccessSession.clear()
+
+        record(
+            decision = Decision.ALLOW,
+            action = RuleAction.READ_ACTIVE,
+            reason = "ADVERSARIAL_SUITE_FORCE_RESET: $reason -> $state",
+            state = state
         )
     }
 
@@ -151,7 +171,6 @@ object SecurityRuleEngine {
     fun requireAllowed(action: RuleAction, reason: String) {
         val state = _trustState.value
 
-        // Hard rule: COMPROMISED => immediate lockdown + deny
         if (state == TrustState.COMPROMISED) {
             SecurityAccessSession.clear()
             record(Decision.DENY, action, "LOCKDOWN(COMPROMISED): $reason", state)
@@ -171,10 +190,8 @@ object SecurityRuleEngine {
             return
         }
 
-        // DENY path
         record(Decision.DENY, action, reason, state)
 
-        // Auto-degrade only while VERIFIED
         if (state == TrustState.VERIFIED) {
             denyCount += 1
             if (denyCount >= DENY_THRESHOLD_TO_DEGRADE) {

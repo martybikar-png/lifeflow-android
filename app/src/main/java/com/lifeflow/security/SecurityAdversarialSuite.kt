@@ -15,10 +15,16 @@ import java.util.UUID
  * Phase F additions:
  * - Key loss simulation -> fail-closed + COMPROMISED
  * - Vault version loss simulation -> fail-closed for versioned blobs
+ *
+ * Suite hardening:
+ * - Uses explicit adversarial-suite baseline reset between tests
+ * - Does NOT rely on normal setTrustState() to escape COMPROMISED
+ * - Restores app to safe fail-closed baseline when suite ends
  */
 object SecurityAdversarialSuite {
 
     private const val TAG = "LF_SecurityAdversarial"
+    private const val SUITE_SESSION_MS = 30_000L
 
     data class TestResult(
         val name: String,
@@ -32,43 +38,80 @@ object SecurityAdversarialSuite {
         keyManager: KeyManager,
         vault: AndroidDataSovereigntyVault
     ): List<TestResult> {
-
-        // ✅ Deterministic baseline for suite start
-        SecurityAccessSession.clear()
-        SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite baseline")
-
         val results = mutableListOf<TestResult>()
 
-        blobStore.clearAll()
-        results += testNoSessionFailsClosed(repository)
-        blobStore.clearAll()
+        try {
+            blobStore.clearAll()
+            results += testNoSessionFailsClosed(repository)
 
-        results += testCorruptedBlobTriggersCompromised(repository, blobStore)
-        blobStore.clearAll()
+            blobStore.clearAll()
+            results += testCorruptedBlobTriggersCompromised(repository, blobStore)
 
-        results += testCiphertextSwapTriggersCompromised(repository, blobStore)
-        blobStore.clearAll()
+            blobStore.clearAll()
+            results += testCiphertextSwapTriggersCompromised(repository, blobStore)
 
-        results += testRollbackIsBlockedByMonotonicVersion(repository, blobStore)
-        blobStore.clearAll()
+            blobStore.clearAll()
+            results += testRollbackIsBlockedByMonotonicVersion(repository, blobStore)
 
-        results += testLegacyDowngradeInjectionIsBlocked(repository, blobStore)
-        blobStore.clearAll()
+            blobStore.clearAll()
+            results += testLegacyDowngradeInjectionIsBlocked(repository, blobStore)
 
-        // IMPORTANT: G before F so key-loss doesn't poison later tests.
-        results += testVaultVersionLossFailsClosed(repository, blobStore, vault)
-        blobStore.clearAll()
+            blobStore.clearAll()
+            results += testVaultVersionLossFailsClosed(repository, blobStore, vault)
 
-        // IMPORTANT: F last + restore baseline key after simulation.
-        results += testKeyLossFailsClosedAndRestoreBaseline(repository, blobStore, keyManager)
-        blobStore.clearAll()
+            blobStore.clearAll()
+            results += testKeyLossFailsClosed(repository, keyManager)
 
-        results.forEach { r ->
-            val status = if (r.passed) "PASS" else "FAIL"
-            Log.i(TAG, "$status — ${r.name}: ${r.details}")
+            results.forEach { r ->
+                val status = if (r.passed) "PASS" else "FAIL"
+                Log.i(TAG, "$status — ${r.name}: ${r.details}")
+            }
+
+            return results
+        } finally {
+            runCatching { blobStore.clearAll() }
+            runCatching { keyManager.generateKey() }
+
+            SecurityAccessSession.clear()
+            SecurityRuleEngine.forceResetForAdversarialSuite(
+                state = TrustState.DEGRADED,
+                reason = "suite end fail-closed baseline"
+            )
         }
+    }
 
-        return results
+    private fun prepareVerifiedBaseline(reason: String) {
+        SecurityRuleEngine.forceResetForAdversarialSuite(
+            state = TrustState.VERIFIED,
+            reason = reason
+        )
+        SecurityAccessSession.grant(SUITE_SESSION_MS)
+    }
+
+    private fun prepareVerifiedNoSessionBaseline(reason: String) {
+        SecurityRuleEngine.forceResetForAdversarialSuite(
+            state = TrustState.VERIFIED,
+            reason = reason
+        )
+        SecurityAccessSession.clear()
+    }
+
+    private fun compromisedResult(
+        name: String,
+        successDetails: String
+    ): TestResult {
+        val stateOk = SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED
+        val sessionOk = !SecurityAccessSession.isAuthorized()
+
+        return if (stateOk && sessionOk) {
+            TestResult(name, true, successDetails)
+        } else {
+            TestResult(
+                name,
+                false,
+                "Mismatch: trustState=${SecurityRuleEngine.getTrustState()}, sessionAuthorized=${SecurityAccessSession.isAuthorized()}"
+            )
+        }
     }
 
     // ---------------------------
@@ -80,13 +123,15 @@ object SecurityAdversarialSuite {
         val name = "A) No-session fails closed"
 
         return try {
-            // ✅ Make this test strictly about "no session" (not leftover compromised state)
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite A baseline")
-            SecurityAccessSession.clear()
+            prepareVerifiedNoSessionBaseline("suite A baseline")
 
             try {
                 repository.getActiveIdentity()
-                TestResult(name, false, "Expected SecurityException, but getActiveIdentity() returned without throwing")
+                TestResult(
+                    name,
+                    false,
+                    "Expected SecurityException, but getActiveIdentity() returned without throwing"
+                )
             } catch (e: SecurityException) {
                 TestResult(name, true, "Denied as expected: ${e.message}")
             }
@@ -105,8 +150,7 @@ object SecurityAdversarialSuite {
         val name = "B) Corrupted blob -> COMPROMISED + session cleared"
 
         return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
+            prepareVerifiedBaseline("suite B setup")
 
             val id = UUID.randomUUID()
             val identity = LifeFlowIdentity(
@@ -120,7 +164,9 @@ object SecurityAdversarialSuite {
             val original = blobStore.get(id)
                 ?: return TestResult(name, false, "Blob missing after save()")
 
-            if (original.size < 8) return TestResult(name, false, "Blob too small to corrupt safely")
+            if (original.size < 8) {
+                return TestResult(name, false, "Blob too small to corrupt safely")
+            }
 
             val corrupted = original.clone()
             val idx = corrupted.size - 3
@@ -129,24 +175,11 @@ object SecurityAdversarialSuite {
 
             try {
                 repository.getById(id)
-                return TestResult(name, false, "Expected SecurityException on decrypt, but read succeeded")
+                TestResult(name, false, "Expected SecurityException on decrypt, but read succeeded")
             } catch (_: SecurityException) {
-                // expected
+                compromisedResult(name, "Fail-closed OK (COMPROMISED + session cleared)")
             } catch (t: Throwable) {
-                return TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
-            }
-
-            val stateOk = (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED)
-            val sessionOk = !SecurityAccessSession.isAuthorized()
-
-            if (stateOk && sessionOk) {
-                TestResult(name, true, "Fail-closed OK (COMPROMISED + session cleared)")
-            } else {
-                TestResult(
-                    name,
-                    false,
-                    "Mismatch: trustState=${SecurityRuleEngine.getTrustState()}, sessionAuthorized=${SecurityAccessSession.isAuthorized()}"
-                )
+                TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
             }
         } catch (t: Throwable) {
             TestResult(name, false, "Unexpected failure: ${t::class.java.simpleName}: ${t.message}")
@@ -163,8 +196,7 @@ object SecurityAdversarialSuite {
         val name = "C) Ciphertext swap -> COMPROMISED + session cleared"
 
         return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
+            prepareVerifiedBaseline("suite C setup")
 
             val idA = UUID.randomUUID()
             val idB = UUID.randomUUID()
@@ -180,24 +212,11 @@ object SecurityAdversarialSuite {
 
             try {
                 repository.getById(idA)
-                return TestResult(name, false, "Expected SecurityException on swapped blob, but read succeeded")
+                TestResult(name, false, "Expected SecurityException on swapped blob, but read succeeded")
             } catch (_: SecurityException) {
-                // expected
+                compromisedResult(name, "Fail-closed OK (COMPROMISED + session cleared)")
             } catch (t: Throwable) {
-                return TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
-            }
-
-            val stateOk = (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED)
-            val sessionOk = !SecurityAccessSession.isAuthorized()
-
-            if (stateOk && sessionOk) {
-                TestResult(name, true, "Fail-closed OK (COMPROMISED + session cleared)")
-            } else {
-                TestResult(
-                    name,
-                    false,
-                    "Mismatch: trustState=${SecurityRuleEngine.getTrustState()}, sessionAuthorized=${SecurityAccessSession.isAuthorized()}"
-                )
+                TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
             }
         } catch (t: Throwable) {
             TestResult(name, false, "Unexpected failure: ${t::class.java.simpleName}: ${t.message}")
@@ -214,8 +233,7 @@ object SecurityAdversarialSuite {
         val name = "D) Rollback is blocked (monotonic version binding)"
 
         return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
+            prepareVerifiedBaseline("suite D setup")
 
             val id = UUID.randomUUID()
 
@@ -230,7 +248,7 @@ object SecurityAdversarialSuite {
                 repository.getById(id)
                 TestResult(name, false, "Rollback unexpectedly succeeded. Expected SecurityException.")
             } catch (_: SecurityException) {
-                TestResult(name, true, "Rollback blocked as expected (SecurityException)")
+                compromisedResult(name, "Rollback blocked as expected (SecurityException + fail-closed)")
             } catch (t: Throwable) {
                 TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
             }
@@ -249,8 +267,7 @@ object SecurityAdversarialSuite {
         val name = "E) Legacy downgrade injection is blocked"
 
         return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
+            prepareVerifiedBaseline("suite E setup")
 
             val id = UUID.randomUUID()
 
@@ -258,14 +275,14 @@ object SecurityAdversarialSuite {
             val versionedBlob = blobStore.get(id) ?: return TestResult(name, false, "Missing versioned blob")
             if (versionedBlob.size < 2) return TestResult(name, false, "Blob too small for marker test")
 
-            val injectedLegacyLike = versionedBlob.copyOfRange(1, versionedBlob.size) // drop marker
+            val injectedLegacyLike = versionedBlob.copyOfRange(1, versionedBlob.size)
             blobStore.put(id, injectedLegacyLike)
 
             try {
                 repository.getById(id)
                 TestResult(name, false, "Downgrade injection unexpectedly succeeded. Expected SecurityException.")
             } catch (_: SecurityException) {
-                TestResult(name, true, "Downgrade injection blocked as expected (SecurityException)")
+                compromisedResult(name, "Downgrade injection blocked as expected (SecurityException + fail-closed)")
             } catch (t: Throwable) {
                 TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
             }
@@ -285,15 +302,13 @@ object SecurityAdversarialSuite {
         val name = "G) Vault version loss -> fail-closed for versioned blob"
 
         return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
+            prepareVerifiedBaseline("suite G setup")
 
             val id = UUID.randomUUID()
             repository.save(LifeFlowIdentity(id, System.currentTimeMillis(), isActive = true))
 
             val stored = blobStore.get(id) ?: return TestResult(name, false, "Missing blob")
 
-            // simulate version state loss while blob persists
             vault.clearIdentityVersion(id)
             blobStore.put(id, stored)
 
@@ -301,7 +316,7 @@ object SecurityAdversarialSuite {
                 repository.getById(id)
                 TestResult(name, false, "Read unexpectedly succeeded with missing vault version")
             } catch (_: SecurityException) {
-                TestResult(name, true, "Fail-closed OK (missing vault version blocks versioned blob)")
+                compromisedResult(name, "Fail-closed OK (missing vault version blocks versioned blob)")
             } catch (t: Throwable) {
                 TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
             }
@@ -311,45 +326,32 @@ object SecurityAdversarialSuite {
     }
 
     // ---------------------------
-    // F) Key loss simulation (LAST) + restore baseline
+    // F) Key loss simulation
     // ---------------------------
-    private suspend fun testKeyLossFailsClosedAndRestoreBaseline(
+    private suspend fun testKeyLossFailsClosed(
         repository: EncryptedIdentityRepository,
-        blobStore: EncryptedIdentityBlobStore,
         keyManager: KeyManager
     ): TestResult {
-        val name = "F) Key loss -> fail-closed + COMPROMISED (baseline restored)"
+        val name = "F) Key loss -> fail-closed + COMPROMISED"
 
         return try {
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite setup")
-            SecurityAccessSession.grant(durationMs = 30_000)
+            prepareVerifiedBaseline("suite F setup")
 
             val id = UUID.randomUUID()
             repository.save(LifeFlowIdentity(id, System.currentTimeMillis(), isActive = true))
 
-            // simulate key loss
             keyManager.deleteKey()
 
-            val result = try {
+            try {
                 repository.getById(id)
                 TestResult(name, false, "Decrypt unexpectedly succeeded after key deletion")
             } catch (_: SecurityException) {
-                val stateOk = SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED
-                val sessionOk = !SecurityAccessSession.isAuthorized()
-                if (stateOk && sessionOk) TestResult(name, true, "Fail-closed OK (COMPROMISED + session cleared)")
-                else TestResult(name, false, "Mismatch: trustState=${SecurityRuleEngine.getTrustState()}, sessionAuthorized=${SecurityAccessSession.isAuthorized()}")
+                compromisedResult(name, "Fail-closed OK (COMPROMISED + session cleared)")
             } catch (t: Throwable) {
                 TestResult(name, false, "Expected SecurityException, got ${t::class.java.simpleName}: ${t.message}")
             }
-
-            result
         } catch (t: Throwable) {
             TestResult(name, false, "Unexpected failure: ${t::class.java.simpleName}: ${t.message}")
-        } finally {
-            // restore baseline so app/dev flow can continue safely
-            try { keyManager.generateKey() } catch (_: Throwable) {}
-            SecurityAccessSession.clear()
-            SecurityRuleEngine.setTrustState(TrustState.VERIFIED, "suite baseline restore")
         }
     }
 }

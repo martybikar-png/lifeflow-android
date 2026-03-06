@@ -1,5 +1,6 @@
 package com.lifeflow.security
 
+import android.os.SystemClock
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -14,19 +15,19 @@ import java.util.concurrent.atomic.AtomicLong
 object SecurityAccessSession {
 
     // Default and max TTL to prevent accidental "forever sessions"
-    private const val DEFAULT_SESSION_MS: Long = 30_000L        // 30s
-    private const val MAX_SESSION_MS: Long = 5 * 60_000L        // 5min hard cap
+    private const val DEFAULT_SESSION_MS: Long = 30_000L   // 30s
+    private const val MAX_SESSION_MS: Long = 5 * 60_000L   // 5min hard cap
 
-    private val validUntilEpochMs = AtomicLong(0L)
+    private val validUntilElapsedMs = AtomicLong(0L)
 
     fun grant(durationMs: Long) {
-        val now = System.currentTimeMillis()
+        val now = SystemClock.elapsedRealtime()
 
         val safeDuration = durationMs
             .coerceAtLeast(0L)
             .coerceAtMost(MAX_SESSION_MS)
 
-        validUntilEpochMs.set(now + safeDuration)
+        validUntilElapsedMs.set(now + safeDuration)
     }
 
     fun grantDefault() {
@@ -34,13 +35,13 @@ object SecurityAccessSession {
     }
 
     fun clear() {
-        validUntilEpochMs.set(0L)
+        validUntilElapsedMs.set(0L)
     }
 
     fun isAuthorized(): Boolean {
         if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) return false
-        val now = System.currentTimeMillis()
-        return now <= validUntilEpochMs.get()
+        val now = SystemClock.elapsedRealtime()
+        return now <= validUntilElapsedMs.get()
     }
 
     @Suppress("unused")
