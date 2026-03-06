@@ -76,23 +76,61 @@ object SecurityRuleEngine {
     @Suppress("unused")
     fun getTrustState(): TrustState = _trustState.value
 
-    @Suppress("unused")
     @Synchronized
-    fun setTrustState(state: TrustState, reason: String) {
-        _trustState.value = state
+    private fun transitionTo(
+        newState: TrustState,
+        decision: Decision,
+        action: RuleAction,
+        reason: String
+    ) {
+        _trustState.value = newState
         denyCount = 0
 
         record(
-            decision = Decision.ALLOW,
-            action = RuleAction.READ_ACTIVE,
-            reason = "TrustState set to $state: $reason",
-            state = state
+            decision = decision,
+            action = action,
+            reason = reason,
+            state = newState
         )
 
-        if (state == TrustState.COMPROMISED) {
-            // Immediate lockdown
+        // Fail-closed session handling:
+        // - DEGRADED: force re-auth (soft lock)
+        // - COMPROMISED: immediate lockdown
+        if (newState == TrustState.DEGRADED || newState == TrustState.COMPROMISED) {
             SecurityAccessSession.clear()
         }
+    }
+
+    /**
+     * Explicit trust change.
+     *
+     * SECURITY RULE (B2):
+     * If we're COMPROMISED, you cannot set VERIFIED/DEGRADED via normal flows (including biometric).
+     * A dedicated recovery/reset flow must handle that later.
+     */
+    @Suppress("unused")
+    @Synchronized
+    fun setTrustState(state: TrustState, reason: String) {
+        val current = _trustState.value
+
+        if (current == TrustState.COMPROMISED && state != TrustState.COMPROMISED) {
+            record(
+                decision = Decision.DENY,
+                action = RuleAction.READ_ACTIVE,
+                reason = "DENY_TRUST_OVERRIDE: COMPROMISED -> $state blocked. $reason",
+                state = current
+            )
+            // keep COMPROMISED (fail-closed)
+            SecurityAccessSession.clear()
+            return
+        }
+
+        transitionTo(
+            newState = state,
+            decision = Decision.ALLOW,
+            action = RuleAction.READ_ACTIVE,
+            reason = "TrustState set to $state: $reason"
+        )
     }
 
     /**
@@ -101,20 +139,15 @@ object SecurityRuleEngine {
      */
     @Synchronized
     fun reportCryptoFailure(action: RuleAction, reason: String, throwable: Throwable) {
-        _trustState.value = TrustState.COMPROMISED
-        denyCount = 0
-
-        record(
+        transitionTo(
+            newState = TrustState.COMPROMISED,
             decision = Decision.DENY,
             action = action,
-            reason = "CRYPTO_FAILURE: $reason (${throwable::class.java.simpleName}: ${throwable.message})",
-            state = _trustState.value
+            reason = "CRYPTO_FAILURE: $reason (${throwable::class.java.simpleName}: ${throwable.message})"
         )
-
-        // Immediate lockdown
-        SecurityAccessSession.clear()
     }
 
+    @Synchronized
     fun requireAllowed(action: RuleAction, reason: String) {
         val state = _trustState.value
 
@@ -130,7 +163,7 @@ object SecurityRuleEngine {
         val allowed = when (state) {
             TrustState.VERIFIED -> sessionOk && allowInVerified(action)
             TrustState.DEGRADED -> sessionOk && allowInDegraded(action)
-            TrustState.COMPROMISED -> false // unreachable due to guard above
+            TrustState.COMPROMISED -> false
         }
 
         if (allowed) {
@@ -145,13 +178,11 @@ object SecurityRuleEngine {
         if (state == TrustState.VERIFIED) {
             denyCount += 1
             if (denyCount >= DENY_THRESHOLD_TO_DEGRADE) {
-                _trustState.value = TrustState.DEGRADED
-                denyCount = 0
-                record(
+                transitionTo(
+                    newState = TrustState.DEGRADED,
                     decision = Decision.DENY,
                     action = action,
-                    reason = "AUTO_DEGRADE: deny threshold reached ($DENY_THRESHOLD_TO_DEGRADE)",
-                    state = _trustState.value
+                    reason = "AUTO_DEGRADE: deny threshold reached ($DENY_THRESHOLD_TO_DEGRADE)"
                 )
             }
         }
