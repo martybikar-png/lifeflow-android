@@ -6,6 +6,7 @@ class DigitalTwinOrchestrator(
 
     private var currentState: DigitalTwinState? = null
 
+    @Synchronized
     fun refresh(
         identityInitialized: Boolean,
         stepsLast24h: Long?,
@@ -22,5 +23,6 @@ class DigitalTwinOrchestrator(
         return newState
     }
 
+    @Synchronized
     fun getCurrentState(): DigitalTwinState? = currentState
 }
