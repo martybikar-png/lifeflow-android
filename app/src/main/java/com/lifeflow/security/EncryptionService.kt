@@ -13,10 +13,10 @@ class EncryptionService(
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val GCM_TAG_LENGTH = 128
 
-        // Legacy format assumed 12-byte IV
+        // Legacy format: IV(12 bytes) + ciphertext
         private const val LEGACY_IV_LENGTH = 12
 
-        // New format: [1 byte ivLen] + iv + ciphertext
+        // Versioned format: [1 byte ivLen] + iv + ciphertext
         private const val IV_LEN_PREFIX_BYTES = 1
         private const val MIN_IV_LEN = 12
         private const val MAX_IV_LEN = 16
@@ -24,13 +24,14 @@ class EncryptionService(
 
     /**
      * Encrypts plaintext using AES-256-GCM (Android Keystore).
-     * Returns (V1 format): [1 byte ivLen] + IV + Ciphertext
+     * Returns versioned format:
+     * [1 byte ivLen] + IV + ciphertext
      */
     fun encrypt(plainText: ByteArray, aad: ByteArray? = null): ByteArray {
         val secretKey: SecretKey = keyManager.getKey()
         val cipher = Cipher.getInstance(TRANSFORMATION)
 
-        // Let provider generate a randomized IV (required by Keystore policy)
+        // Provider generates randomized IV (required by Keystore policy)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
 
         if (aad != null) {
@@ -54,32 +55,66 @@ class EncryptionService(
 
     /**
      * Decrypts data produced by encrypt().
-     * Supports:
-     * - New format: [1 byte ivLen] + IV + Ciphertext
-     * - Legacy format: IV(12 bytes) + Ciphertext
+     * This method is intentionally strict: versioned format only.
      */
     fun decrypt(encryptedData: ByteArray, aad: ByteArray? = null): ByteArray {
-        require(encryptedData.isNotEmpty()) { "Invalid encrypted data" }
+        return decryptVersionedFormat(encryptedData, aad)
+    }
 
-        val secretKey: SecretKey = keyManager.getKey()
-        val cipher = Cipher.getInstance(TRANSFORMATION)
+    /**
+     * Deterministic decrypt for versioned format only:
+     * [1 byte ivLen] + IV + ciphertext
+     */
+    fun decryptVersionedFormat(encryptedData: ByteArray, aad: ByteArray? = null): ByteArray {
+        require(encryptedData.size > IV_LEN_PREFIX_BYTES) { "Invalid versioned encrypted data" }
 
-        val first = encryptedData[0].toInt() and 0xFF
-        val useNewFormat = first in MIN_IV_LEN..MAX_IV_LEN && encryptedData.size > 1 + first
-
-        val iv: ByteArray
-        val cipherText: ByteArray
-
-        if (useNewFormat) {
-            iv = encryptedData.copyOfRange(1, 1 + first)
-            cipherText = encryptedData.copyOfRange(1 + first, encryptedData.size)
-        } else {
-            require(encryptedData.size > LEGACY_IV_LENGTH) { "Invalid legacy encrypted data" }
-            iv = encryptedData.copyOfRange(0, LEGACY_IV_LENGTH)
-            cipherText = encryptedData.copyOfRange(LEGACY_IV_LENGTH, encryptedData.size)
+        val ivLen = encryptedData[0].toInt() and 0xFF
+        require(ivLen in MIN_IV_LEN..MAX_IV_LEN) {
+            "Invalid versioned IV length prefix: $ivLen"
+        }
+        require(encryptedData.size > IV_LEN_PREFIX_BYTES + ivLen) {
+            "Invalid versioned encrypted data length"
         }
 
+        val iv = encryptedData.copyOfRange(IV_LEN_PREFIX_BYTES, IV_LEN_PREFIX_BYTES + ivLen)
+        val cipherText = encryptedData.copyOfRange(
+            IV_LEN_PREFIX_BYTES + ivLen,
+            encryptedData.size
+        )
+
+        return decryptWithIv(
+            iv = iv,
+            cipherText = cipherText,
+            aad = aad
+        )
+    }
+
+    /**
+     * Deterministic decrypt for legacy format only:
+     * IV(12 bytes) + ciphertext
+     */
+    fun decryptLegacyFormat(encryptedData: ByteArray, aad: ByteArray? = null): ByteArray {
+        require(encryptedData.size > LEGACY_IV_LENGTH) { "Invalid legacy encrypted data" }
+
+        val iv = encryptedData.copyOfRange(0, LEGACY_IV_LENGTH)
+        val cipherText = encryptedData.copyOfRange(LEGACY_IV_LENGTH, encryptedData.size)
+
+        return decryptWithIv(
+            iv = iv,
+            cipherText = cipherText,
+            aad = aad
+        )
+    }
+
+    private fun decryptWithIv(
+        iv: ByteArray,
+        cipherText: ByteArray,
+        aad: ByteArray?
+    ): ByteArray {
+        val secretKey: SecretKey = keyManager.getKey()
+        val cipher = Cipher.getInstance(TRANSFORMATION)
         val spec = GCMParameterSpec(GCM_TAG_LENGTH, iv)
+
         cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
 
         if (aad != null) {

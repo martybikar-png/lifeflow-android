@@ -155,11 +155,11 @@ class EncryptedIdentityRepository(
         return when (scheme) {
             SCHEME_VERSIONED -> {
                 require(version > 0L) { "Missing vault version for versioned blob id=$id" }
-                encryptionService.decrypt(cipher, aadVersioned(id, version))
+                encryptionService.decryptVersionedFormat(cipher, aadVersioned(id, version))
             }
 
             SCHEME_LEGACY -> {
-                val plain = encryptionService.decrypt(cipher, aadLegacy(id))
+                val plain = encryptionService.decryptLegacyFormat(cipher, aadLegacy(id))
                 migrateLegacyToVersioned(id, plain)
                 plain
             }
@@ -266,14 +266,6 @@ class EncryptedIdentityRepository(
     private fun aadVersioned(id: UUID, version: Long): ByteArray =
         "${id}|v$version".toByteArray(StandardCharsets.UTF_8)
 
-    // -------------------------
-    // Blob scheme marker wrapper
-    // -------------------------
-    //
-    // We wrap the encrypted bytes from EncryptionService with a single scheme marker byte.
-    // This is independent of the encryption format (which already has its own ivLen prefix).
-    //
-    // Marker values chosen to avoid collision with IV lengths (12..16) and random legacy bytes.
     private fun wrapWithSchemeMarker(marker: Byte, cipher: ByteArray): ByteArray {
         val out = ByteArray(1 + cipher.size)
         out[0] = marker
