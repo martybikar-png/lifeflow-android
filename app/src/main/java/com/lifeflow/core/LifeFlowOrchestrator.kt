@@ -1,5 +1,8 @@
 package com.lifeflow.core
 
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.StepsRecord
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
@@ -37,6 +40,11 @@ class LifeFlowOrchestrator(
     private val getStepsLast24h: GetStepsLast24hUseCase,
     private val getAvgHeartRateLast24h: GetAvgHeartRateLast24hUseCase
 ) {
+
+    private data class MetricPermissionSnapshot(
+        val stepsPermissionGranted: Boolean?,
+        val heartRatePermissionGranted: Boolean?
+    )
 
     // ---------- Result model (deterministic, UI-friendly) ----------
 
@@ -123,17 +131,54 @@ class LifeFlowOrchestrator(
 
     // ---------- Metrics + Digital Twin ----------
 
-    private suspend fun canReadHealthMetrics(): Boolean {
+    /**
+     * Phase 2:
+     * Resolve permission status per metric instead of one bundled flag.
+     *
+     * Semantics:
+     * - true  -> permission resolved and granted
+     * - false -> permission resolved and not granted
+     * - null  -> permission state unknown / not resolvable right now
+     */
+    private suspend fun resolveMetricPermissionSnapshot(): MetricPermissionSnapshot {
         return try {
             val requiredPermissions = getHealthPermissions()
             if (requiredPermissions.isEmpty()) {
-                return false
+                return MetricPermissionSnapshot(
+                    stepsPermissionGranted = null,
+                    heartRatePermissionGranted = null
+                )
             }
 
             val grantedPermissions = getGrantedHealthPermissions()
-            grantedPermissions.containsAll(requiredPermissions)
+
+            val stepsPermission = HealthPermission.getReadPermission(StepsRecord::class)
+            val heartRatePermission = HealthPermission.getReadPermission(HeartRateRecord::class)
+
+            val stepsRequired = requiredPermissions.contains(stepsPermission)
+            val heartRateRequired = requiredPermissions.contains(heartRatePermission)
+
+            val stepsGranted = if (stepsRequired) {
+                grantedPermissions.contains(stepsPermission)
+            } else {
+                null
+            }
+
+            val heartRateGranted = if (heartRateRequired) {
+                grantedPermissions.contains(heartRatePermission)
+            } else {
+                null
+            }
+
+            MetricPermissionSnapshot(
+                stepsPermissionGranted = stepsGranted,
+                heartRatePermissionGranted = heartRateGranted
+            )
         } catch (_: Throwable) {
-            false
+            MetricPermissionSnapshot(
+                stepsPermissionGranted = null,
+                heartRatePermissionGranted = null
+            )
         }
     }
 
@@ -149,34 +194,40 @@ class LifeFlowOrchestrator(
             val state = digitalTwinOrchestrator.refresh(
                 identityInitialized = identityInitialized,
                 stepsLast24h = null,
-                avgHeartRateLast24h = null
+                avgHeartRateLast24h = null,
+                stepsPermissionGranted = null,
+                heartRatePermissionGranted = null
             )
             return ActionResult.Success(state)
         }
 
-        if (!canReadHealthMetrics()) {
-            val state = digitalTwinOrchestrator.refresh(
-                identityInitialized = identityInitialized,
-                stepsLast24h = null,
-                avgHeartRateLast24h = null
-            )
-            return ActionResult.Success(state)
-        }
+        val permissionSnapshot = resolveMetricPermissionSnapshot()
 
         var steps: Long? = null
         var hr: Long? = null
 
-        try {
-            steps = getStepsLast24h()
-            hr = getAvgHeartRateLast24h()?.roundToLong()
-        } catch (_: Throwable) {
-            // keep nulls; no crash
+        if (permissionSnapshot.stepsPermissionGranted == true) {
+            try {
+                steps = getStepsLast24h()
+            } catch (_: Throwable) {
+                // keep null; engine will classify deterministically
+            }
+        }
+
+        if (permissionSnapshot.heartRatePermissionGranted == true) {
+            try {
+                hr = getAvgHeartRateLast24h()?.roundToLong()
+            } catch (_: Throwable) {
+                // keep null; engine will classify deterministically
+            }
         }
 
         val state = digitalTwinOrchestrator.refresh(
             identityInitialized = identityInitialized,
             stepsLast24h = steps,
-            avgHeartRateLast24h = hr
+            avgHeartRateLast24h = hr,
+            stepsPermissionGranted = permissionSnapshot.stepsPermissionGranted,
+            heartRatePermissionGranted = permissionSnapshot.heartRatePermissionGranted
         )
 
         return ActionResult.Success(state)

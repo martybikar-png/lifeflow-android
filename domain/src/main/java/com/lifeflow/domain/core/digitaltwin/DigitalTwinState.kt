@@ -6,14 +6,18 @@ data class DigitalTwinState(
     val avgHeartRateLast24h: Long?,
     val lastUpdatedEpochMillis: Long,
 
-    // --- Added: Data availability + audit notes (non-breaking additive fields) ---
+    // --- Phase 1: precise availability semantics + audit notes ---
     val stepsAvailability: Availability = Availability.UNKNOWN,
     val heartRateAvailability: Availability = Availability.UNKNOWN,
     val notes: List<String> = emptyList()
 ) {
     enum class Availability {
         /**
-         * We don't know yet (HC not queried, permissions unknown, provider delay, etc.)
+         * We do not know yet.
+         * Examples:
+         * - refresh has not run yet
+         * - provider status is not resolved yet
+         * - query/result is not available yet
          */
         UNKNOWN,
 
@@ -23,14 +27,19 @@ data class DigitalTwinState(
         OK,
 
         /**
-         * Data query succeeded but returned empty/none within the requested time range.
-         * (e.g., no HR records in last 24h, or steps not synced yet)
+         * Required permission is not granted, so the metric cannot be accessed.
+         */
+        PERMISSION_DENIED,
+
+        /**
+         * Access/query path was allowed and completed, but no usable data
+         * was returned for the requested time range.
          */
         NO_DATA,
 
         /**
-         * Identity not initialized / app not authenticated (depending on how you interpret gate).
-         * We keep this as a "why" flag for the UI/diagnostics layer.
+         * Metric is intentionally blocked by security state / identity gate.
+         * Fail-closed condition.
          */
         BLOCKED
     }
