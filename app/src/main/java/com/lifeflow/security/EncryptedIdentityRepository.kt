@@ -19,8 +19,9 @@ import java.util.UUID
  *
  * Backward-compatibility:
  * - Old stored blobs had NO scheme marker and used legacy AAD = "$UUID"
- * - We treat "no marker" as legacy, allow decrypt only in legacy mode,
- *   and after successful read we migrate to versioned scheme (if allowed).
+ * - We treat "no marker" as legacy and allow decrypt only in legacy mode
+ * - Legacy blobs are NOT auto-migrated during read paths
+ * - Migration to versioned storage happens only on explicit write/save paths
  *
  * Consistency hardening:
  * - Encrypt for the next version first
@@ -49,7 +50,6 @@ class EncryptedIdentityRepository(
                 writeVersionedBlob(
                     id = identity.id,
                     plain = plain,
-                    action = RuleAction.WRITE_SAVE,
                     operation = "save()"
                 )
             } catch (t: Throwable) {
@@ -143,13 +143,13 @@ class EncryptedIdentityRepository(
 
     /**
      * Strict decryption:
-     * - Reads explicit scheme marker if present.
-     * - NO downgrade fallback.
-     * - If blob is versioned, requires version > 0.
-     * - If blob is legacy (or unmarked legacy), uses legacy AAD.
-     * - After successful legacy read, migrates to versioned (if possible).
+     * - Reads explicit scheme marker if present
+     * - NO downgrade fallback
+     * - If blob is versioned, requires version > 0
+     * - If blob is legacy (or unmarked legacy), uses legacy AAD
+     * - Read paths stay read-only; no migration side effects here
      */
-    private suspend fun decryptStrict(id: UUID, version: Long, stored: ByteArray): ByteArray {
+    private fun decryptStrict(id: UUID, version: Long, stored: ByteArray): ByteArray {
         val (scheme, cipher) = unwrapSchemeMarker(stored)
 
         return when (scheme) {
@@ -159,38 +159,10 @@ class EncryptedIdentityRepository(
             }
 
             SCHEME_LEGACY -> {
-                val plain = encryptionService.decryptLegacyFormat(cipher, aadLegacy(id))
-                migrateLegacyToVersioned(id, plain)
-                plain
+                encryptionService.decryptLegacyFormat(cipher, aadLegacy(id))
             }
 
             else -> throw SecurityException("Unknown blob scheme marker for id=$id")
-        }
-    }
-
-    /**
-     * Migrates a legacy plaintext to versioned storage (monotonic).
-     * If migration fails, we DO NOT silently ignore integrity issues;
-     * we report and fail-closed.
-     */
-    private suspend fun migrateLegacyToVersioned(id: UUID, plain: ByteArray) {
-        val identity = runCatching { deserialize(plain) }.getOrNull() ?: return
-        if (identity.id != id) return
-
-        try {
-            writeVersionedBlob(
-                id = id,
-                plain = plain,
-                action = RuleAction.WRITE_SAVE,
-                operation = "legacy migration"
-            )
-        } catch (t: Throwable) {
-            SecurityRuleEngine.reportCryptoFailure(
-                action = RuleAction.WRITE_SAVE,
-                reason = "legacy->versioned migration failed for id=$id",
-                throwable = t
-            )
-            throw SecurityException("EncryptedIdentityRepository: migration crypto failure", t)
         }
     }
 
@@ -201,11 +173,14 @@ class EncryptedIdentityRepository(
      * 3) write blob
      * 4) commit vault version
      * 5) if step 4 fails, restore previous blob and fail closed
+     *
+     * NOTE:
+     * - This helper does not report to SecurityRuleEngine directly
+     * - The authoritative caller reports once at the boundary to avoid duplicate audit noise
      */
     private fun writeVersionedBlob(
         id: UUID,
         plain: ByteArray,
-        action: RuleAction,
         operation: String
     ) {
         val previousVersion = vault.getIdentityVersion(id)
@@ -234,13 +209,6 @@ class EncryptedIdentityRepository(
             }
         } catch (t: Throwable) {
             restorePreviousBlob(id, previousStored, t)
-
-            SecurityRuleEngine.reportCryptoFailure(
-                action = action,
-                reason = "$operation consistency failure for id=$id",
-                throwable = t
-            )
-
             throw SecurityException(
                 "EncryptedIdentityRepository: $operation consistency failure for id=$id",
                 t
