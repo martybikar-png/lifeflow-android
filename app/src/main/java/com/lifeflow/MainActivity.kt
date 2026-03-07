@@ -48,20 +48,8 @@ class MainActivity : FragmentActivity() {
 
                     var lastAction by remember { mutableStateOf("—") }
 
-                    // Startup refresh (safe)
+                    // Startup refresh (single consolidated refresh only)
                     LaunchedEffect(Unit) {
-                        runCatching { viewModel.refreshHealthConnectStatus() }
-                            .onFailure {
-                                lastAction =
-                                    "HC status refresh failed: ${it::class.java.simpleName}: ${it.message}"
-                            }
-
-                        runCatching { viewModel.refreshGrantedPermissions() }
-                            .onFailure {
-                                lastAction =
-                                    "Permissions refresh failed: ${it::class.java.simpleName}: ${it.message}"
-                            }
-
                         runCatching { viewModel.refreshMetricsAndTwinNow() }
                             .onFailure {
                                 lastAction =
@@ -91,7 +79,6 @@ class MainActivity : FragmentActivity() {
                     ) { grantedPermissions: Set<String> ->
                         lastAction = "HC callback: ${grantedPermissions.size} granted"
                         viewModel.onHealthPermissionsResult(grantedPermissions)
-                        viewModel.refreshMetricsAndTwinNow()
                     }
 
                     // Deterministic post-auth refresh:
