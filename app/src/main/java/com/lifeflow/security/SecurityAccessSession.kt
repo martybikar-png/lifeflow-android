@@ -1,6 +1,5 @@
 package com.lifeflow.security
 
-import android.os.SystemClock
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -11,6 +10,10 @@ import java.util.concurrent.atomic.AtomicLong
  * Fail-closed:
  * - No session => no access
  * - COMPROMISED => immediate deny
+ *
+ * Implementation note:
+ * - Uses a monotonic JVM-safe clock so the same logic works in local unit tests
+ *   as well as on Android runtime.
  */
 object SecurityAccessSession {
 
@@ -20,8 +23,10 @@ object SecurityAccessSession {
 
     private val validUntilElapsedMs = AtomicLong(0L)
 
+    private fun nowElapsedMs(): Long = System.nanoTime() / 1_000_000L
+
     fun grant(durationMs: Long) {
-        val now = SystemClock.elapsedRealtime()
+        val now = nowElapsedMs()
 
         val safeDuration = durationMs
             .coerceAtLeast(0L)
@@ -40,7 +45,7 @@ object SecurityAccessSession {
 
     fun isAuthorized(): Boolean {
         if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) return false
-        val now = SystemClock.elapsedRealtime()
+        val now = nowElapsedMs()
         return now <= validUntilElapsedMs.get()
     }
 
