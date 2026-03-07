@@ -4,11 +4,12 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lifeflow.LifeFlowApplication
-import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 class SecurityAdversarialSuiteInstrumentedTest {
@@ -31,6 +32,23 @@ class SecurityAdversarialSuiteInstrumentedTest {
             results.size
         )
 
+        val expectedNames = setOf(
+            "A) No-session fails closed",
+            "B) Corrupted blob -> COMPROMISED + session cleared",
+            "C) Ciphertext swap -> COMPROMISED + session cleared",
+            "D) Rollback is blocked (monotonic version binding)",
+            "E) Legacy downgrade injection is blocked",
+            "G) Vault version loss -> fail-closed for versioned blob",
+            "F) Key loss -> fail-closed + COMPROMISED"
+        )
+
+        val actualNames = results.map { it.name }.toSet()
+        assertEquals(
+            "Unexpected adversarial result names",
+            expectedNames,
+            actualNames
+        )
+
         val failed = results.filterNot { it.passed }
 
         val report = buildString {
@@ -43,5 +61,15 @@ class SecurityAdversarialSuiteInstrumentedTest {
         }
 
         assertTrue(report, failed.isEmpty())
+
+        assertEquals(
+            "Suite must restore fail-closed baseline",
+            TrustState.DEGRADED,
+            SecurityRuleEngine.getTrustState()
+        )
+        assertFalse(
+            "Suite must clear auth session on exit",
+            SecurityAccessSession.isAuthorized()
+        )
     }
 }
