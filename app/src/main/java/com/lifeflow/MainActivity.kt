@@ -48,7 +48,6 @@ class MainActivity : FragmentActivity() {
 
                     var lastAction by remember { mutableStateOf("—") }
 
-                    // Startup refresh (single consolidated refresh only)
                     LaunchedEffect(Unit) {
                         runCatching { viewModel.refreshMetricsAndTwinNow() }
                             .onFailure {
@@ -81,8 +80,6 @@ class MainActivity : FragmentActivity() {
                         viewModel.onHealthPermissionsResult(grantedPermissions)
                     }
 
-                    // Deterministic post-auth refresh:
-                    // runs only when state changes into Authenticated
                     LaunchedEffect(uiState is UiState.Authenticated) {
                         if (uiState is UiState.Authenticated) {
                             runCatching { viewModel.refreshMetricsAndTwinNow() }
@@ -150,9 +147,9 @@ class MainActivity : FragmentActivity() {
 
                     when (uiState) {
                         UiState.Loading -> {
-                            val isAuthenticating = SecurityAccessSession.isAuthorized()
+                            val hasActiveSession = SecurityAccessSession.isAuthorized()
                             LoadingScreen(
-                                isAuthenticating = isAuthenticating,
+                                isAuthenticating = hasActiveSession,
                                 healthState = hcState,
                                 requiredCount = required.size,
                                 grantedCount = granted.size,
@@ -187,8 +184,18 @@ class MainActivity : FragmentActivity() {
                         }
 
                         is UiState.Error -> {
+                            val message = uiState.message
+                            val resetRequired = message.contains(
+                                "Reset vault is required",
+                                ignoreCase = true
+                            ) || message.contains(
+                                "Security compromised",
+                                ignoreCase = true
+                            )
+                            val allowAuthenticate = !resetRequired
+
                             ErrorScreen(
-                                message = uiState.message,
+                                message = message,
                                 healthState = hcState,
                                 requiredCount = required.size,
                                 grantedCount = granted.size,
@@ -199,7 +206,9 @@ class MainActivity : FragmentActivity() {
                                 onGrantHealthPermissions = onGrantPermissions,
                                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
                                 onResetVault = { viewModel.resetVault() },
-                                debugLines = debugLines
+                                debugLines = debugLines,
+                                showAuthenticateAction = allowAuthenticate,
+                                showResetVaultAction = resetRequired
                             )
                         }
                     }

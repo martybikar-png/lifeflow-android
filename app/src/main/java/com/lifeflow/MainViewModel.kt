@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.core.LifeFlowOrchestrator
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
-import com.lifeflow.security.ResetVaultUseCase
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.TrustState
@@ -15,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val orchestrator: LifeFlowOrchestrator,
-    private val resetVaultUseCase: ResetVaultUseCase
+    private val performVaultReset: suspend () -> Unit
 ) : ViewModel() {
 
     var uiState = mutableStateOf<UiState>(UiState.Loading)
@@ -223,7 +222,7 @@ class MainViewModel(
     fun resetVault() {
         uiState.value = UiState.Loading
         viewModelScope.launch {
-            val res = runCatching { resetVaultUseCase() }
+            val res = runCatching { performVaultReset() }
             SecurityAccessSession.clear()
             wipeUiCachesFailClosed()
             sessionExpiryNotified = false

@@ -183,7 +183,9 @@ fun ErrorScreen(
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
     onResetVault: () -> Unit,
-    debugLines: List<String>
+    debugLines: List<String>,
+    showAuthenticateAction: Boolean,
+    showResetVaultAction: Boolean
 ) {
     ScreenContainer(title = "LifeFlow Error") {
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -213,14 +215,16 @@ fun ErrorScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         ActionCard(title = "Recovery actions") {
-            Button(
-                onClick = onAuthenticate,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Authenticate again")
-            }
+            if (showAuthenticateAction) {
+                Button(
+                    onClick = onAuthenticate,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Authenticate again")
+                }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             OutlinedButton(
                 onClick = onGrantHealthPermissions,
@@ -238,13 +242,15 @@ fun ErrorScreen(
                 Text("Open Health Connect settings")
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (showResetVaultAction) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedButton(
-                onClick = onResetVault,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Reset vault")
+                OutlinedButton(
+                    onClick = onResetVault,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Reset vault")
+                }
             }
         }
 

@@ -17,7 +17,6 @@ import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetHealthConnectStatusUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
-import com.lifeflow.security.ResetVaultUseCase
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.TrustState
@@ -262,9 +261,59 @@ class MainViewModelTest {
         }
     }
 
+    @Test
+    fun `resetVault success moves ui to recovery error and invokes reset action`() = runTest {
+        var resetCalls = 0
+
+        val viewModel = newViewModel(
+            performVaultReset = {
+                resetCalls++
+            }
+        )
+
+        try {
+            viewModel.resetVault()
+            runCurrent()
+
+            assertEquals(1, resetCalls)
+            val error = viewModel.uiState.value as UiState.Error
+            assertTrue(error.message.contains("Vault reset complete"))
+            assertNull(viewModel.digitalTwinState.value)
+            assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
+            assertTrue(!SecurityAccessSession.isAuthorized())
+        } finally {
+            clearViewModel(viewModel)
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `resetVault failure exposes failure message`() = runTest {
+        val viewModel = newViewModel(
+            performVaultReset = {
+                throw IllegalStateException("reset exploded")
+            }
+        )
+
+        try {
+            viewModel.resetVault()
+            runCurrent()
+
+            val error = viewModel.uiState.value as UiState.Error
+            assertTrue(error.message.contains("Vault reset failed"))
+            assertTrue(error.message.contains("reset exploded"))
+            assertNull(viewModel.digitalTwinState.value)
+            assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
+        } finally {
+            clearViewModel(viewModel)
+            runCurrent()
+        }
+    }
+
     private fun newViewModel(
         wellbeingRepo: WellbeingRepository = defaultWellbeingRepository(),
-        identityRepository: IdentityRepository = FakeIdentityRepository()
+        identityRepository: IdentityRepository = FakeIdentityRepository(),
+        performVaultReset: suspend () -> Unit = {}
     ): MainViewModel {
         val orchestrator = LifeFlowOrchestrator(
             identityRepository = identityRepository,
@@ -278,7 +327,7 @@ class MainViewModelTest {
 
         return MainViewModel(
             orchestrator = orchestrator,
-            resetVaultUseCase = allocateResetVaultUseCaseWithoutConstructor()
+            performVaultReset = performVaultReset
         )
     }
 
@@ -290,16 +339,6 @@ class MainViewModelTest {
             stepsValue = 1000L,
             avgHeartRateValue = 70.0
         )
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun allocateResetVaultUseCaseWithoutConstructor(): ResetVaultUseCase {
-        val unsafeClass = Class.forName("sun.misc.Unsafe")
-        val field = unsafeClass.getDeclaredField("theUnsafe")
-        field.isAccessible = true
-        val unsafe = field.get(null)
-        val allocateInstance = unsafeClass.getMethod("allocateInstance", Class::class.java)
-        return allocateInstance.invoke(unsafe, ResetVaultUseCase::class.java) as ResetVaultUseCase
     }
 
     private fun clearViewModel(viewModel: MainViewModel) {

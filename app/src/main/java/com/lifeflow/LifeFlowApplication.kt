@@ -90,7 +90,7 @@ class LifeFlowApplication : Application() {
     val mainViewModelFactory: MainViewModelFactory by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         MainViewModelFactory(
             orchestrator = mainOrchestrator,
-            resetVaultUseCase = resetVaultUseCase
+            performVaultReset = { resetVaultUseCase() }
         )
     }
 

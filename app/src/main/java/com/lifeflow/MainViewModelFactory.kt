@@ -3,11 +3,10 @@ package com.lifeflow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.lifeflow.core.LifeFlowOrchestrator
-import com.lifeflow.security.ResetVaultUseCase
 
 class MainViewModelFactory(
     private val orchestrator: LifeFlowOrchestrator,
-    private val resetVaultUseCase: ResetVaultUseCase
+    private val performVaultReset: suspend () -> Unit
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -15,7 +14,7 @@ class MainViewModelFactory(
         if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
             return MainViewModel(
                 orchestrator = orchestrator,
-                resetVaultUseCase = resetVaultUseCase
+                performVaultReset = performVaultReset
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
