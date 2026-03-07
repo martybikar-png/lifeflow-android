@@ -49,7 +49,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
 
-    // ✅ Health Connect (needed for PermissionController)
+    // Health Connect
     implementation("androidx.health.connect:connect-client:1.1.0")
 
     // JSON
@@ -70,8 +70,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // Testing
+    // Unit testing
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    // Instrumentation testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
