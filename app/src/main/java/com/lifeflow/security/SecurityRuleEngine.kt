@@ -154,6 +154,30 @@ object SecurityRuleEngine {
     }
 
     /**
+     * Dedicated production recovery hook after a successful vault reset.
+     *
+     * IMPORTANT:
+     * - This is the ONLY normal recovery path allowed to move from COMPROMISED
+     *   back to a safe baseline.
+     * - It must be used only after destructive vault reset + blob wipe succeeds.
+     * - Resulting state is DEGRADED (fail-closed baseline, auth required again).
+     */
+    @Synchronized
+    internal fun recoverAfterVaultReset(reason: String) {
+        auditEvents.clear()
+        denyCount = 0
+        _trustState.value = TrustState.DEGRADED
+        SecurityAccessSession.clear()
+
+        record(
+            decision = Decision.ALLOW,
+            action = RuleAction.READ_ACTIVE,
+            reason = "VAULT_RESET_RECOVERY: $reason -> DEGRADED",
+            state = TrustState.DEGRADED
+        )
+    }
+
+    /**
      * Phase VI hook: call when crypto/integrity fails.
      * This is treated as a COMPROMISED signal (fail-closed).
      */

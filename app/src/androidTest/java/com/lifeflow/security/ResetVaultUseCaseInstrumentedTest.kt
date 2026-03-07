@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -63,33 +64,31 @@ class ResetVaultUseCaseInstrumentedTest {
     }
 
     @Test
-    fun invoke_resetsVault_clearsBlobStore_and_restoresDegradedTrust() = runBlocking {
+    fun invoke_resetsVault_clearsBlobStore_reinitializesVault_and_recoversFromCompromised() = runBlocking {
         val id = UUID.randomUUID()
 
         vault.ensureInitialized()
         vault.nextIdentityVersion(id)
         blobStore.put(id, byteArrayOf(1, 2, 3, 4))
 
-        SecurityAccessSession.grantDefault()
-        SecurityRuleEngine.setTrustState(
-            TrustState.VERIFIED,
-            reason = "Pre-reset verified state"
+        forceResetSecurityState(
+            state = TrustState.COMPROMISED,
+            reason = "Pre-reset compromised state"
         )
-        SecurityAccessSession.grantDefault()
 
         assertTrue(vault.isInitialized())
         assertTrue(keyManager.keyExists())
         assertEquals(1L, vault.getIdentityVersion(id))
         assertTrue(blobStore.get(id) != null)
-        assertTrue(SecurityAccessSession.isAuthorized())
-        assertEquals(TrustState.VERIFIED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+        assertEquals(TrustState.COMPROMISED, SecurityRuleEngine.getTrustState())
 
         useCase.invoke()
 
-        assertFalse(vault.isInitialized())
-        assertFalse(keyManager.keyExists())
+        assertTrue(vault.isInitialized())
+        assertTrue(keyManager.keyExists())
         assertEquals(0L, vault.getIdentityVersion(id))
-        assertTrue(blobStore.get(id) == null)
+        assertNull(blobStore.get(id))
         assertFalse(SecurityAccessSession.isAuthorized())
         assertEquals(TrustState.DEGRADED, SecurityRuleEngine.getTrustState())
         assertTrue(SecurityRuleEngine.getRecentEvents().isNotEmpty())
@@ -97,6 +96,7 @@ class ResetVaultUseCaseInstrumentedTest {
         val lastEvent = SecurityRuleEngine.getRecentEvents().last()
         assertEquals(SecurityRuleEngine.Decision.ALLOW, lastEvent.decision)
         assertEquals(TrustState.DEGRADED, lastEvent.trustState)
+        assertTrue(lastEvent.reason.contains("VAULT_RESET_RECOVERY"))
         assertTrue(lastEvent.reason.contains("Vault reset"))
     }
 

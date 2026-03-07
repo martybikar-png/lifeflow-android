@@ -19,7 +19,7 @@ class BiometricAuthManager(
 
         val canAuthenticate = biometricManager.canAuthenticate(authenticators)
         if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
-            onError("Biometric authentication not available: $canAuthenticate")
+            onError(userFriendlyBiometricAvailabilityMessage(canAuthenticate))
             return
         }
 
@@ -77,5 +77,30 @@ class BiometricAuthManager(
             .build()
 
         biometricPrompt.authenticate(promptInfo)
+    }
+
+    private fun userFriendlyBiometricAvailabilityMessage(code: Int): String {
+        return when (code) {
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
+                "Biometric authentication is not available on this device."
+
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
+                "Biometric hardware is currently unavailable. Please try again."
+
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
+                "No biometric data is enrolled on this device. Please add a fingerprint or other biometric first."
+
+            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ->
+                "A security update is required before biometric authentication can be used."
+
+            BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED ->
+                "This device does not support the required biometric authentication mode."
+
+            BiometricManager.BIOMETRIC_STATUS_UNKNOWN ->
+                "Biometric availability could not be determined. Please try again."
+
+            else ->
+                "Biometric authentication is not available right now (code: $code)."
+        }
     }
 }

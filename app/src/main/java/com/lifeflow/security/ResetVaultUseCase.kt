@@ -12,12 +12,10 @@ class ResetVaultUseCase(
         SecurityAccessSession.clear()
 
         vault.resetVault()
-
         blobStore.clearAll()
+        vault.ensureInitialized()
 
-        SecurityRuleEngine.clearAudit()
-        SecurityRuleEngine.setTrustState(
-            TrustState.DEGRADED,
+        SecurityRuleEngine.recoverAfterVaultReset(
             reason = "Vault reset"
         )
     }
