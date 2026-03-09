@@ -9,18 +9,22 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.fragment.app.FragmentActivity
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModelProvider
 import com.lifeflow.security.BiometricAuthManager
 import com.lifeflow.security.SecurityAccessSession
@@ -47,6 +51,38 @@ class MainActivity : FragmentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
 
                     var lastAction by remember { mutableStateOf("—") }
+                    var pendingSettingsRefresh by remember { mutableStateOf(false) }
+
+                    val lifecycleOwner = LocalLifecycleOwner.current
+
+                    DisposableEffect(lifecycleOwner, pendingSettingsRefresh) {
+                        val observer = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_RESUME && pendingSettingsRefresh) {
+                                pendingSettingsRefresh = false
+
+                                runCatching {
+                                    viewModel.refreshHealthConnectStatus()
+                                    viewModel.refreshGrantedPermissions()
+
+                                    if (viewModel.uiState.value is UiState.Authenticated) {
+                                        viewModel.refreshMetricsAndTwinNow()
+                                    }
+                                }.onFailure {
+                                    lastAction =
+                                        "Resume refresh failed: ${it::class.java.simpleName}: ${it.message}"
+                                }
+
+                                if (!lastAction.startsWith("Resume refresh failed")) {
+                                    lastAction = "Returned from settings; refreshed Health Connect state"
+                                }
+                            }
+                        }
+
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
 
                     LaunchedEffect(Unit) {
                         runCatching { viewModel.refreshMetricsAndTwinNow() }
@@ -110,6 +146,7 @@ class MainActivity : FragmentActivity() {
                         if (required.isEmpty()) {
                             lastAction = "BLOCKED: required set is EMPTY"
                         } else {
+                            lastAction = "Permission request launched"
                             runCatching { permissionsLauncher.launch(required) }
                                 .onFailure {
                                     lastAction =
@@ -121,6 +158,7 @@ class MainActivity : FragmentActivity() {
                     val onOpenHealthConnectSettings: () -> Unit = {
                         val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
                         runCatching {
+                            pendingSettingsRefresh = true
                             startActivity(intent)
                             lastAction = "Opened Health Connect settings"
                         }.onFailure { t ->
@@ -128,13 +166,17 @@ class MainActivity : FragmentActivity() {
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                     data = Uri.fromParts("package", packageName, null)
                                 }
-                            runCatching { startActivity(appSettings) }
+                            runCatching {
+                                pendingSettingsRefresh = true
+                                startActivity(appSettings)
+                            }
                             lastAction =
                                 "HC settings failed (${t::class.java.simpleName}). Opened App settings instead."
                         }
                     }
 
                     val onAuthenticate: () -> Unit = {
+                        lastAction = "Biometric authentication requested"
                         biometricAuthManager.authenticate(
                             onSuccess = {
                                 viewModel.onAuthenticationSuccess()
@@ -205,7 +247,10 @@ class MainActivity : FragmentActivity() {
                                 onAuthenticate = onAuthenticate,
                                 onGrantHealthPermissions = onGrantPermissions,
                                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                                onResetVault = { viewModel.resetVault() },
+                                onResetVault = {
+                                    lastAction = "Vault reset requested"
+                                    viewModel.resetVault()
+                                },
                                 debugLines = debugLines,
                                 showAuthenticateAction = allowAuthenticate,
                                 showResetVaultAction = resetRequired
