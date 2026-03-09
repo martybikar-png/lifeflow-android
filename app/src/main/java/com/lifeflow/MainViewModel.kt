@@ -49,6 +49,12 @@ class MainViewModel(
         digitalTwinState.value = null
     }
 
+    private fun canExposeProtectedUiData(): Boolean {
+        return uiState.value is UiState.Authenticated &&
+                SecurityAccessSession.isAuthorized() &&
+                SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
+    }
+
     init {
         // B2: Fail-closed reaction to TrustState changes
         viewModelScope.launch {
@@ -124,8 +130,17 @@ class MainViewModel(
     }
 
     private suspend fun refreshGrantedPermissionsSafe() {
+        if (!canExposeProtectedUiData()) {
+            grantedHealthPermissions.value = emptySet()
+            return
+        }
+
         when (val res = orchestrator.grantedHealthPermissionsSafe()) {
-            is LifeFlowOrchestrator.ActionResult.Success -> grantedHealthPermissions.value = res.value
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                grantedHealthPermissions.value =
+                    if (canExposeProtectedUiData()) res.value else emptySet()
+            }
+
             is LifeFlowOrchestrator.ActionResult.Error -> grantedHealthPermissions.value = emptySet()
             is LifeFlowOrchestrator.ActionResult.Locked -> grantedHealthPermissions.value = emptySet()
         }
@@ -164,10 +179,26 @@ class MainViewModel(
                 return@launch
             }
 
-            if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) {
-                wipeUiCachesFailClosed()
-                uiState.value = UiState.Error("Security compromised. Reset vault is required before continuing.")
-                return@launch
+            when (SecurityRuleEngine.getTrustState()) {
+                TrustState.COMPROMISED -> {
+                    SecurityAccessSession.clear()
+                    wipeUiCachesFailClosed()
+                    uiState.value = UiState.Error(
+                        "Security compromised. Reset vault is required before continuing."
+                    )
+                    return@launch
+                }
+
+                TrustState.DEGRADED -> {
+                    SecurityAccessSession.clear()
+                    wipeUiCachesFailClosed()
+                    uiState.value = UiState.Error("Security degraded. Please authenticate again.")
+                    return@launch
+                }
+
+                TrustState.VERIFIED -> {
+                    // continue
+                }
             }
 
             sessionExpiryNotified = false
@@ -197,10 +228,19 @@ class MainViewModel(
     }
 
     private suspend fun refreshTwinBestEffort(identityInitialized: Boolean) {
+        if (!canExposeProtectedUiData()) {
+            digitalTwinState.value = null
+            return
+        }
+
         when (val res = orchestrator.refreshTwinBestEffort(identityInitialized)) {
-            is LifeFlowOrchestrator.ActionResult.Success -> digitalTwinState.value = res.value
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                digitalTwinState.value =
+                    if (canExposeProtectedUiData()) res.value else null
+            }
+
             is LifeFlowOrchestrator.ActionResult.Error -> {
-                // keep deterministic: no crash
+                digitalTwinState.value = null
             }
 
             is LifeFlowOrchestrator.ActionResult.Locked -> {

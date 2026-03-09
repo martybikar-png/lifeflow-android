@@ -134,6 +134,11 @@ object SecurityRuleEngine {
      * - It exists only so the adversarial manual suite can deterministically reset baseline
      *   between destructive test cases.
      * - Normal production/auth flows must NOT use this.
+     *
+     * Test baseline nuance:
+     * - VERIFIED baseline may intentionally preserve an already granted session so auth-path
+     *   tests can model "session exists + trust verified".
+     * - DEGRADED / COMPROMISED always clear session fail-closed.
      */
     @Synchronized
     internal fun forceResetForAdversarialSuite(
@@ -143,7 +148,10 @@ object SecurityRuleEngine {
         auditEvents.clear()
         denyCount = 0
         _trustState.value = state
-        SecurityAccessSession.clear()
+
+        if (state == TrustState.DEGRADED || state == TrustState.COMPROMISED) {
+            SecurityAccessSession.clear()
+        }
 
         record(
             decision = Decision.ALLOW,
