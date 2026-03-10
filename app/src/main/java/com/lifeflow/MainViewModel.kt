@@ -74,6 +74,20 @@ class MainViewModel(
         }
     }
 
+    private fun refreshHealthConnectStatusSafe() {
+        healthConnectState.value = runCatching {
+            orchestrator.healthConnectUiState()
+        }.getOrElse {
+            HealthConnectUiState.Unknown
+        }
+    }
+
+    private fun handleUnexpectedProtectedRefreshFailure() {
+        wipeUiCachesFailClosed()
+        refreshHealthConnectStatusSafe()
+        refreshRequiredPermissionsDefinition()
+    }
+
     private fun applyWellbeingSnapshot(
         snapshot: LifeFlowOrchestrator.WellbeingRefreshSnapshot
     ) {
@@ -146,7 +160,7 @@ class MainViewModel(
     }
 
     fun refreshHealthConnectStatus() {
-        healthConnectState.value = orchestrator.healthConnectUiState()
+        refreshHealthConnectStatusSafe()
     }
 
     private suspend fun refreshGrantedPermissionsSafe() {
@@ -168,7 +182,7 @@ class MainViewModel(
 
     private suspend fun refreshWellbeingSnapshotSafe(identityInitialized: Boolean) {
         if (!canExposeProtectedUiData()) {
-            refreshHealthConnectStatus()
+            refreshHealthConnectStatusSafe()
             refreshRequiredPermissionsDefinition()
             grantedHealthPermissions.value = emptySet()
             digitalTwinState.value = null
@@ -181,7 +195,7 @@ class MainViewModel(
             }
 
             is LifeFlowOrchestrator.ActionResult.Error -> {
-                refreshHealthConnectStatus()
+                refreshHealthConnectStatusSafe()
                 refreshRequiredPermissionsDefinition()
                 grantedHealthPermissions.value = emptySet()
                 digitalTwinState.value = null
@@ -194,7 +208,13 @@ class MainViewModel(
     }
 
     fun refreshGrantedPermissions() {
-        viewModelScope.launch { refreshGrantedPermissionsSafe() }
+        viewModelScope.launch {
+            runCatching {
+                refreshGrantedPermissionsSafe()
+            }.onFailure {
+                handleUnexpectedProtectedRefreshFailure()
+            }
+        }
     }
 
     fun refreshMetricsAndTwinNow() {
@@ -203,15 +223,21 @@ class MainViewModel(
                 refreshWellbeingSnapshotSafe(
                     identityInitialized = (uiState.value is UiState.Authenticated)
                 )
+            }.onFailure {
+                handleUnexpectedProtectedRefreshFailure()
             }
         }
     }
 
     fun onHealthPermissionsResult(@Suppress("UNUSED_PARAMETER") granted: Set<String>) {
         viewModelScope.launch {
-            refreshWellbeingSnapshotSafe(
-                identityInitialized = (uiState.value is UiState.Authenticated)
-            )
+            runCatching {
+                refreshWellbeingSnapshotSafe(
+                    identityInitialized = (uiState.value is UiState.Authenticated)
+                )
+            }.onFailure {
+                handleUnexpectedProtectedRefreshFailure()
+            }
         }
     }
 
