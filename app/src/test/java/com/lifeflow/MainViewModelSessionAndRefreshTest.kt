@@ -61,6 +61,97 @@ class MainViewModelSessionAndRefreshTest : MainViewModelTestBase() {
     }
 
     @Test
+    fun `refreshMetricsAndTwinNow without auth refreshes public health state but keeps protected data hidden`() {
+        SecurityAccessSession.clear()
+        forceResetSecurityState(
+            state = TrustState.VERIFIED,
+            reason = "unauthenticated refresh should stay fail closed"
+        )
+
+        val viewModel = newViewModel(
+            wellbeingRepo = FakeWellbeingRepository(
+                sdkStatusValue = WellbeingRepository.SdkStatus.Available,
+                requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+                grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
+                stepsValue = 9876L,
+                avgHeartRateValue = 63.4
+            )
+        )
+
+        try {
+            settleMain()
+
+            viewModel.refreshMetricsAndTwinNow()
+            settleMain()
+
+            assertTrue(viewModel.uiState.value is UiState.Loading)
+            assertEquals(HealthConnectUiState.Available, viewModel.healthConnectState.value)
+            assertEquals(
+                setOf(stepsPermission, heartRatePermission),
+                viewModel.requiredHealthPermissions.value
+            )
+            assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
+            assertNull(viewModel.digitalTwinState.value)
+        } finally {
+            clearViewModel(viewModel)
+            settleMain()
+        }
+    }
+
+    @Test
+    fun `onHealthPermissionsResult refreshes unified wellbeing snapshot after auth`() {
+        SecurityAccessSession.grantDefault()
+        forceResetSecurityState(
+            state = TrustState.VERIFIED,
+            reason = "permission callback should use orchestrated snapshot"
+        )
+
+        val wellbeingRepo = FakeWellbeingRepository(
+            sdkStatusValue = WellbeingRepository.SdkStatus.Available,
+            requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            grantedPermissionsValue = emptySet(),
+            stepsValue = 3210L,
+            avgHeartRateValue = 66.2
+        )
+
+        val viewModel = newViewModel(wellbeingRepo = wellbeingRepo)
+
+        try {
+            settleMain()
+
+            viewModel.onAuthenticationSuccess()
+            settleMain()
+
+            assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
+            assertNull(viewModel.digitalTwinState.value)
+
+            wellbeingRepo.grantedPermissionsValue = setOf(stepsPermission, heartRatePermission)
+
+            viewModel.onHealthPermissionsResult(setOf(stepsPermission, heartRatePermission))
+            settleMain()
+
+            assertEquals(HealthConnectUiState.Available, viewModel.healthConnectState.value)
+            assertEquals(
+                setOf(stepsPermission, heartRatePermission),
+                viewModel.requiredHealthPermissions.value
+            )
+            assertEquals(
+                setOf(stepsPermission, heartRatePermission),
+                viewModel.grantedHealthPermissions.value
+            )
+
+            val twin = viewModel.digitalTwinState.value
+            assertNotNull(twin)
+            assertTrue(twin!!.identityInitialized)
+            assertEquals(3210L, twin.stepsLast24h)
+            assertEquals(66L, twin.avgHeartRateLast24h)
+        } finally {
+            clearViewModel(viewModel)
+            settleMain()
+        }
+    }
+
+    @Test
     fun `refreshMetricsAndTwinNow recomputes twin and does not keep stale metric values when subsequent read fails`() {
         SecurityAccessSession.grantDefault()
         forceResetSecurityState(

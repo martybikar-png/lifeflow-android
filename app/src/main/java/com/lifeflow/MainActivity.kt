@@ -55,26 +55,27 @@ class MainActivity : FragmentActivity() {
 
                     val lifecycleOwner = LocalLifecycleOwner.current
 
+                    fun requestFullRefresh(successMessage: String, failurePrefix: String) {
+                        runCatching {
+                            viewModel.refreshMetricsAndTwinNow()
+                        }.onFailure {
+                            lastAction =
+                                "$failurePrefix: ${it::class.java.simpleName}: ${it.message}"
+                        }
+
+                        if (!lastAction.startsWith(failurePrefix)) {
+                            lastAction = successMessage
+                        }
+                    }
+
                     DisposableEffect(lifecycleOwner, pendingSettingsRefresh) {
                         val observer = LifecycleEventObserver { _, event ->
                             if (event == Lifecycle.Event.ON_RESUME && pendingSettingsRefresh) {
                                 pendingSettingsRefresh = false
-
-                                runCatching {
-                                    viewModel.refreshHealthConnectStatus()
-                                    viewModel.refreshGrantedPermissions()
-
-                                    if (viewModel.uiState.value is UiState.Authenticated) {
-                                        viewModel.refreshMetricsAndTwinNow()
-                                    }
-                                }.onFailure {
-                                    lastAction =
-                                        "Resume refresh failed: ${it::class.java.simpleName}: ${it.message}"
-                                }
-
-                                if (!lastAction.startsWith("Resume refresh failed")) {
-                                    lastAction = "Returned from settings; refreshed Health Connect state"
-                                }
+                                requestFullRefresh(
+                                    successMessage = "Returned from settings; refreshed wellbeing state",
+                                    failurePrefix = "Resume refresh failed"
+                                )
                             }
                         }
 
@@ -85,15 +86,10 @@ class MainActivity : FragmentActivity() {
                     }
 
                     LaunchedEffect(Unit) {
-                        runCatching { viewModel.refreshMetricsAndTwinNow() }
-                            .onFailure {
-                                lastAction =
-                                    "Startup metrics refresh failed: ${it::class.java.simpleName}: ${it.message}"
-                            }
-
-                        if (lastAction == "—") {
-                            lastAction = "Startup refresh done"
-                        }
+                        requestFullRefresh(
+                            successMessage = "Startup refresh done",
+                            failurePrefix = "Startup metrics refresh failed"
+                        )
                     }
 
                     val uiState = viewModel.uiState.value
@@ -118,15 +114,10 @@ class MainActivity : FragmentActivity() {
 
                     LaunchedEffect(uiState is UiState.Authenticated) {
                         if (uiState is UiState.Authenticated) {
-                            runCatching { viewModel.refreshMetricsAndTwinNow() }
-                                .onFailure {
-                                    lastAction =
-                                        "Post-auth refresh failed: ${it::class.java.simpleName}: ${it.message}"
-                                }
-
-                            if (!lastAction.startsWith("Post-auth refresh failed")) {
-                                lastAction = "Post-auth refresh done"
-                            }
+                            requestFullRefresh(
+                                successMessage = "Post-auth refresh done",
+                                failurePrefix = "Post-auth refresh failed"
+                            )
                         }
                     }
 

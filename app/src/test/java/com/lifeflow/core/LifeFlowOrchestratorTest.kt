@@ -336,6 +336,146 @@ class LifeFlowOrchestratorTest {
     }
 
     @Test
+    fun `refreshWellbeingSnapshot returns unified snapshot when health connect is available and permissions are granted`() {
+        val repo = FakeWellbeingRepository(
+            sdkStatus = WellbeingRepository.SdkStatus.Available,
+            requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            stepsValue = 4321L,
+            avgHeartRateValue = 71.6
+        )
+        val orchestrator = newOrchestrator(repo)
+
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
+
+        when (result) {
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                val snapshot = result.value
+                assertEquals(HealthConnectUiState.Available, snapshot.healthConnectState)
+                assertEquals(
+                    setOf(stepsPermission, heartRatePermission),
+                    snapshot.requiredPermissions
+                )
+                assertEquals(
+                    setOf(stepsPermission, heartRatePermission),
+                    snapshot.grantedPermissions
+                )
+                assertEquals(true, snapshot.stepsPermissionGranted)
+                assertEquals(true, snapshot.heartRatePermissionGranted)
+
+                val twin = snapshot.digitalTwinState
+                assertTrue(twin.identityInitialized)
+                assertEquals(4321L, twin.stepsLast24h)
+                assertEquals(72L, twin.avgHeartRateLast24h)
+                assertEquals(DigitalTwinState.Availability.OK, twin.stepsAvailability)
+                assertEquals(DigitalTwinState.Availability.OK, twin.heartRateAvailability)
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Locked ->
+                throw AssertionError("Expected Success but got Locked: ${result.reason}")
+
+            is LifeFlowOrchestrator.ActionResult.Error ->
+                throw AssertionError("Expected Success but got Error: ${result.message}")
+        }
+    }
+
+    @Test
+    fun `refreshWellbeingSnapshot preserves permission sets but skips metric reads when health connect is unavailable`() {
+        val repo = FakeWellbeingRepository(
+            sdkStatus = WellbeingRepository.SdkStatus.NotInstalled,
+            requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            stepsValue = 9999L,
+            avgHeartRateValue = 80.0
+        )
+        val orchestrator = newOrchestrator(repo)
+
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
+
+        when (result) {
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                val snapshot = result.value
+                assertEquals(HealthConnectUiState.NotInstalled, snapshot.healthConnectState)
+                assertEquals(
+                    setOf(stepsPermission, heartRatePermission),
+                    snapshot.requiredPermissions
+                )
+                assertEquals(
+                    setOf(stepsPermission, heartRatePermission),
+                    snapshot.grantedPermissions
+                )
+                assertNull(snapshot.stepsPermissionGranted)
+                assertNull(snapshot.heartRatePermissionGranted)
+
+                val twin = snapshot.digitalTwinState
+                assertEquals(DigitalTwinState.Availability.UNKNOWN, twin.stepsAvailability)
+                assertEquals(DigitalTwinState.Availability.UNKNOWN, twin.heartRateAvailability)
+                assertNull(twin.stepsLast24h)
+                assertNull(twin.avgHeartRateLast24h)
+
+                assertEquals(0, repo.readTotalStepsCalls)
+                assertEquals(0, repo.readAvgHeartRateCalls)
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Locked ->
+                throw AssertionError("Expected Success but got Locked: ${result.reason}")
+
+            is LifeFlowOrchestrator.ActionResult.Error ->
+                throw AssertionError("Expected Success but got Error: ${result.message}")
+        }
+    }
+
+    @Test
+    fun `refreshWellbeingSnapshot degrades to empty granted permissions and denied metrics when granted lookup fails`() {
+        val repo = FakeWellbeingRepository(
+            sdkStatus = WellbeingRepository.SdkStatus.Available,
+            requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            stepsValue = 5000L,
+            avgHeartRateValue = 65.0,
+            throwsOnGrantedPermissions = true
+        )
+        val orchestrator = newOrchestrator(repo)
+
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
+
+        when (result) {
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                val snapshot = result.value
+                assertEquals(HealthConnectUiState.Available, snapshot.healthConnectState)
+                assertEquals(
+                    setOf(stepsPermission, heartRatePermission),
+                    snapshot.requiredPermissions
+                )
+                assertTrue(snapshot.grantedPermissions.isEmpty())
+                assertEquals(false, snapshot.stepsPermissionGranted)
+                assertEquals(false, snapshot.heartRatePermissionGranted)
+
+                val twin = snapshot.digitalTwinState
+                assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.stepsAvailability)
+                assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.heartRateAvailability)
+                assertNull(twin.stepsLast24h)
+                assertNull(twin.avgHeartRateLast24h)
+
+                assertEquals(0, repo.readTotalStepsCalls)
+                assertEquals(0, repo.readAvgHeartRateCalls)
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Locked ->
+                throw AssertionError("Expected Success but got Locked: ${result.reason}")
+
+            is LifeFlowOrchestrator.ActionResult.Error ->
+                throw AssertionError("Expected Success but got Error: ${result.message}")
+        }
+    }
+
+    @Test
     fun `bootstrap returns AUTH_REQUIRED when no authorized session exists`() {
         val identityRepo = FakeIdentityRepository()
         val orchestrator = newOrchestrator(identityRepository = identityRepo)

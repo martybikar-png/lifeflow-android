@@ -11,10 +11,12 @@ import java.time.Instant
 
 internal object HealthConnectManager {
 
+    private const val NO_STEPS_DATA = -1L
+
     enum class SdkStatus { Available, NotInstalled, NotSupported, UpdateRequired }
 
     fun getSdkStatus(context: Context): SdkStatus {
-        val status = HealthConnectClient.getSdkStatus(context)
+        val status = HealthConnectClient.getSdkStatus(context.applicationContext)
 
         // Use reflection so we compile even if some constants are missing in the installed dependency.
         val sdkAvailable = getIntConstOrNull("SDK_AVAILABLE")
@@ -43,13 +45,15 @@ internal object HealthConnectManager {
     )
 
     fun client(context: Context): HealthConnectClient =
-        HealthConnectClient.getOrCreate(context)
+        HealthConnectClient.getOrCreate(context.applicationContext)
 
     suspend fun readTotalSteps(
         context: Context,
         start: Instant,
         end: Instant
     ): Long {
+        requireValidRange(start, end)
+
         val hc = client(context)
         val response = hc.aggregate(
             AggregateRequest(
@@ -57,7 +61,8 @@ internal object HealthConnectManager {
                 timeRangeFilter = TimeRangeFilter.between(start, end)
             )
         )
-        return response[StepsRecord.COUNT_TOTAL] ?: 0L
+
+        return response[StepsRecord.COUNT_TOTAL] ?: NO_STEPS_DATA
     }
 
     suspend fun readAvgHeartRateBpm(
@@ -65,6 +70,8 @@ internal object HealthConnectManager {
         start: Instant,
         end: Instant
     ): Double? {
+        requireValidRange(start, end)
+
         val hc = client(context)
         val response = hc.aggregate(
             AggregateRequest(
@@ -72,12 +79,24 @@ internal object HealthConnectManager {
                 timeRangeFilter = TimeRangeFilter.between(start, end)
             )
         )
-        val value = response[HeartRateRecord.BPM_AVG]
-        return value?.toDouble()
+
+        val value = response[HeartRateRecord.BPM_AVG]?.toDouble()
+        return when {
+            value == null -> null
+            value.isNaN() -> null
+            value.isInfinite() -> null
+            else -> value
+        }
     }
 
     suspend fun getGrantedPermissions(context: Context): Set<String> {
         val hc = client(context)
         return hc.permissionController.getGrantedPermissions()
+    }
+
+    private fun requireValidRange(start: Instant, end: Instant) {
+        require(!end.isBefore(start)) {
+            "Invalid Health Connect time range: end must be >= start"
+        }
     }
 }

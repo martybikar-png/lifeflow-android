@@ -55,6 +55,41 @@ class MainViewModel(
                 SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
     }
 
+    private fun refreshRequiredPermissionsDefinition() {
+        when (val res = orchestrator.requiredHealthPermissionsSafe()) {
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                requiredHealthPermissions.value = res.value
+                healthPermissionsInitError.value = null
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Error -> {
+                requiredHealthPermissions.value = emptySet()
+                healthPermissionsInitError.value = res.message
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Locked -> {
+                requiredHealthPermissions.value = emptySet()
+                healthPermissionsInitError.value = res.reason
+            }
+        }
+    }
+
+    private fun applyWellbeingSnapshot(
+        snapshot: LifeFlowOrchestrator.WellbeingRefreshSnapshot
+    ) {
+        healthConnectState.value = snapshot.healthConnectState
+        requiredHealthPermissions.value = snapshot.requiredPermissions
+        healthPermissionsInitError.value = null
+
+        if (canExposeProtectedUiData()) {
+            grantedHealthPermissions.value = snapshot.grantedPermissions
+            digitalTwinState.value = snapshot.digitalTwinState
+        } else {
+            grantedHealthPermissions.value = emptySet()
+            digitalTwinState.value = null
+        }
+    }
+
     init {
         // B2: Fail-closed reaction to TrustState changes
         viewModelScope.launch {
@@ -107,22 +142,7 @@ class MainViewModel(
         }
 
         // Required permissions via orchestrator (single boundary)
-        when (val res = orchestrator.requiredHealthPermissionsSafe()) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                requiredHealthPermissions.value = res.value
-                healthPermissionsInitError.value = null
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Error -> {
-                requiredHealthPermissions.value = emptySet()
-                healthPermissionsInitError.value = res.message
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Locked -> {
-                requiredHealthPermissions.value = emptySet()
-                healthPermissionsInitError.value = res.reason
-            }
-        }
+        refreshRequiredPermissionsDefinition()
     }
 
     fun refreshHealthConnectStatus() {
@@ -146,16 +166,41 @@ class MainViewModel(
         }
     }
 
+    private suspend fun refreshWellbeingSnapshotSafe(identityInitialized: Boolean) {
+        if (!canExposeProtectedUiData()) {
+            refreshHealthConnectStatus()
+            refreshRequiredPermissionsDefinition()
+            grantedHealthPermissions.value = emptySet()
+            digitalTwinState.value = null
+            return
+        }
+
+        when (val res = orchestrator.refreshWellbeingSnapshot(identityInitialized)) {
+            is LifeFlowOrchestrator.ActionResult.Success -> {
+                applyWellbeingSnapshot(res.value)
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Error -> {
+                refreshHealthConnectStatus()
+                refreshRequiredPermissionsDefinition()
+                grantedHealthPermissions.value = emptySet()
+                digitalTwinState.value = null
+            }
+
+            is LifeFlowOrchestrator.ActionResult.Locked -> {
+                wipeUiCachesFailClosed()
+            }
+        }
+    }
+
     fun refreshGrantedPermissions() {
         viewModelScope.launch { refreshGrantedPermissionsSafe() }
     }
 
     fun refreshMetricsAndTwinNow() {
         viewModelScope.launch {
-            runCatching { refreshHealthConnectStatus() }
-            runCatching { refreshGrantedPermissionsSafe() }
             runCatching {
-                refreshTwinBestEffort(
+                refreshWellbeingSnapshotSafe(
                     identityInitialized = (uiState.value is UiState.Authenticated)
                 )
             }
@@ -164,8 +209,9 @@ class MainViewModel(
 
     fun onHealthPermissionsResult(@Suppress("UNUSED_PARAMETER") granted: Set<String>) {
         viewModelScope.launch {
-            refreshGrantedPermissionsSafe()
-            refreshTwinBestEffort(identityInitialized = (uiState.value is UiState.Authenticated))
+            refreshWellbeingSnapshotSafe(
+                identityInitialized = (uiState.value is UiState.Authenticated)
+            )
         }
     }
 
@@ -223,28 +269,6 @@ class MainViewModel(
                     uiState.value = UiState.Error(boot.message)
                     return@launch
                 }
-            }
-        }
-    }
-
-    private suspend fun refreshTwinBestEffort(identityInitialized: Boolean) {
-        if (!canExposeProtectedUiData()) {
-            digitalTwinState.value = null
-            return
-        }
-
-        when (val res = orchestrator.refreshTwinBestEffort(identityInitialized)) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                digitalTwinState.value =
-                    if (canExposeProtectedUiData()) res.value else null
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Error -> {
-                digitalTwinState.value = null
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Locked -> {
-                wipeUiCachesFailClosed()
             }
         }
     }

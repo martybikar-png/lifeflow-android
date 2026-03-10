@@ -38,8 +38,9 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.core)
 
-    // ✅ Health Connect belongs to data layer (platform integration)
+    // Health Connect belongs to data layer (platform integration)
     implementation("androidx.health.connect:connect-client:1.1.0")
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
