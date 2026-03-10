@@ -55,16 +55,14 @@ class MainActivity : FragmentActivity() {
 
                     val lifecycleOwner = LocalLifecycleOwner.current
 
-                    fun requestFullRefresh(successMessage: String, failurePrefix: String) {
+                    fun triggerFullRefresh(requestMessage: String) {
                         runCatching {
                             viewModel.refreshMetricsAndTwinNow()
+                        }.onSuccess {
+                            lastAction = requestMessage
                         }.onFailure {
                             lastAction =
-                                "$failurePrefix: ${it::class.java.simpleName}: ${it.message}"
-                        }
-
-                        if (!lastAction.startsWith(failurePrefix)) {
-                            lastAction = successMessage
+                                "Refresh trigger failed: ${it::class.java.simpleName}: ${it.message}"
                         }
                     }
 
@@ -72,10 +70,7 @@ class MainActivity : FragmentActivity() {
                         val observer = LifecycleEventObserver { _, event ->
                             if (event == Lifecycle.Event.ON_RESUME && pendingSettingsRefresh) {
                                 pendingSettingsRefresh = false
-                                requestFullRefresh(
-                                    successMessage = "Returned from settings; refreshed wellbeing state",
-                                    failurePrefix = "Resume refresh failed"
-                                )
+                                triggerFullRefresh("Returned from settings; refresh requested")
                             }
                         }
 
@@ -86,10 +81,7 @@ class MainActivity : FragmentActivity() {
                     }
 
                     LaunchedEffect(Unit) {
-                        requestFullRefresh(
-                            successMessage = "Startup refresh done",
-                            failurePrefix = "Startup metrics refresh failed"
-                        )
+                        triggerFullRefresh("Startup refresh requested")
                     }
 
                     val uiState = viewModel.uiState.value
@@ -108,16 +100,13 @@ class MainActivity : FragmentActivity() {
                     val permissionsLauncher = rememberLauncherForActivityResult(
                         contract = PermissionController.createRequestPermissionResultContract()
                     ) { grantedPermissions: Set<String> ->
-                        lastAction = "HC callback: ${grantedPermissions.size} granted"
+                        lastAction = "HC callback: ${grantedPermissions.size} granted; refresh requested"
                         viewModel.onHealthPermissionsResult(grantedPermissions)
                     }
 
                     LaunchedEffect(uiState is UiState.Authenticated) {
                         if (uiState is UiState.Authenticated) {
-                            requestFullRefresh(
-                                successMessage = "Post-auth refresh done",
-                                failurePrefix = "Post-auth refresh failed"
-                            )
+                            triggerFullRefresh("Post-auth refresh requested")
                         }
                     }
 
@@ -147,22 +136,28 @@ class MainActivity : FragmentActivity() {
                     }
 
                     val onOpenHealthConnectSettings: () -> Unit = {
-                        val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
+                        val hcSettingsIntent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
+                        val appSettingsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", packageName, null)
+                        }
+
                         runCatching {
+                            startActivity(hcSettingsIntent)
+                        }.onSuccess {
                             pendingSettingsRefresh = true
-                            startActivity(intent)
                             lastAction = "Opened Health Connect settings"
-                        }.onFailure { t ->
-                            val appSettings =
-                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.fromParts("package", packageName, null)
-                                }
+                        }.onFailure { primaryError ->
                             runCatching {
+                                startActivity(appSettingsIntent)
+                            }.onSuccess {
                                 pendingSettingsRefresh = true
-                                startActivity(appSettings)
+                                lastAction =
+                                    "HC settings unavailable (${primaryError::class.java.simpleName}). Opened App settings instead."
+                            }.onFailure { fallbackError ->
+                                pendingSettingsRefresh = false
+                                lastAction =
+                                    "Unable to open settings: ${primaryError::class.java.simpleName} / ${fallbackError::class.java.simpleName}"
                             }
-                            lastAction =
-                                "HC settings failed (${t::class.java.simpleName}). Opened App settings instead."
                         }
                     }
 
@@ -206,8 +201,7 @@ class MainActivity : FragmentActivity() {
                                 digitalTwinState = twin,
                                 lastAction = lastAction,
                                 onRefreshNow = {
-                                    viewModel.refreshMetricsAndTwinNow()
-                                    lastAction = "Manual refresh requested"
+                                    triggerFullRefresh("Manual refresh requested")
                                 },
                                 onGrantHealthPermissions = onGrantPermissions,
                                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
