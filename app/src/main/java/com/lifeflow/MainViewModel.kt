@@ -10,7 +10,10 @@ import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.TrustState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class MainViewModel(
     private val orchestrator: LifeFlowOrchestrator,
@@ -43,10 +46,54 @@ class MainViewModel(
     private var sessionExpiryNotified = false
     private val SESSION_POLL_MS = 1000L
 
+    // Serialize protected refreshes so startup/auth/settings/manual refreshes do not overlap.
+    private val refreshMutex = Mutex()
+
     private fun wipeUiCachesFailClosed() {
         // keep requiredHealthPermissions (static), wipe granted + twin (dynamic)
         grantedHealthPermissions.value = emptySet()
         digitalTwinState.value = null
+    }
+
+    private fun refreshPublicHealthStateOnly() {
+        refreshHealthConnectStatusSafe()
+        refreshRequiredPermissionsDefinition()
+        grantedHealthPermissions.value = emptySet()
+        digitalTwinState.value = null
+    }
+
+    private fun failClosedWithError(
+        message: String,
+        clearSession: Boolean = true
+    ) {
+        if (clearSession) {
+            SecurityAccessSession.clear()
+        }
+        wipeUiCachesFailClosed()
+        sessionExpiryNotified = false
+        uiState.value = UiState.Error(message)
+    }
+
+    private fun lockedReasonToUserMessage(reason: String): String {
+        return when {
+            reason.startsWith("COMPROMISED:", ignoreCase = true) ->
+                "Security compromised. Reset vault is required before continuing."
+
+            reason.startsWith("AUTH_REQUIRED:", ignoreCase = true) ->
+                "Authentication required. Please authenticate again."
+
+            reason.isBlank() ->
+                "Access locked. Please authenticate again."
+
+            else -> reason
+        }
+    }
+
+    private fun handleLockedProtectedOperation(reason: String) {
+        failClosedWithError(
+            message = lockedReasonToUserMessage(reason),
+            clearSession = true
+        )
     }
 
     private fun canExposeProtectedUiData(): Boolean {
@@ -83,9 +130,14 @@ class MainViewModel(
     }
 
     private fun handleUnexpectedProtectedRefreshFailure() {
-        wipeUiCachesFailClosed()
-        refreshHealthConnectStatusSafe()
-        refreshRequiredPermissionsDefinition()
+        refreshPublicHealthStateOnly()
+
+        if (uiState.value is UiState.Authenticated) {
+            failClosedWithError(
+                message = "Protected refresh failed unexpectedly. Please authenticate again.",
+                clearSession = true
+            )
+        }
     }
 
     private fun applyWellbeingSnapshot(
@@ -110,9 +162,7 @@ class MainViewModel(
             SecurityRuleEngine.trustState.collect { state ->
                 when (state) {
                     TrustState.COMPROMISED -> {
-                        SecurityAccessSession.clear()
-                        wipeUiCachesFailClosed()
-                        uiState.value = UiState.Error(
+                        failClosedWithError(
                             "Security compromised. Reset vault is required before continuing."
                         )
                     }
@@ -120,9 +170,7 @@ class MainViewModel(
                     TrustState.DEGRADED -> {
                         // React only if user was already authenticated and got downgraded.
                         if (uiState.value is UiState.Authenticated) {
-                            SecurityAccessSession.clear()
-                            wipeUiCachesFailClosed()
-                            uiState.value = UiState.Error("Security degraded. Please authenticate again.")
+                            failClosedWithError("Security degraded. Please authenticate again.")
                         }
                     }
 
@@ -135,7 +183,7 @@ class MainViewModel(
 
         // B1: detect TTL expiry while app is running (fail-closed UX)
         viewModelScope.launch {
-            while (true) {
+            while (isActive) {
                 delay(SESSION_POLL_MS)
 
                 if (uiState.value is UiState.Authenticated) {
@@ -143,8 +191,7 @@ class MainViewModel(
                     if (!authorized) {
                         if (!sessionExpiryNotified) {
                             sessionExpiryNotified = true
-                            wipeUiCachesFailClosed()
-                            uiState.value = UiState.Error("Session expired. Please authenticate again.")
+                            failClosedWithError("Session expired. Please authenticate again.")
                         }
                     } else {
                         sessionExpiryNotified = false
@@ -164,45 +211,48 @@ class MainViewModel(
     }
 
     private suspend fun refreshGrantedPermissionsSafe() {
-        if (!canExposeProtectedUiData()) {
-            grantedHealthPermissions.value = emptySet()
-            return
-        }
-
-        when (val res = orchestrator.grantedHealthPermissionsSafe()) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                grantedHealthPermissions.value =
-                    if (canExposeProtectedUiData()) res.value else emptySet()
+        refreshMutex.withLock {
+            if (!canExposeProtectedUiData()) {
+                grantedHealthPermissions.value = emptySet()
+                return
             }
 
-            is LifeFlowOrchestrator.ActionResult.Error -> grantedHealthPermissions.value = emptySet()
-            is LifeFlowOrchestrator.ActionResult.Locked -> grantedHealthPermissions.value = emptySet()
+            when (val res = orchestrator.grantedHealthPermissionsSafe()) {
+                is LifeFlowOrchestrator.ActionResult.Success -> {
+                    grantedHealthPermissions.value =
+                        if (canExposeProtectedUiData()) res.value else emptySet()
+                }
+
+                is LifeFlowOrchestrator.ActionResult.Error -> {
+                    grantedHealthPermissions.value = emptySet()
+                }
+
+                is LifeFlowOrchestrator.ActionResult.Locked -> {
+                    handleLockedProtectedOperation(res.reason)
+                }
+            }
         }
     }
 
     private suspend fun refreshWellbeingSnapshotSafe(identityInitialized: Boolean) {
-        if (!canExposeProtectedUiData()) {
-            refreshHealthConnectStatusSafe()
-            refreshRequiredPermissionsDefinition()
-            grantedHealthPermissions.value = emptySet()
-            digitalTwinState.value = null
-            return
-        }
-
-        when (val res = orchestrator.refreshWellbeingSnapshot(identityInitialized)) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                applyWellbeingSnapshot(res.value)
+        refreshMutex.withLock {
+            if (!canExposeProtectedUiData()) {
+                refreshPublicHealthStateOnly()
+                return
             }
 
-            is LifeFlowOrchestrator.ActionResult.Error -> {
-                refreshHealthConnectStatusSafe()
-                refreshRequiredPermissionsDefinition()
-                grantedHealthPermissions.value = emptySet()
-                digitalTwinState.value = null
-            }
+            when (val res = orchestrator.refreshWellbeingSnapshot(identityInitialized)) {
+                is LifeFlowOrchestrator.ActionResult.Success -> {
+                    applyWellbeingSnapshot(res.value)
+                }
 
-            is LifeFlowOrchestrator.ActionResult.Locked -> {
-                wipeUiCachesFailClosed()
+                is LifeFlowOrchestrator.ActionResult.Error -> {
+                    refreshPublicHealthStateOnly()
+                }
+
+                is LifeFlowOrchestrator.ActionResult.Locked -> {
+                    handleLockedProtectedOperation(res.reason)
+                }
             }
         }
     }
@@ -246,25 +296,20 @@ class MainViewModel(
 
         viewModelScope.launch {
             if (!SecurityAccessSession.isAuthorized()) {
-                wipeUiCachesFailClosed()
-                uiState.value = UiState.Error("Active auth session missing. Please authenticate again.")
+                failClosedWithError("Active auth session missing. Please authenticate again.")
                 return@launch
             }
 
             when (SecurityRuleEngine.getTrustState()) {
                 TrustState.COMPROMISED -> {
-                    SecurityAccessSession.clear()
-                    wipeUiCachesFailClosed()
-                    uiState.value = UiState.Error(
+                    failClosedWithError(
                         "Security compromised. Reset vault is required before continuing."
                     )
                     return@launch
                 }
 
                 TrustState.DEGRADED -> {
-                    SecurityAccessSession.clear()
-                    wipeUiCachesFailClosed()
-                    uiState.value = UiState.Error("Security degraded. Please authenticate again.")
+                    failClosedWithError("Security degraded. Please authenticate again.")
                     return@launch
                 }
 
@@ -283,16 +328,12 @@ class MainViewModel(
                 }
 
                 is LifeFlowOrchestrator.ActionResult.Locked -> {
-                    SecurityAccessSession.clear()
-                    wipeUiCachesFailClosed()
-                    uiState.value = UiState.Error(boot.reason)
+                    handleLockedProtectedOperation(boot.reason)
                     return@launch
                 }
 
                 is LifeFlowOrchestrator.ActionResult.Error -> {
-                    SecurityAccessSession.clear()
-                    wipeUiCachesFailClosed()
-                    uiState.value = UiState.Error(boot.message)
+                    failClosedWithError(boot.message)
                     return@launch
                 }
             }
@@ -300,9 +341,7 @@ class MainViewModel(
     }
 
     fun onAuthenticationError(message: String) {
-        SecurityAccessSession.clear()
-        wipeUiCachesFailClosed()
-        uiState.value = UiState.Error(message)
+        failClosedWithError(message)
     }
 
     /**
