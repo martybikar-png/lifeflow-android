@@ -51,23 +51,12 @@ class LifeFlowOrchestrator(
         val avgHeartRateLast24h: Long?
     )
 
-    // ---------- Result model (deterministic, UI-friendly) ----------
-
     sealed class ActionResult<out T> {
         data class Success<T>(val value: T) : ActionResult<T>()
         data class Locked(val reason: String) : ActionResult<Nothing>()
         data class Error(val message: String) : ActionResult<Nothing>()
     }
 
-    /**
-     * Unified best-effort wellbeing snapshot.
-     *
-     * This is the next architectural bridge between:
-     * security/auth readiness -> permissions/consent -> metric reads -> digital twin state.
-     *
-     * MainViewModel can consume this as a single orchestration output
-     * instead of stitching multiple partial reads together.
-     */
     data class WellbeingRefreshSnapshot(
         val healthConnectState: HealthConnectUiState,
         val requiredPermissions: Set<String>,
@@ -76,8 +65,6 @@ class LifeFlowOrchestrator(
         val heartRatePermissionGranted: Boolean?,
         val digitalTwinState: DigitalTwinState
     )
-
-    // ---------- Health Connect status ----------
 
     fun healthConnectUiState(): HealthConnectUiState {
         return when (getHealthConnectStatus()) {
@@ -102,8 +89,6 @@ class LifeFlowOrchestrator(
             // Permissions read should never break the app; return empty set deterministically
             ActionResult.Success(emptySet())
         }
-
-    // ---------- Security / Identity ----------
 
     /**
      * Hard gate for sensitive operations.
@@ -152,8 +137,6 @@ class LifeFlowOrchestrator(
         }
     }
 
-    // ---------- Metrics + Digital Twin ----------
-
     /**
      * Resolve permission status per metric using already-known permission sets.
      *
@@ -197,9 +180,6 @@ class LifeFlowOrchestrator(
         )
     }
 
-    /**
-     * Same semantics as above, but resolves required/granted permissions internally.
-     */
     private suspend fun resolveMetricPermissionSnapshot(): MetricPermissionSnapshot {
         return try {
             val requiredPermissions = getHealthPermissions()
