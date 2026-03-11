@@ -6,6 +6,7 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Instant
 
@@ -55,14 +56,20 @@ internal object HealthConnectManager {
         requireValidRange(start, end)
 
         val hc = client(context)
-        val response = hc.aggregate(
+        val timeRange = TimeRangeFilter.between(start, end)
+
+        val aggregateValue = hc.aggregate(
             AggregateRequest(
                 metrics = setOf(StepsRecord.COUNT_TOTAL),
-                timeRangeFilter = TimeRangeFilter.between(start, end)
+                timeRangeFilter = timeRange
             )
-        )
+        )[StepsRecord.COUNT_TOTAL]
 
-        return response[StepsRecord.COUNT_TOTAL] ?: NO_STEPS_DATA
+        if (aggregateValue != null) {
+            return aggregateValue
+        }
+
+        return readTotalStepsFallback(hc, timeRange)
     }
 
     suspend fun readAvgHeartRateBpm(
@@ -73,25 +80,72 @@ internal object HealthConnectManager {
         requireValidRange(start, end)
 
         val hc = client(context)
-        val response = hc.aggregate(
+        val timeRange = TimeRangeFilter.between(start, end)
+
+        val aggregateValue = hc.aggregate(
             AggregateRequest(
                 metrics = setOf(HeartRateRecord.BPM_AVG),
-                timeRangeFilter = TimeRangeFilter.between(start, end)
+                timeRangeFilter = timeRange
+            )
+        )[HeartRateRecord.BPM_AVG]?.toDouble()
+
+        normalizeFiniteDouble(aggregateValue)?.let { return it }
+
+        return readAvgHeartRateFallback(hc, timeRange)
+    }
+
+    suspend fun getGrantedPermissions(context: Context): Set<String> {
+        val hc = client(context)
+        return hc.permissionController.getGrantedPermissions()
+    }
+
+    private suspend fun readTotalStepsFallback(
+        hc: HealthConnectClient,
+        timeRange: TimeRangeFilter
+    ): Long {
+        val response = hc.readRecords(
+            ReadRecordsRequest(
+                recordType = StepsRecord::class,
+                timeRangeFilter = timeRange
             )
         )
 
-        val value = response[HeartRateRecord.BPM_AVG]?.toDouble()
+        if (response.records.isEmpty()) {
+            return NO_STEPS_DATA
+        }
+
+        return response.records.fold(0L) { acc, record -> acc + record.count }
+    }
+
+    private suspend fun readAvgHeartRateFallback(
+        hc: HealthConnectClient,
+        timeRange: TimeRangeFilter
+    ): Double? {
+        val response = hc.readRecords(
+            ReadRecordsRequest(
+                recordType = HeartRateRecord::class,
+                timeRangeFilter = timeRange
+            )
+        )
+
+        val samples = response.records
+            .flatMap { record -> record.samples }
+            .mapNotNull { sample ->
+                sample.beatsPerMinute
+                    .toDouble()
+                    .takeIf { it.isFinite() && it > 0.0 }
+            }
+
+        return if (samples.isEmpty()) null else samples.average()
+    }
+
+    private fun normalizeFiniteDouble(value: Double?): Double? {
         return when {
             value == null -> null
             value.isNaN() -> null
             value.isInfinite() -> null
             else -> value
         }
-    }
-
-    suspend fun getGrantedPermissions(context: Context): Set<String> {
-        val hc = client(context)
-        return hc.permissionController.getGrantedPermissions()
     }
 
     private fun requireValidRange(start: Instant, end: Instant) {
