@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import android.app.Application
+import android.util.Log
 import com.lifeflow.core.LifeFlowOrchestrator
 import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.data.wellbeing.HealthConnectWellbeingRepository
@@ -23,6 +24,10 @@ import com.lifeflow.security.KeyManager
 import com.lifeflow.security.ResetVaultUseCase
 
 class LifeFlowApplication : Application() {
+
+    companion object {
+        private const val TAG = "LifeFlowApplication"
+    }
 
     lateinit var identityRepository: IdentityRepository
         private set
@@ -75,6 +80,15 @@ class LifeFlowApplication : Application() {
     lateinit var resetVaultUseCase: ResetVaultUseCase
         private set
 
+    @Volatile
+    private var startupInitialized = false
+
+    @Volatile
+    var startupFailureMessage: String? = null
+        private set
+
+    private val startupInitLock = Any()
+
     val mainOrchestrator: LifeFlowOrchestrator by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         LifeFlowOrchestrator(
             identityRepository = identityRepository,
@@ -96,7 +110,30 @@ class LifeFlowApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ensureStartupInitialized()
+    }
 
+    fun ensureStartupInitialized(): Boolean {
+        if (startupInitialized) return true
+
+        synchronized(startupInitLock) {
+            if (startupInitialized) return true
+
+            return try {
+                initializeDependencyGraph()
+                startupInitialized = true
+                startupFailureMessage = null
+                true
+            } catch (t: Throwable) {
+                startupInitialized = false
+                startupFailureMessage = buildStartupFailureMessage(t)
+                Log.e(TAG, "Startup initialization failed.", t)
+                false
+            }
+        }
+    }
+
+    private fun initializeDependencyGraph() {
         val isInstrumentation = isRunningInstrumentation()
 
         keyManager = if (isInstrumentation) {
@@ -142,6 +179,12 @@ class LifeFlowApplication : Application() {
             blobStore = identityBlobStore,
             vault = androidVault
         )
+    }
+
+    private fun buildStartupFailureMessage(t: Throwable): String {
+        val type = t::class.java.simpleName.ifBlank { "UnknownError" }
+        val detail = t.message?.takeIf { it.isNotBlank() } ?: "unknown"
+        return "Application startup failed: $type: $detail"
     }
 
     private fun isRunningInstrumentation(): Boolean {
