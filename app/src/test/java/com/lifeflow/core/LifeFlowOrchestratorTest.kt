@@ -56,9 +56,13 @@ class LifeFlowOrchestratorTest {
             )
         )
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
+        assertEquals(HealthConnectUiState.NotInstalled, snapshot.healthConnectState)
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.stepsAvailability)
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.heartRateAvailability)
         assertNull(state.stepsLast24h)
@@ -77,9 +81,13 @@ class LifeFlowOrchestratorTest {
             )
         )
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
+        assertTrue(snapshot.requiredPermissions.isEmpty())
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.stepsAvailability)
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.heartRateAvailability)
         assertNull(state.stepsLast24h)
@@ -98,9 +106,15 @@ class LifeFlowOrchestratorTest {
             )
         )
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
+        assertEquals(true, snapshot.stepsPermissionGranted)
+        assertEquals(false, snapshot.heartRatePermissionGranted)
+
         assertEquals(DigitalTwinState.Availability.OK, state.stepsAvailability)
         assertEquals(2500L, state.stepsLast24h)
 
@@ -125,9 +139,15 @@ class LifeFlowOrchestratorTest {
             )
         )
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
+        assertEquals(false, snapshot.stepsPermissionGranted)
+        assertEquals(true, snapshot.heartRatePermissionGranted)
+
         assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, state.stepsAvailability)
         assertNull(state.stepsLast24h)
 
@@ -147,9 +167,12 @@ class LifeFlowOrchestratorTest {
             )
         )
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
         assertEquals(DigitalTwinState.Availability.OK, state.stepsAvailability)
         assertEquals(0L, state.stepsLast24h)
 
@@ -169,9 +192,12 @@ class LifeFlowOrchestratorTest {
             )
         )
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
         assertEquals(DigitalTwinState.Availability.NO_DATA, state.stepsAvailability)
         assertEquals(DigitalTwinState.Availability.NO_DATA, state.heartRateAvailability)
         assertNull(state.stepsLast24h)
@@ -249,9 +275,15 @@ class LifeFlowOrchestratorTest {
         )
         val orchestrator = newOrchestrator(repo)
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
+        assertEquals(true, snapshot.stepsPermissionGranted)
+        assertNull(snapshot.heartRatePermissionGranted)
+
         assertEquals(DigitalTwinState.Availability.OK, state.stepsAvailability)
         assertEquals(4321L, state.stepsLast24h)
 
@@ -273,9 +305,15 @@ class LifeFlowOrchestratorTest {
         )
         val orchestrator = newOrchestrator(repo)
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
+        assertNull(snapshot.stepsPermissionGranted)
+        assertEquals(true, snapshot.heartRatePermissionGranted)
+
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.stepsAvailability)
         assertNull(state.stepsLast24h)
 
@@ -298,9 +336,12 @@ class LifeFlowOrchestratorTest {
         )
         val orchestrator = newOrchestrator(repo)
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.stepsAvailability)
         assertEquals(DigitalTwinState.Availability.UNKNOWN, state.heartRateAvailability)
         assertNull(state.stepsLast24h)
@@ -323,9 +364,12 @@ class LifeFlowOrchestratorTest {
         )
         val orchestrator = newOrchestrator(repo)
 
-        val result = runSuspend { orchestrator.refreshTwinBestEffort(identityInitialized = true) }
+        val result = runSuspend {
+            orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
+        }
 
-        val state = assertSuccess(result)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        val state = snapshot.digitalTwinState
         assertEquals(DigitalTwinState.Availability.NO_DATA, state.stepsAvailability)
         assertEquals(DigitalTwinState.Availability.NO_DATA, state.heartRateAvailability)
         assertNull(state.stepsLast24h)
@@ -633,9 +677,9 @@ class LifeFlowOrchestratorTest {
         )
     }
 
-    private fun assertSuccess(
-        result: LifeFlowOrchestrator.ActionResult<DigitalTwinState>
-    ): DigitalTwinState {
+    private fun assertWellbeingSnapshotSuccess(
+        result: LifeFlowOrchestrator.ActionResult<LifeFlowOrchestrator.WellbeingRefreshSnapshot>
+    ): LifeFlowOrchestrator.WellbeingRefreshSnapshot {
         return when (result) {
             is LifeFlowOrchestrator.ActionResult.Success -> result.value
             is LifeFlowOrchestrator.ActionResult.Locked ->
