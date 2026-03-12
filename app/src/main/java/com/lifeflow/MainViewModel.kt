@@ -206,34 +206,6 @@ class MainViewModel(
         refreshRequiredPermissionsDefinition()
     }
 
-    fun refreshHealthConnectStatus() {
-        refreshHealthConnectStatusSafe()
-    }
-
-    private suspend fun refreshGrantedPermissionsSafe() {
-        refreshMutex.withLock {
-            if (!canExposeProtectedUiData()) {
-                grantedHealthPermissions.value = emptySet()
-                return
-            }
-
-            when (val res = orchestrator.grantedHealthPermissionsSafe()) {
-                is LifeFlowOrchestrator.ActionResult.Success -> {
-                    grantedHealthPermissions.value =
-                        if (canExposeProtectedUiData()) res.value else emptySet()
-                }
-
-                is LifeFlowOrchestrator.ActionResult.Error -> {
-                    grantedHealthPermissions.value = emptySet()
-                }
-
-                is LifeFlowOrchestrator.ActionResult.Locked -> {
-                    handleLockedProtectedOperation(res.reason)
-                }
-            }
-        }
-    }
-
     private suspend fun refreshWellbeingSnapshotSafe(identityInitialized: Boolean) {
         refreshMutex.withLock {
             if (!canExposeProtectedUiData()) {
@@ -253,16 +225,6 @@ class MainViewModel(
                 is LifeFlowOrchestrator.ActionResult.Locked -> {
                     handleLockedProtectedOperation(res.reason)
                 }
-            }
-        }
-    }
-
-    fun refreshGrantedPermissions() {
-        viewModelScope.launch {
-            runCatching {
-                refreshGrantedPermissionsSafe()
-            }.onFailure {
-                handleUnexpectedProtectedRefreshFailure()
             }
         }
     }
