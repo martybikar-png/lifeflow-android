@@ -137,6 +137,13 @@ class LifeFlowOrchestrator(
         }
     }
 
+    private fun unavailableMetricPermissionSnapshot(): MetricPermissionSnapshot {
+        return MetricPermissionSnapshot(
+            stepsPermissionGranted = null,
+            heartRatePermissionGranted = null
+        )
+    }
+
     /**
      * Resolve permission status per metric using already-known permission sets.
      *
@@ -150,10 +157,7 @@ class LifeFlowOrchestrator(
         grantedPermissions: Set<String>
     ): MetricPermissionSnapshot {
         if (requiredPermissions.isEmpty()) {
-            return MetricPermissionSnapshot(
-                stepsPermissionGranted = null,
-                heartRatePermissionGranted = null
-            )
+            return unavailableMetricPermissionSnapshot()
         }
 
         val stepsPermission = HealthPermission.getReadPermission(StepsRecord::class)
@@ -189,10 +193,7 @@ class LifeFlowOrchestrator(
                 grantedPermissions = grantedPermissions
             )
         } catch (_: Throwable) {
-            MetricPermissionSnapshot(
-                stepsPermissionGranted = null,
-                heartRatePermissionGranted = null
-            )
+            unavailableMetricPermissionSnapshot()
         }
     }
 
@@ -261,10 +262,7 @@ class LifeFlowOrchestrator(
         val permissionSnapshot = if (healthConnectState is HealthConnectUiState.Available) {
             resolveMetricPermissionSnapshot()
         } else {
-            MetricPermissionSnapshot(
-                stepsPermissionGranted = null,
-                heartRatePermissionGranted = null
-            )
+            unavailableMetricPermissionSnapshot()
         }
 
         val metricReadSnapshot = readMetricsBestEffort(
@@ -316,10 +314,7 @@ class LifeFlowOrchestrator(
                 grantedPermissions = grantedPermissions
             )
         } else {
-            MetricPermissionSnapshot(
-                stepsPermissionGranted = null,
-                heartRatePermissionGranted = null
-            )
+            unavailableMetricPermissionSnapshot()
         }
 
         val metricReadSnapshot = readMetricsBestEffort(

@@ -21,10 +21,10 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
         val viewModel = newViewModel()
 
         try {
-            runMain()
+            settleMain()
 
             viewModel.onAuthenticationSuccess()
-            runMain()
+            settleMain()
 
             assertTrue(viewModel.uiState.value is UiState.Error)
             assertTrue(viewModel.uiState.value !is UiState.Authenticated)
@@ -33,7 +33,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -56,13 +56,13 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
         )
 
         try {
-            runMain()
+            settleMain()
 
             viewModel.onAuthenticationSuccess()
-            runMain()
+            settleMain()
 
             viewModel.refreshMetricsAndTwinNow()
-            runMain()
+            settleMain()
 
             assertNotNull(viewModel.digitalTwinState.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
@@ -71,7 +71,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
                 state = TrustState.DEGRADED,
                 reason = "degraded after auth must re-lock session"
             )
-            runMain()
+            settleMain()
 
             assertTrue(viewModel.uiState.value is UiState.Error)
             assertTrue(viewModel.uiState.value !is UiState.Authenticated)
@@ -80,7 +80,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -103,13 +103,13 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
         )
 
         try {
-            runMain()
+            settleMain()
 
             viewModel.onAuthenticationSuccess()
-            runMain()
+            settleMain()
 
             viewModel.refreshMetricsAndTwinNow()
-            runMain()
+            settleMain()
 
             assertNotNull(viewModel.digitalTwinState.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
@@ -118,7 +118,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
                 state = TrustState.COMPROMISED,
                 reason = "compromised after auth must fail closed"
             )
-            runMain()
+            settleMain()
 
             assertTrue(viewModel.uiState.value is UiState.Error)
             val error = viewModel.uiState.value as UiState.Error
@@ -129,7 +129,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 }

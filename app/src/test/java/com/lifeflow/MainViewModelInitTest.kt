@@ -22,6 +22,8 @@ class MainViewModelInitTest : MainViewModelTestBase() {
         )
 
         try {
+            settleMain()
+
             assertEquals(
                 setOf(stepsPermission, heartRatePermission),
                 viewModel.requiredHealthPermissions.value
@@ -30,7 +32,7 @@ class MainViewModelInitTest : MainViewModelTestBase() {
             assertTrue(viewModel.uiState.value is UiState.Loading)
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -48,6 +50,8 @@ class MainViewModelInitTest : MainViewModelTestBase() {
         )
 
         try {
+            settleMain()
+
             assertTrue(viewModel.requiredHealthPermissions.value.isEmpty())
             assertNotNull(viewModel.healthPermissionsInitError.value)
             assertTrue(
@@ -55,7 +59,7 @@ class MainViewModelInitTest : MainViewModelTestBase() {
             )
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 }

@@ -240,9 +240,4 @@ class MainViewModelSessionAndRefreshTest : MainViewModelTestBase() {
             settleMain()
         }
     }
-
-    private fun settleMain() {
-        runMain()
-        runMain()
-    }
 }

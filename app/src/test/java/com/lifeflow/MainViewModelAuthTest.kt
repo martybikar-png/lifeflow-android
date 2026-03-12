@@ -17,7 +17,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
 
         try {
             viewModel.onAuthenticationSuccess()
-            runMain()
+            settleMain()
 
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Active auth session missing"))
@@ -25,7 +25,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -40,16 +40,16 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
         val viewModel = newViewModel()
 
         try {
-            runMain()
+            settleMain()
 
             viewModel.onAuthenticationSuccess()
-            runMain()
+            settleMain()
 
             assertTrue(viewModel.uiState.value is UiState.Authenticated)
             assertEquals(TrustState.VERIFIED, SecurityRuleEngine.getTrustState())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -72,15 +72,16 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
         )
 
         try {
-            runMain()
+            settleMain()
 
             viewModel.onAuthenticationSuccess()
-            runMain()
+            settleMain()
 
             viewModel.refreshMetricsAndTwinNow()
-            runMain()
+            settleMain()
 
             viewModel.onAuthenticationError("Biometric authentication failed")
+            settleMain()
 
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Biometric authentication failed"))
@@ -89,7 +90,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -105,7 +106,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
 
         try {
             viewModel.resetVault()
-            runMain()
+            settleMain()
 
             assertEquals(1, resetCalls)
             val error = viewModel.uiState.value as UiState.Error
@@ -115,7 +116,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 
@@ -129,7 +130,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
 
         try {
             viewModel.resetVault()
-            runMain()
+            settleMain()
 
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Vault reset failed"))
@@ -138,7 +139,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
-            runMain()
+            settleMain()
         }
     }
 }

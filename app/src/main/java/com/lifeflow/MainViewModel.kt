@@ -98,8 +98,8 @@ class MainViewModel(
 
     private fun canExposeProtectedUiData(): Boolean {
         return uiState.value is UiState.Authenticated &&
-                SecurityAccessSession.isAuthorized() &&
-                SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
+            SecurityAccessSession.isAuthorized() &&
+            SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
     }
 
     private fun refreshRequiredPermissionsDefinition() {
@@ -229,7 +229,7 @@ class MainViewModel(
         }
     }
 
-    fun refreshMetricsAndTwinNow() {
+    private fun requestProtectedRefresh() {
         viewModelScope.launch {
             runCatching {
                 refreshWellbeingSnapshotSafe(
@@ -241,16 +241,12 @@ class MainViewModel(
         }
     }
 
+    fun refreshMetricsAndTwinNow() {
+        requestProtectedRefresh()
+    }
+
     fun onHealthPermissionsResult(@Suppress("UNUSED_PARAMETER") granted: Set<String>) {
-        viewModelScope.launch {
-            runCatching {
-                refreshWellbeingSnapshotSafe(
-                    identityInitialized = (uiState.value is UiState.Authenticated)
-                )
-            }.onFailure {
-                handleUnexpectedProtectedRefreshFailure()
-            }
-        }
+        requestProtectedRefresh()
     }
 
     fun onAuthenticationSuccess() {

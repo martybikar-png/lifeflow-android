@@ -62,6 +62,11 @@ abstract class MainViewModelTestBase {
         drainMainQueue()
     }
 
+    protected fun settleMain() {
+        runMain()
+        runMain()
+    }
+
     protected fun advanceMainTimeBy(milliseconds: Long) {
         testDispatcher.advanceTimeBy(milliseconds)
         drainMainQueue()
