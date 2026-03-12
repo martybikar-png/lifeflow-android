@@ -394,35 +394,25 @@ class LifeFlowOrchestratorTest {
             orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
         }
 
-        when (result) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                val snapshot = result.value
-                assertEquals(HealthConnectUiState.Available, snapshot.healthConnectState)
-                assertEquals(
-                    setOf(stepsPermission, heartRatePermission),
-                    snapshot.requiredPermissions
-                )
-                assertEquals(
-                    setOf(stepsPermission, heartRatePermission),
-                    snapshot.grantedPermissions
-                )
-                assertEquals(true, snapshot.stepsPermissionGranted)
-                assertEquals(true, snapshot.heartRatePermissionGranted)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        assertEquals(HealthConnectUiState.Available, snapshot.healthConnectState)
+        assertEquals(
+            setOf(stepsPermission, heartRatePermission),
+            snapshot.requiredPermissions
+        )
+        assertEquals(
+            setOf(stepsPermission, heartRatePermission),
+            snapshot.grantedPermissions
+        )
+        assertEquals(true, snapshot.stepsPermissionGranted)
+        assertEquals(true, snapshot.heartRatePermissionGranted)
 
-                val twin = snapshot.digitalTwinState
-                assertTrue(twin.identityInitialized)
-                assertEquals(4321L, twin.stepsLast24h)
-                assertEquals(72L, twin.avgHeartRateLast24h)
-                assertEquals(DigitalTwinState.Availability.OK, twin.stepsAvailability)
-                assertEquals(DigitalTwinState.Availability.OK, twin.heartRateAvailability)
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Locked ->
-                throw AssertionError("Expected Success but got Locked: ${result.reason}")
-
-            is LifeFlowOrchestrator.ActionResult.Error ->
-                throw AssertionError("Expected Success but got Error: ${result.message}")
-        }
+        val twin = snapshot.digitalTwinState
+        assertTrue(twin.identityInitialized)
+        assertEquals(4321L, twin.stepsLast24h)
+        assertEquals(72L, twin.avgHeartRateLast24h)
+        assertEquals(DigitalTwinState.Availability.OK, twin.stepsAvailability)
+        assertEquals(DigitalTwinState.Availability.OK, twin.heartRateAvailability)
     }
 
     @Test
@@ -440,37 +430,27 @@ class LifeFlowOrchestratorTest {
             orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
         }
 
-        when (result) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                val snapshot = result.value
-                assertEquals(HealthConnectUiState.NotInstalled, snapshot.healthConnectState)
-                assertEquals(
-                    setOf(stepsPermission, heartRatePermission),
-                    snapshot.requiredPermissions
-                )
-                assertEquals(
-                    setOf(stepsPermission, heartRatePermission),
-                    snapshot.grantedPermissions
-                )
-                assertNull(snapshot.stepsPermissionGranted)
-                assertNull(snapshot.heartRatePermissionGranted)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        assertEquals(HealthConnectUiState.NotInstalled, snapshot.healthConnectState)
+        assertEquals(
+            setOf(stepsPermission, heartRatePermission),
+            snapshot.requiredPermissions
+        )
+        assertEquals(
+            setOf(stepsPermission, heartRatePermission),
+            snapshot.grantedPermissions
+        )
+        assertNull(snapshot.stepsPermissionGranted)
+        assertNull(snapshot.heartRatePermissionGranted)
 
-                val twin = snapshot.digitalTwinState
-                assertEquals(DigitalTwinState.Availability.UNKNOWN, twin.stepsAvailability)
-                assertEquals(DigitalTwinState.Availability.UNKNOWN, twin.heartRateAvailability)
-                assertNull(twin.stepsLast24h)
-                assertNull(twin.avgHeartRateLast24h)
+        val twin = snapshot.digitalTwinState
+        assertEquals(DigitalTwinState.Availability.UNKNOWN, twin.stepsAvailability)
+        assertEquals(DigitalTwinState.Availability.UNKNOWN, twin.heartRateAvailability)
+        assertNull(twin.stepsLast24h)
+        assertNull(twin.avgHeartRateLast24h)
 
-                assertEquals(0, repo.readTotalStepsCalls)
-                assertEquals(0, repo.readAvgHeartRateCalls)
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Locked ->
-                throw AssertionError("Expected Success but got Locked: ${result.reason}")
-
-            is LifeFlowOrchestrator.ActionResult.Error ->
-                throw AssertionError("Expected Success but got Error: ${result.message}")
-        }
+        assertEquals(0, repo.readTotalStepsCalls)
+        assertEquals(0, repo.readAvgHeartRateCalls)
     }
 
     @Test
@@ -489,34 +469,24 @@ class LifeFlowOrchestratorTest {
             orchestrator.refreshWellbeingSnapshot(identityInitialized = true)
         }
 
-        when (result) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
-                val snapshot = result.value
-                assertEquals(HealthConnectUiState.Available, snapshot.healthConnectState)
-                assertEquals(
-                    setOf(stepsPermission, heartRatePermission),
-                    snapshot.requiredPermissions
-                )
-                assertTrue(snapshot.grantedPermissions.isEmpty())
-                assertEquals(false, snapshot.stepsPermissionGranted)
-                assertEquals(false, snapshot.heartRatePermissionGranted)
+        val snapshot = assertWellbeingSnapshotSuccess(result)
+        assertEquals(HealthConnectUiState.Available, snapshot.healthConnectState)
+        assertEquals(
+            setOf(stepsPermission, heartRatePermission),
+            snapshot.requiredPermissions
+        )
+        assertTrue(snapshot.grantedPermissions.isEmpty())
+        assertEquals(false, snapshot.stepsPermissionGranted)
+        assertEquals(false, snapshot.heartRatePermissionGranted)
 
-                val twin = snapshot.digitalTwinState
-                assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.stepsAvailability)
-                assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.heartRateAvailability)
-                assertNull(twin.stepsLast24h)
-                assertNull(twin.avgHeartRateLast24h)
+        val twin = snapshot.digitalTwinState
+        assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.stepsAvailability)
+        assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.heartRateAvailability)
+        assertNull(twin.stepsLast24h)
+        assertNull(twin.avgHeartRateLast24h)
 
-                assertEquals(0, repo.readTotalStepsCalls)
-                assertEquals(0, repo.readAvgHeartRateCalls)
-            }
-
-            is LifeFlowOrchestrator.ActionResult.Locked ->
-                throw AssertionError("Expected Success but got Locked: ${result.reason}")
-
-            is LifeFlowOrchestrator.ActionResult.Error ->
-                throw AssertionError("Expected Success but got Error: ${result.message}")
-        }
+        assertEquals(0, repo.readTotalStepsCalls)
+        assertEquals(0, repo.readAvgHeartRateCalls)
     }
 
     @Test

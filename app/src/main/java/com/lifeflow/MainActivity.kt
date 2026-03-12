@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -86,8 +87,6 @@ class MainActivity : FragmentActivity() {
         var lastAction by remember { mutableStateOf("Startup initialization failed") }
         var pendingSettingsRetry by remember { mutableStateOf(false) }
 
-        val lifecycleOwner = LocalLifecycleOwner.current
-
         fun retryStartup(requestMessage: String) {
             lastAction = requestMessage
 
@@ -123,19 +122,13 @@ class MainActivity : FragmentActivity() {
             }
         }
 
-        DisposableEffect(lifecycleOwner, pendingSettingsRetry) {
-            val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME && pendingSettingsRetry) {
-                    pendingSettingsRetry = false
-                    retryStartup("Returned from settings; startup retry requested")
-                }
+        HandlePendingResumeAction(
+            pending = pendingSettingsRetry,
+            onConsumePending = { pendingSettingsRetry = false },
+            onResumeAction = {
+                retryStartup("Returned from settings; startup retry requested")
             }
-
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose {
-                lifecycleOwner.lifecycle.removeObserver(observer)
-            }
-        }
+        )
 
         StartupFailureScreen(
             message = startupFailureMessage,
@@ -154,8 +147,6 @@ class MainActivity : FragmentActivity() {
         var lastAction by remember { mutableStateOf("—") }
         var pendingSettingsRefresh by remember { mutableStateOf(false) }
 
-        val lifecycleOwner = LocalLifecycleOwner.current
-
         fun triggerFullRefresh(requestMessage: String) {
             runCatching {
                 viewModel.refreshMetricsAndTwinNow()
@@ -167,19 +158,13 @@ class MainActivity : FragmentActivity() {
             }
         }
 
-        DisposableEffect(lifecycleOwner, pendingSettingsRefresh) {
-            val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME && pendingSettingsRefresh) {
-                    pendingSettingsRefresh = false
-                    triggerFullRefresh("Returned from settings; refresh requested")
-                }
+        HandlePendingResumeAction(
+            pending = pendingSettingsRefresh,
+            onConsumePending = { pendingSettingsRefresh = false },
+            onResumeAction = {
+                triggerFullRefresh("Returned from settings; refresh requested")
             }
-
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose {
-                lifecycleOwner.lifecycle.removeObserver(observer)
-            }
-        }
+        )
 
         LaunchedEffect(Unit) {
             triggerFullRefresh("Startup refresh requested")
@@ -342,6 +327,31 @@ class MainActivity : FragmentActivity() {
                     showResetVaultAction = resetRequired
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun HandlePendingResumeAction(
+    pending: Boolean,
+    onConsumePending: () -> Unit,
+    onResumeAction: () -> Unit
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val latestOnConsumePending by rememberUpdatedState(onConsumePending)
+    val latestOnResumeAction by rememberUpdatedState(onResumeAction)
+
+    DisposableEffect(lifecycleOwner, pending) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && pending) {
+                latestOnConsumePending()
+                latestOnResumeAction()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 }

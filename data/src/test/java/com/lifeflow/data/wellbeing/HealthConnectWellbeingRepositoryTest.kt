@@ -82,6 +82,26 @@ class HealthConnectWellbeingRepositoryTest {
     }
 
     @Test
+    fun `readAvgHeartRateBpm rejects invalid time range before calling gateway`() {
+        val gateway = FakeGateway().apply {
+            avgHeartRateValue = 71.6
+        }
+        val repository = newRepository(gateway)
+
+        val start = Instant.parse("2026-03-09T10:00:00Z")
+        val end = Instant.parse("2026-03-09T09:00:00Z")
+
+        try {
+            runSuspend { repository.readAvgHeartRateBpm(start, end) }
+            throw AssertionError("Expected IllegalArgumentException for invalid range.")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("end must be >= start"))
+        }
+
+        assertEquals(0, gateway.readAvgHeartRateCalls)
+    }
+
+    @Test
     fun `readTotalSteps preserves repository sentinel and valid zero values`() {
         val gateway = FakeGateway()
         val repository = newRepository(gateway)
@@ -205,6 +225,7 @@ class HealthConnectWellbeingRepositoryTest {
 
         var permissionsCalls: Int = 0
         var readTotalStepsCalls: Int = 0
+        var readAvgHeartRateCalls: Int = 0
 
         var lastGrantedPermissionsContext: Context? = null
         var lastReadStepsContext: Context? = null
@@ -245,6 +266,7 @@ class HealthConnectWellbeingRepositoryTest {
             start: Instant,
             end: Instant
         ): Double? {
+            readAvgHeartRateCalls++
             lastReadHeartRateContext = context
             lastReadHeartRateStart = start
             lastReadHeartRateEnd = end
