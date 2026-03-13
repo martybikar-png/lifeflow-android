@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
@@ -25,7 +27,8 @@ internal fun DashboardStatusCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Dashboard status",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -37,33 +40,45 @@ internal fun DashboardStatusCard(
                     grantedCount = grantedCount,
                     digitalTwinState = digitalTwinState
                 ),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            KeyValueLine(
-                "Health readiness",
-                healthReadinessLabel(
+            KeyValueStatusLine(
+                label = "Health readiness",
+                value = healthReadinessLabel(
+                    healthState = healthState,
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                ),
+                valueColor = healthReadinessColor(
                     healthState = healthState,
                     requiredCount = requiredCount,
                     grantedCount = grantedCount
                 )
             )
-            KeyValueLine(
-                "Permission coverage",
-                permissionCoverageLabel(
+            KeyValueStatusLine(
+                label = "Permission coverage",
+                value = permissionCoverageLabel(
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                ),
+                valueColor = permissionCoverageColor(
                     requiredCount = requiredCount,
                     grantedCount = grantedCount
                 )
             )
-            KeyValueLine(
-                "Twin snapshot",
-                digitalTwinReadinessLabel(digitalTwinState)
+            KeyValueStatusLine(
+                label = "Twin snapshot",
+                value = digitalTwinReadinessLabel(digitalTwinState),
+                valueColor = digitalTwinReadinessColor(digitalTwinState)
             )
-            KeyValueLine(
-                "Signal coverage",
-                digitalTwinSignalCoverageLabel(digitalTwinState)
+            KeyValueStatusLine(
+                label = "Signal coverage",
+                value = digitalTwinSignalCoverageLabel(digitalTwinState),
+                valueColor = digitalTwinSignalCoverageColor(digitalTwinState)
             )
         }
     }
@@ -81,7 +96,12 @@ internal fun HealthSummaryCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Health Connect",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = healthReadinessColor(
+                    healthState = healthState,
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                )
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -92,31 +112,57 @@ internal fun HealthSummaryCard(
                     requiredCount = requiredCount,
                     grantedCount = grantedCount
                 ),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            KeyValueLine("State", healthStateLabel(healthState))
-            KeyValueLine(
-                "Readiness",
-                healthReadinessLabel(
+            KeyValueStatusLine(
+                label = "State",
+                value = healthStateLabel(healthState),
+                valueColor = healthReadinessColor(
                     healthState = healthState,
                     requiredCount = requiredCount,
                     grantedCount = grantedCount
                 )
             )
-            KeyValueLine(
-                "Permission coverage",
-                permissionCoverageLabel(
+            KeyValueStatusLine(
+                label = "Readiness",
+                value = healthReadinessLabel(
+                    healthState = healthState,
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                ),
+                valueColor = healthReadinessColor(
+                    healthState = healthState,
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                )
+            )
+            KeyValueStatusLine(
+                label = "Permission coverage",
+                value = permissionCoverageLabel(
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                ),
+                valueColor = permissionCoverageColor(
                     requiredCount = requiredCount,
                     grantedCount = grantedCount
                 )
             )
             KeyValueLine("Required permissions", requiredCount.toString())
             KeyValueLine("Granted permissions", grantedCount.toString())
-            KeyValueLine("Steps permission", if (stepsGranted) "Granted" else "Not granted")
-            KeyValueLine("Heart rate permission", if (hrGranted) "Granted" else "Not granted")
+            KeyValueStatusLine(
+                label = "Steps permission",
+                value = if (stepsGranted) "Granted" else "Not granted",
+                valueColor = grantedStateColor(stepsGranted)
+            )
+            KeyValueStatusLine(
+                label = "Heart rate permission",
+                value = if (hrGranted) "Granted" else "Not granted",
+                valueColor = grantedStateColor(hrGranted)
+            )
         }
     }
 }
@@ -129,37 +175,43 @@ internal fun DigitalTwinCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Digital Twin",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = digitalTwinReadinessColor(digitalTwinState)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = digitalTwinSummaryMessage(digitalTwinState),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            KeyValueLine(
-                "Snapshot status",
-                digitalTwinReadinessLabel(digitalTwinState)
+            KeyValueStatusLine(
+                label = "Snapshot status",
+                value = digitalTwinReadinessLabel(digitalTwinState),
+                valueColor = digitalTwinReadinessColor(digitalTwinState)
             )
-            KeyValueLine(
-                "Signal coverage",
-                digitalTwinSignalCoverageLabel(digitalTwinState)
+            KeyValueStatusLine(
+                label = "Signal coverage",
+                value = digitalTwinSignalCoverageLabel(digitalTwinState),
+                valueColor = digitalTwinSignalCoverageColor(digitalTwinState)
             )
 
             if (digitalTwinState == null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "No Digital Twin state available yet.",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                KeyValueLine(
-                    "Identity initialized",
-                    yesNoLabel(digitalTwinState.identityInitialized)
+                KeyValueStatusLine(
+                    label = "Identity initialized",
+                    value = yesNoLabel(digitalTwinState.identityInitialized),
+                    valueColor = yesNoColor(digitalTwinState.identityInitialized)
                 )
                 KeyValueLine(
                     "Steps (24h)",
@@ -169,13 +221,15 @@ internal fun DigitalTwinCard(
                     "Avg heart rate (24h)",
                     digitalTwinState.avgHeartRateLast24h?.toString() ?: "—"
                 )
-                KeyValueLine(
-                    "Steps availability",
-                    availabilityLabel(digitalTwinState.stepsAvailability)
+                KeyValueStatusLine(
+                    label = "Steps availability",
+                    value = availabilityLabel(digitalTwinState.stepsAvailability),
+                    valueColor = availabilityColor(digitalTwinState.stepsAvailability)
                 )
-                KeyValueLine(
-                    "Heart rate availability",
-                    availabilityLabel(digitalTwinState.heartRateAvailability)
+                KeyValueStatusLine(
+                    label = "Heart rate availability",
+                    value = availabilityLabel(digitalTwinState.heartRateAvailability),
+                    valueColor = availabilityColor(digitalTwinState.heartRateAvailability)
                 )
                 KeyValueLine(
                     "Last updated",
@@ -190,7 +244,8 @@ internal fun DigitalTwinCard(
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "Notes",
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     digitalTwinState.notes.forEach { note ->
@@ -202,6 +257,25 @@ internal fun DigitalTwinCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun KeyValueStatusLine(
+    label: String,
+    value: String,
+    valueColor: Color
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "$label: ",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = valueColor
+        )
     }
 }
 
@@ -278,4 +352,134 @@ private fun digitalTwinSignalCoverageLabel(
     }
 
     return "$availableSignals / 2"
+}
+
+@Composable
+private fun healthReadinessColor(
+    healthState: HealthConnectUiState,
+    requiredCount: Int,
+    grantedCount: Int
+): Color {
+    val colors = MaterialTheme.colorScheme
+
+    return when {
+        healthState == HealthConnectUiState.NotInstalled ||
+            healthState == HealthConnectUiState.NotSupported ||
+            healthState == HealthConnectUiState.UpdateRequired ->
+            colors.error
+
+        healthState == HealthConnectUiState.Available &&
+            requiredCount > 0 &&
+            grantedCount >= requiredCount ->
+            colors.primary
+
+        healthState == HealthConnectUiState.Available &&
+            requiredCount == 0 ->
+            colors.tertiary
+
+        healthState == HealthConnectUiState.Available &&
+            grantedCount < requiredCount ->
+            colors.tertiary
+
+        else ->
+            colors.onSurfaceVariant
+    }
+}
+
+@Composable
+private fun permissionCoverageColor(
+    requiredCount: Int,
+    grantedCount: Int
+): Color {
+    val colors = MaterialTheme.colorScheme
+
+    return when {
+        requiredCount == 0 -> colors.tertiary
+        grantedCount >= requiredCount -> colors.primary
+        else -> colors.tertiary
+    }
+}
+
+@Composable
+private fun digitalTwinReadinessColor(
+    digitalTwinState: DigitalTwinState?
+): Color {
+    val colors = MaterialTheme.colorScheme
+
+    if (digitalTwinState == null) {
+        return colors.onSurfaceVariant
+    }
+
+    return when {
+        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.OK &&
+            digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.OK ->
+            colors.primary
+
+        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
+            digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
+            digitalTwinState.stepsAvailability == DigitalTwinState.Availability.BLOCKED ||
+            digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.BLOCKED ->
+            colors.error
+
+        else ->
+            colors.tertiary
+    }
+}
+
+@Composable
+private fun digitalTwinSignalCoverageColor(
+    digitalTwinState: DigitalTwinState?
+): Color {
+    val colors = MaterialTheme.colorScheme
+
+    if (digitalTwinState == null) {
+        return colors.onSurfaceVariant
+    }
+
+    var availableSignals = 0
+    if (digitalTwinState.stepsAvailability == DigitalTwinState.Availability.OK) {
+        availableSignals++
+    }
+    if (digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.OK) {
+        availableSignals++
+    }
+
+    return when (availableSignals) {
+        2 -> colors.primary
+        1 -> colors.tertiary
+        else -> colors.onSurfaceVariant
+    }
+}
+
+@Composable
+private fun grantedStateColor(granted: Boolean): Color {
+    return if (granted) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.tertiary
+    }
+}
+
+@Composable
+private fun yesNoColor(value: Boolean): Color {
+    return if (value) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+@Composable
+private fun availabilityColor(
+    availability: DigitalTwinState.Availability
+): Color {
+    val colors = MaterialTheme.colorScheme
+
+    return when (availability) {
+        DigitalTwinState.Availability.OK -> colors.primary
+        DigitalTwinState.Availability.PERMISSION_DENIED -> colors.error
+        DigitalTwinState.Availability.BLOCKED -> colors.error
+        DigitalTwinState.Availability.NO_DATA -> colors.tertiary
+        DigitalTwinState.Availability.UNKNOWN -> colors.onSurfaceVariant
+    }
 }
