@@ -1,15 +1,10 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -37,12 +32,25 @@ fun LoadingScreen(
 ) {
     ScreenContainer(title = "LifeFlow") {
         Text(
-            text = if (isAuthenticating) {
-                "Authentication session is active."
-            } else {
-                "Authentication is required before protected flows continue."
-            },
+            text = loadingMessage(
+                isAuthenticating = isAuthenticating,
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount
+            ),
             style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        GuidanceCard(
+            title = "Current focus",
+            message = loadingGuidanceMessage(
+                isAuthenticating = isAuthenticating,
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -60,9 +68,10 @@ fun LoadingScreen(
         ActionCard(title = "Next actions") {
             Button(
                 onClick = onAuthenticate,
+                enabled = !isAuthenticating,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Authenticate")
+                Text(if (isAuthenticating) "Authenticating..." else "Authenticate")
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -110,6 +119,27 @@ fun DashboardScreen(
     debugLines: List<String>
 ) {
     ScreenContainer(title = "LifeFlow Dashboard") {
+        DashboardStatusCard(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            digitalTwinState = digitalTwinState
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        GuidanceCard(
+            title = "Next best step",
+            message = dashboardGuidanceMessage(
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                digitalTwinState = digitalTwinState
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         HealthSummaryCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -204,6 +234,17 @@ fun ErrorScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        GuidanceCard(
+            title = "Recovery guidance",
+            message = errorGuidanceMessage(
+                message = message,
+                showAuthenticateAction = showAuthenticateAction,
+                showResetVaultAction = showResetVaultAction
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         HealthSummaryCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -265,166 +306,9 @@ fun ErrorScreen(
 }
 
 @Composable
-private fun ScreenContainer(
+private fun GuidanceCard(
     title: String,
-    content: @Composable () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Top
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        content()
-    }
-}
-
-@Composable
-private fun HealthSummaryCard(
-    healthState: HealthConnectUiState,
-    requiredCount: Int,
-    grantedCount: Int,
-    stepsGranted: Boolean,
-    hrGranted: Boolean
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Health Connect",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            KeyValueLine("State", healthStateLabel(healthState))
-            KeyValueLine("Required permissions", requiredCount.toString())
-            KeyValueLine("Granted permissions", grantedCount.toString())
-            KeyValueLine("Steps permission", if (stepsGranted) "Granted" else "Not granted")
-            KeyValueLine("Heart rate permission", if (hrGranted) "Granted" else "Not granted")
-        }
-    }
-}
-
-@Composable
-private fun DigitalTwinCard(
-    digitalTwinState: DigitalTwinState?
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Digital Twin",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (digitalTwinState == null) {
-                Text(
-                    text = "No Digital Twin state available yet.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            } else {
-                KeyValueLine(
-                    "Identity initialized",
-                    digitalTwinState.identityInitialized.toString()
-                )
-                KeyValueLine(
-                    "Steps (24h)",
-                    digitalTwinState.stepsLast24h?.toString() ?: "—"
-                )
-                KeyValueLine(
-                    "Avg heart rate (24h)",
-                    digitalTwinState.avgHeartRateLast24h?.toString() ?: "—"
-                )
-                KeyValueLine(
-                    "Steps availability",
-                    digitalTwinState.stepsAvailability.name
-                )
-                KeyValueLine(
-                    "Heart rate availability",
-                    digitalTwinState.heartRateAvailability.name
-                )
-                KeyValueLine(
-                    "Last updated",
-                    digitalTwinState.lastUpdatedEpochMillis.toString()
-                )
-
-                if (digitalTwinState.notes.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Notes",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    digitalTwinState.notes.forEach { note ->
-                        Text(
-                            text = "• $note",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LastActionCard(lastAction: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Last action",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = lastAction,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-    }
-}
-
-@Composable
-private fun DebugCard(debugLines: List<String>) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Debug",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (debugLines.isEmpty()) {
-                Text(
-                    text = "No debug lines.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            } else {
-                debugLines.forEach { line ->
-                    Text(
-                        text = "• $line",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActionCard(
-    title: String,
-    content: @Composable () -> Unit
+    message: String
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -433,36 +317,91 @@ private fun ActionCard(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            content()
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
     }
 }
 
-@Composable
-private fun KeyValueLine(
-    label: String,
-    value: String
-) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "$label: ",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge
-        )
+private fun loadingGuidanceMessage(
+    isAuthenticating: Boolean,
+    healthState: HealthConnectUiState,
+    requiredCount: Int,
+    grantedCount: Int
+): String {
+    return when {
+        isAuthenticating ->
+            "Authentication is already active. As soon as the current checks finish, the protected dashboard can continue."
+
+        healthState == HealthConnectUiState.NotInstalled ->
+            "Install Health Connect first, then return here and authenticate again."
+
+        healthState == HealthConnectUiState.UpdateRequired ->
+            "Update Health Connect first, then come back and continue with authentication."
+
+        requiredCount > 0 && grantedCount < requiredCount ->
+            "You can authenticate now, but granting the missing permissions will unlock a fuller wellbeing snapshot."
+
+        else ->
+            "Authenticate to unlock the protected dashboard and load the first Digital Twin snapshot."
     }
 }
 
-private fun healthStateLabel(state: HealthConnectUiState): String {
-    return when (state) {
-        HealthConnectUiState.Unknown -> "Unknown"
-        HealthConnectUiState.Available -> "Available"
-        HealthConnectUiState.NotInstalled -> "Not installed"
-        HealthConnectUiState.NotSupported -> "Not supported"
-        HealthConnectUiState.UpdateRequired -> "Update required"
+private fun dashboardGuidanceMessage(
+    healthState: HealthConnectUiState,
+    requiredCount: Int,
+    grantedCount: Int,
+    digitalTwinState: DigitalTwinState?
+): String {
+    return when {
+        healthState != HealthConnectUiState.Available ->
+            "Open Health Connect settings first. Until Health Connect is ready, the dashboard cannot expose full wellbeing data."
+
+        digitalTwinState == null ->
+            "Tap Refresh now to load the first Digital Twin snapshot."
+
+        requiredCount == 0 ->
+            "The wellbeing permission contract is still pending. Refresh again after Health Connect resolves the available permissions."
+
+        requiredCount > 0 && grantedCount < requiredCount ->
+            "Grant the remaining permissions to improve snapshot coverage and unblock missing signals."
+
+        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
+            digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ->
+            "Some signals are blocked by permissions. Open Health Connect settings and grant access to complete the snapshot."
+
+        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.NO_DATA &&
+            digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.NO_DATA ->
+            "The dashboard is working, but there is not enough usable wellbeing data yet. Refresh again later after more data is collected."
+
+        else ->
+            "The dashboard is ready. Use Refresh now whenever you want a newer wellbeing snapshot."
+    }
+}
+
+private fun errorGuidanceMessage(
+    message: String,
+    showAuthenticateAction: Boolean,
+    showResetVaultAction: Boolean
+): String {
+    return when {
+        showResetVaultAction ->
+            "This is a security-critical path. Reset the vault first, then authenticate again to rebuild a trusted state."
+
+        message.contains("session expired", ignoreCase = true) ->
+            "Your protected session expired. Authenticate again to continue."
+
+        message.contains("security degraded", ignoreCase = true) ->
+            "The trust state was downgraded. Authenticate again before protected flows continue."
+
+        showAuthenticateAction ->
+            "Try authenticating again first. If Health Connect still looks limited, open settings and retry."
+
+        else ->
+            "Review access and permissions in settings, then try recovery again."
     }
 }
