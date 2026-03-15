@@ -35,24 +35,19 @@ internal fun digitalTwinReadinessLabel(
     }
 
     return when {
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.OK &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.OK ->
+        hasFullCardSignalCoverage(digitalTwinState) ->
             "Complete"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ->
+        hasPermissionDeniedCardSignal(digitalTwinState) ->
             "Access blocked"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.BLOCKED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.BLOCKED ->
+        hasBlockedCardSignal(digitalTwinState) ->
             "Blocked"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.NO_DATA &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.NO_DATA ->
+        hasNoCardSignalData(digitalTwinState) ->
             "No data"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.UNKNOWN &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.UNKNOWN ->
+        hasUnknownCardSignalCoverage(digitalTwinState) ->
             "Unknown"
 
         else ->
@@ -67,15 +62,7 @@ internal fun digitalTwinSignalCoverageLabel(
         return "0 / 2"
     }
 
-    var availableSignals = 0
-    if (digitalTwinState.stepsAvailability == DigitalTwinState.Availability.OK) {
-        availableSignals++
-    }
-    if (digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.OK) {
-        availableSignals++
-    }
-
-    return "$availableSignals / 2"
+    return "${countAvailableCardSignals(digitalTwinState)} / 2"
 }
 
 internal fun dashboardNextMoveLabel(
@@ -97,12 +84,10 @@ internal fun dashboardNextMoveLabel(
         grantedCount < requiredCount ->
             "Review health access"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ->
+        hasPermissionDeniedCardSignal(digitalTwinState) ->
             "Review health access"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.NO_DATA &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.NO_DATA ->
+        hasNoCardSignalData(digitalTwinState) ->
             "Refresh later for new data"
 
         else ->
@@ -147,24 +132,19 @@ internal fun digitalTwinNextMoveLabel(
     }
 
     return when {
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ->
+        hasPermissionDeniedCardSignal(digitalTwinState) ->
             "Review health access"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.BLOCKED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.BLOCKED ->
+        hasBlockedCardSignal(digitalTwinState) ->
             "Re-authenticate"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.NO_DATA &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.NO_DATA ->
+        hasNoCardSignalData(digitalTwinState) ->
             "Refresh later"
 
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.UNKNOWN &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.UNKNOWN ->
+        hasUnknownCardSignalCoverage(digitalTwinState) ->
             "Refresh now"
 
-        digitalTwinState.stepsAvailability != DigitalTwinState.Availability.OK ||
-                digitalTwinState.heartRateAvailability != DigitalTwinState.Availability.OK ->
+        !hasFullCardSignalCoverage(digitalTwinState) ->
             "Refresh now"
 
         else ->
