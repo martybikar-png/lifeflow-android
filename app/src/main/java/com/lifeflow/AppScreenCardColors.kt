@@ -15,22 +15,16 @@ internal fun healthReadinessColor(
     val colors = MaterialTheme.colorScheme
 
     return when {
-        healthState == HealthConnectUiState.NotInstalled ||
-                healthState == HealthConnectUiState.NotSupported ||
-                healthState == HealthConnectUiState.UpdateRequired ->
+        isHealthColorUnavailable(healthState) ->
             colors.error
 
-        healthState == HealthConnectUiState.Available &&
-                requiredCount > 0 &&
-                grantedCount >= requiredCount ->
+        isHealthColorReady(healthState, requiredCount, grantedCount) ->
             colors.primary
 
-        healthState == HealthConnectUiState.Available &&
-                requiredCount == 0 ->
+        healthState == HealthConnectUiState.Available && requiredCount == 0 ->
             colors.tertiary
 
-        healthState == HealthConnectUiState.Available &&
-                grantedCount < requiredCount ->
+        healthState == HealthConnectUiState.Available && grantedCount < requiredCount ->
             colors.tertiary
 
         else ->
@@ -53,142 +47,28 @@ internal fun permissionCoverageColor(
 }
 
 @Composable
-internal fun digitalTwinReadinessColor(
-    digitalTwinState: DigitalTwinState?
-): Color {
-    val colors = MaterialTheme.colorScheme
-
-    if (digitalTwinState == null) {
-        return colors.onSurfaceVariant
-    }
-
-    return when {
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.OK &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.OK ->
-            colors.primary
-
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.stepsAvailability == DigitalTwinState.Availability.BLOCKED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.BLOCKED ->
-            colors.error
-
-        else ->
-            colors.tertiary
-    }
-}
-
-@Composable
-internal fun digitalTwinSignalCoverageColor(
-    digitalTwinState: DigitalTwinState?
-): Color {
-    val colors = MaterialTheme.colorScheme
-
-    if (digitalTwinState == null) {
-        return colors.onSurfaceVariant
-    }
-
-    var availableSignals = 0
-    if (digitalTwinState.stepsAvailability == DigitalTwinState.Availability.OK) {
-        availableSignals++
-    }
-    if (digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.OK) {
-        availableSignals++
-    }
-
-    return when (availableSignals) {
-        2 -> colors.primary
-        1 -> colors.tertiary
-        else -> colors.onSurfaceVariant
-    }
-}
-
-@Composable
-internal fun dashboardNextMoveColor(
-    healthState: HealthConnectUiState,
-    requiredCount: Int,
-    grantedCount: Int,
-    digitalTwinState: DigitalTwinState?
-): Color {
-    return when {
-        healthState != HealthConnectUiState.Available ->
-            MaterialTheme.colorScheme.error
-
-        digitalTwinState == null ->
-            MaterialTheme.colorScheme.tertiary
-
-        requiredCount == 0 ->
-            MaterialTheme.colorScheme.tertiary
-
-        grantedCount < requiredCount ->
-            MaterialTheme.colorScheme.tertiary
-
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ->
-            MaterialTheme.colorScheme.error
-
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.NO_DATA &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.NO_DATA ->
-            MaterialTheme.colorScheme.tertiary
-
-        else ->
-            MaterialTheme.colorScheme.primary
-    }
-}
-
-@Composable
 internal fun healthNextMoveColor(
     healthState: HealthConnectUiState,
     requiredCount: Int,
     grantedCount: Int
 ): Color {
+    val colors = MaterialTheme.colorScheme
+
     return when {
-        healthState == HealthConnectUiState.NotInstalled ||
-                healthState == HealthConnectUiState.NotSupported ||
-                healthState == HealthConnectUiState.UpdateRequired ->
-            MaterialTheme.colorScheme.error
+        isHealthColorUnavailable(healthState) ->
+            colors.error
 
         healthState != HealthConnectUiState.Available ->
-            MaterialTheme.colorScheme.tertiary
+            colors.tertiary
 
         requiredCount == 0 ->
-            MaterialTheme.colorScheme.tertiary
+            colors.tertiary
 
         grantedCount < requiredCount ->
-            MaterialTheme.colorScheme.tertiary
+            colors.tertiary
 
         else ->
-            MaterialTheme.colorScheme.primary
-    }
-}
-
-@Composable
-internal fun digitalTwinNextMoveColor(
-    digitalTwinState: DigitalTwinState?
-): Color {
-    if (digitalTwinState == null) {
-        return MaterialTheme.colorScheme.tertiary
-    }
-
-    return when {
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.PERMISSION_DENIED ->
-            MaterialTheme.colorScheme.error
-
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.BLOCKED ||
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.BLOCKED ->
-            MaterialTheme.colorScheme.error
-
-        digitalTwinState.stepsAvailability == DigitalTwinState.Availability.NO_DATA &&
-                digitalTwinState.heartRateAvailability == DigitalTwinState.Availability.NO_DATA ->
-            MaterialTheme.colorScheme.tertiary
-
-        digitalTwinState.stepsAvailability != DigitalTwinState.Availability.OK ||
-                digitalTwinState.heartRateAvailability != DigitalTwinState.Availability.OK ->
-            MaterialTheme.colorScheme.tertiary
-
-        else ->
-            MaterialTheme.colorScheme.primary
+            colors.primary
     }
 }
 
@@ -223,4 +103,20 @@ internal fun availabilityColor(
         DigitalTwinState.Availability.NO_DATA -> colors.tertiary
         DigitalTwinState.Availability.UNKNOWN -> colors.onSurfaceVariant
     }
+}
+
+private fun isHealthColorUnavailable(healthState: HealthConnectUiState): Boolean {
+    return healthState == HealthConnectUiState.NotInstalled ||
+            healthState == HealthConnectUiState.NotSupported ||
+            healthState == HealthConnectUiState.UpdateRequired
+}
+
+private fun isHealthColorReady(
+    healthState: HealthConnectUiState,
+    requiredCount: Int,
+    grantedCount: Int
+): Boolean {
+    return healthState == HealthConnectUiState.Available &&
+            requiredCount > 0 &&
+            grantedCount >= requiredCount
 }
