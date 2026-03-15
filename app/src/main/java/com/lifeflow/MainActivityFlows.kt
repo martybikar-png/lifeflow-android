@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.health.connect.client.PermissionController
 import com.lifeflow.security.BiometricAuthManager
-import com.lifeflow.security.SecurityAccessSession
 
 @Composable
 internal fun MainActivityContent(
@@ -101,7 +100,7 @@ internal fun MainActivityContent(
         )
     }
 
-    MainActivityScreenContent(
+    MainActivityScreenRouter(
         screen = screen,
         onAuthenticate = onAuthenticate,
         onGrantHealthPermissions = onGrantPermissions,
@@ -118,74 +117,4 @@ internal fun MainActivityContent(
             viewModel.resetVault()
         }
     )
-}
-
-@Composable
-private fun MainActivityScreenContent(
-    screen: MainActivityScreenSnapshot,
-    onAuthenticate: () -> Unit,
-    onGrantHealthPermissions: () -> Unit,
-    onOpenHealthConnectSettings: () -> Unit,
-    onRefreshNow: () -> Unit,
-    onResetVault: () -> Unit
-) {
-    when (val uiState = screen.uiState) {
-        UiState.Loading -> {
-            val hasActiveSession = SecurityAccessSession.isAuthorized()
-
-            LoadingScreen(
-                isAuthenticating = hasActiveSession,
-                healthState = screen.healthState,
-                requiredCount = screen.requiredPermissions.size,
-                grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
-                lastAction = screen.displayedLastAction,
-                onAuthenticate = onAuthenticate,
-                onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                debugLines = screen.debugLines
-            )
-        }
-
-        UiState.Authenticated -> {
-            DashboardScreen(
-                healthState = screen.healthState,
-                requiredCount = screen.requiredPermissions.size,
-                grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
-                digitalTwinState = screen.digitalTwinState,
-                lastAction = screen.displayedLastAction,
-                onRefreshNow = onRefreshNow,
-                onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                onReAuthenticate = onAuthenticate,
-                debugLines = screen.debugLines
-            )
-        }
-
-        is UiState.Error -> {
-            val message = uiState.message
-            val resetRequired = requiresVaultReset(message)
-            val allowAuthenticate = !resetRequired
-
-            ErrorScreen(
-                message = message,
-                healthState = screen.healthState,
-                requiredCount = screen.requiredPermissions.size,
-                grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
-                lastAction = screen.displayedLastAction,
-                onAuthenticate = onAuthenticate,
-                onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                onResetVault = onResetVault,
-                debugLines = screen.debugLines,
-                showAuthenticateAction = allowAuthenticate,
-                showResetVaultAction = resetRequired
-            )
-        }
-    }
 }
