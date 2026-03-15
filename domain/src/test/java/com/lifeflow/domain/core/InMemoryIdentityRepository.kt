@@ -5,6 +5,9 @@ import java.util.UUID
 
 /**
  * Test-only in-memory repo for domain tests (no dependency on :data module).
+ *
+ * Invariant:
+ * - at most one identity is active at a time
  */
 class InMemoryIdentityRepository : IdentityRepository {
 
@@ -12,9 +15,15 @@ class InMemoryIdentityRepository : IdentityRepository {
     private var activeId: UUID? = null
 
     override suspend fun save(identity: LifeFlowIdentity) {
-        storage[identity.id] = identity
         if (identity.isActive) {
+            deactivatePreviousActiveIfNeeded(newActiveId = identity.id)
+            storage[identity.id] = identity
             activeId = identity.id
+        } else {
+            storage[identity.id] = identity
+            if (activeId == identity.id) {
+                activeId = null
+            }
         }
     }
 
@@ -24,7 +33,14 @@ class InMemoryIdentityRepository : IdentityRepository {
 
     override suspend fun getActiveIdentity(): LifeFlowIdentity? {
         val id = activeId ?: return null
-        return storage[id]
+        val identity = storage[id] ?: return null
+
+        return if (identity.isActive) {
+            identity
+        } else {
+            activeId = null
+            null
+        }
     }
 
     override suspend fun delete(identity: LifeFlowIdentity) {
@@ -32,5 +48,13 @@ class InMemoryIdentityRepository : IdentityRepository {
         if (activeId == identity.id) {
             activeId = null
         }
+    }
+
+    private fun deactivatePreviousActiveIfNeeded(newActiveId: UUID) {
+        val previousActiveId = activeId ?: return
+        if (previousActiveId == newActiveId) return
+
+        val previous = storage[previousActiveId] ?: return
+        storage[previousActiveId] = previous.copy(isActive = false)
     }
 }
