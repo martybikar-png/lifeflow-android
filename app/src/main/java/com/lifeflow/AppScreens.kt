@@ -2,13 +2,9 @@ package com.lifeflow
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,18 +29,9 @@ fun LoadingScreen(
     debugLines: List<String>
 ) {
     ScreenContainer(title = "LifeFlow") {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.lifeflow_one_icon),
-                contentDescription = "LifeFlow One icon",
-                modifier = Modifier.size(96.dp)
-            )
-        }
+        LoadingHeader()
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         Text(
             text = loadingMessage(
@@ -56,7 +43,7 @@ fun LoadingScreen(
             style = MaterialTheme.typography.bodyLarge
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         GuidanceCard(
             title = "Current focus",
@@ -68,7 +55,7 @@ fun LoadingScreen(
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         HealthSummaryCard(
             healthState = healthState,
@@ -78,66 +65,22 @@ fun LoadingScreen(
             hrGranted = hrGranted
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
-        ActionCard(title = "Recommended actions") {
-            Text(
-                text = loadingActionHint(
-                    isAuthenticating = isAuthenticating,
-                    healthState = healthState,
-                    requiredCount = requiredCount,
-                    grantedCount = grantedCount
-                ),
-                style = MaterialTheme.typography.bodyMedium
-            )
+        LoadingActionsCard(
+            isAuthenticating = isAuthenticating,
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            onAuthenticate = onAuthenticate,
+            onGrantHealthPermissions = onGrantHealthPermissions,
+            onOpenHealthConnectSettings = onOpenHealthConnectSettings
+        )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = onAuthenticate,
-                enabled = !isAuthenticating,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (isAuthenticating) "Authenticating..." else "Authenticate")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onGrantHealthPermissions,
-                enabled = canGrantHealthPermissions(
-                    healthState = healthState,
-                    requiredCount = requiredCount,
-                    grantedCount = grantedCount
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
-                        "Review health access"
-                    } else {
-                        "Health access ready"
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onOpenHealthConnectSettings,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Open Health Connect settings")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LastActionCard(lastAction = lastAction)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        DebugCard(debugLines = debugLines)
+        ScreenFooter(
+            lastAction = lastAction,
+            debugLines = debugLines
+        )
     }
 }
 
@@ -164,7 +107,7 @@ fun DashboardScreen(
             digitalTwinState = digitalTwinState
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         GuidanceCard(
             title = "Next best step",
@@ -176,7 +119,7 @@ fun DashboardScreen(
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         HealthSummaryCard(
             healthState = healthState,
@@ -186,84 +129,40 @@ fun DashboardScreen(
             hrGranted = hrGranted
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         DigitalTwinCard(digitalTwinState = digitalTwinState)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
-        ActionCard(title = "Dashboard actions") {
-            Text(
-                text = dashboardActionHint(
-                    healthState = healthState,
-                    requiredCount = requiredCount,
-                    grantedCount = grantedCount,
-                    digitalTwinState = digitalTwinState
-                ),
-                style = MaterialTheme.typography.bodyMedium
-            )
+        DashboardActionsCard(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            digitalTwinState = digitalTwinState,
+            onRefreshNow = onRefreshNow,
+            onGrantHealthPermissions = onGrantHealthPermissions,
+            onOpenHealthConnectSettings = onOpenHealthConnectSettings,
+            onReAuthenticate = onReAuthenticate
+        )
 
-            Spacer(modifier = Modifier.height(12.dp))
+        ScreenFooter(
+            lastAction = lastAction,
+            debugLines = debugLines
+        )
+    }
+}
 
-            Button(
-                onClick = onRefreshNow,
-                enabled = canRefreshDashboard(healthState),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (digitalTwinState == null) {
-                        "Load first snapshot"
-                    } else {
-                        "Refresh now"
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onGrantHealthPermissions,
-                enabled = canGrantHealthPermissions(
-                    healthState = healthState,
-                    requiredCount = requiredCount,
-                    grantedCount = grantedCount
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
-                        "Review health access"
-                    } else {
-                        "Health access ready"
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onOpenHealthConnectSettings,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Open Health Connect settings")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onReAuthenticate,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Authenticate again")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LastActionCard(lastAction = lastAction)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        DebugCard(debugLines = debugLines)
+@Composable
+private fun LoadingHeader() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.lifeflow_one_icon),
+            contentDescription = "LifeFlow One icon",
+            modifier = Modifier.size(96.dp)
+        )
     }
 }
