@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -33,19 +31,7 @@ fun ErrorScreen(
     showResetVaultAction: Boolean
 ) {
     ScreenContainer(title = "LifeFlow Error") {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Error",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-        }
+        ErrorMessageCard(message = message)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -84,54 +70,17 @@ fun ErrorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (showAuthenticateAction) {
-                Button(
-                    onClick = onAuthenticate,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Authenticate again")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            OutlinedButton(
-                onClick = onGrantHealthPermissions,
-                enabled = canGrantHealthPermissions(
-                    healthState = healthState,
-                    requiredCount = requiredCount,
-                    grantedCount = grantedCount
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
-                        "Review Health access"
-                    } else {
-                        "Health access ready"
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onOpenHealthConnectSettings,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Open Health Connect settings")
-            }
-
-            if (showResetVaultAction) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedButton(
-                    onClick = onResetVault,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Reset vault")
-                }
-            }
+            RecoveryActionsContent(
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                onAuthenticate = onAuthenticate,
+                onGrantHealthPermissions = onGrantHealthPermissions,
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
+                onResetVault = onResetVault,
+                showAuthenticateAction = showAuthenticateAction,
+                showResetVaultAction = showResetVaultAction
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -141,5 +90,24 @@ fun ErrorScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         DebugCard(debugLines = debugLines)
+    }
+}
+
+@Composable
+private fun ErrorMessageCard(message: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Error",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }
