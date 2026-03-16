@@ -1,23 +1,14 @@
 package com.lifeflow.core
 
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.HeartRateRecord
-import androidx.health.connect.client.records.StepsRecord
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
-import com.lifeflow.domain.model.LifeFlowIdentity
 import com.lifeflow.domain.wellbeing.WellbeingRepository
 import com.lifeflow.domain.wellbeing.usecase.GetAvgHeartRateLast24hUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetHealthConnectStatusUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
-import com.lifeflow.security.SecurityAccessSession
-import com.lifeflow.security.SecurityRuleEngine
-import com.lifeflow.security.TrustState
-import java.util.UUID
-import kotlin.math.roundToLong
 
 /**
  * Phase A — Orchestration / Authority Expansion
@@ -41,31 +32,6 @@ class LifeFlowOrchestrator(
     private val getAvgHeartRateLast24h: GetAvgHeartRateLast24hUseCase
 ) {
 
-    private data class MetricPermissionSnapshot(
-        val stepsPermissionGranted: Boolean?,
-        val heartRatePermissionGranted: Boolean?
-    )
-
-    private data class MetricReadSnapshot(
-        val stepsLast24h: Long?,
-        val avgHeartRateLast24h: Long?
-    )
-
-    sealed class ActionResult<out T> {
-        data class Success<T>(val value: T) : ActionResult<T>()
-        data class Locked(val reason: String) : ActionResult<Nothing>()
-        data class Error(val message: String) : ActionResult<Nothing>()
-    }
-
-    data class WellbeingRefreshSnapshot(
-        val healthConnectState: HealthConnectUiState,
-        val requiredPermissions: Set<String>,
-        val grantedPermissions: Set<String>,
-        val stepsPermissionGranted: Boolean?,
-        val heartRatePermissionGranted: Boolean?,
-        val digitalTwinState: DigitalTwinState
-    )
-
     fun healthConnectUiState(): HealthConnectUiState {
         return when (getHealthConnectStatus()) {
             WellbeingRepository.SdkStatus.Available -> HealthConnectUiState.Available
@@ -86,169 +52,11 @@ class LifeFlowOrchestrator(
         try {
             ActionResult.Success(getGrantedHealthPermissions())
         } catch (_: Throwable) {
-            // Permissions read should never break the app; return empty set deterministically
             ActionResult.Success(emptySet())
         }
 
-    /**
-     * Hard gate for sensitive operations.
-     * Fail-closed:
-     * - no session => locked
-     * - compromised trust => locked
-     */
-    @Suppress("SameParameterValue")
-    private fun gateOrLocked(reason: String): ActionResult.Locked? {
-        if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) {
-            SecurityAccessSession.clear()
-            return ActionResult.Locked("COMPROMISED: $reason")
-        }
-        if (!SecurityAccessSession.isAuthorized()) {
-            return ActionResult.Locked("AUTH_REQUIRED: $reason")
-        }
-        return null
-    }
-
     suspend fun bootstrapIdentityIfNeeded(): ActionResult<Unit> {
-        gateOrLocked("Identity bootstrap")?.let { return it }
-
-        return try {
-            SecurityRuleEngine.setTrustState(
-                TrustState.VERIFIED,
-                reason = "Auth session active (bootstrapIdentityIfNeeded)"
-            )
-
-            val active = identityRepository.getActiveIdentity()
-            if (active == null) {
-                val newIdentity = LifeFlowIdentity(
-                    id = UUID.randomUUID(),
-                    createdAtEpochMillis = System.currentTimeMillis(),
-                    isActive = true
-                )
-                identityRepository.save(newIdentity)
-            }
-
-            ActionResult.Success(Unit)
-        } catch (e: SecurityException) {
-            SecurityAccessSession.clear()
-            ActionResult.Locked(e.message ?: "Security denied")
-        } catch (t: Throwable) {
-            SecurityAccessSession.clear()
-            ActionResult.Error(t.message ?: "Bootstrap failed")
-        }
-    }
-
-    private fun unavailableMetricPermissionSnapshot(): MetricPermissionSnapshot {
-        return MetricPermissionSnapshot(
-            stepsPermissionGranted = null,
-            heartRatePermissionGranted = null
-        )
-    }
-
-    /**
-     * Resolve permission status per metric using already-known permission sets.
-     *
-     * Semantics:
-     * - true  -> permission resolved and granted
-     * - false -> permission resolved and not granted
-     * - null  -> permission state unknown / not required / not resolvable right now
-     */
-    private fun resolveMetricPermissionSnapshot(
-        requiredPermissions: Set<String>,
-        grantedPermissions: Set<String>
-    ): MetricPermissionSnapshot {
-        if (requiredPermissions.isEmpty()) {
-            return unavailableMetricPermissionSnapshot()
-        }
-
-        val stepsPermission = HealthPermission.getReadPermission(StepsRecord::class)
-        val heartRatePermission = HealthPermission.getReadPermission(HeartRateRecord::class)
-
-        val stepsRequired = requiredPermissions.contains(stepsPermission)
-        val heartRateRequired = requiredPermissions.contains(heartRatePermission)
-
-        val stepsGranted = if (stepsRequired) {
-            grantedPermissions.contains(stepsPermission)
-        } else {
-            null
-        }
-
-        val heartRateGranted = if (heartRateRequired) {
-            grantedPermissions.contains(heartRatePermission)
-        } else {
-            null
-        }
-
-        return MetricPermissionSnapshot(
-            stepsPermissionGranted = stepsGranted,
-            heartRatePermissionGranted = heartRateGranted
-        )
-    }
-
-    private suspend fun resolveMetricPermissionSnapshot(): MetricPermissionSnapshot {
-        return try {
-            val requiredPermissions = getHealthPermissions()
-            val grantedPermissions = getGrantedHealthPermissions()
-            resolveMetricPermissionSnapshot(
-                requiredPermissions = requiredPermissions,
-                grantedPermissions = grantedPermissions
-            )
-        } catch (_: Throwable) {
-            unavailableMetricPermissionSnapshot()
-        }
-    }
-
-    /**
-     * Best-effort metric read behind consent boundary.
-     * No throw, deterministic null fallback.
-     */
-    private suspend fun readMetricsBestEffort(
-        healthConnectState: HealthConnectUiState,
-        permissionSnapshot: MetricPermissionSnapshot
-    ): MetricReadSnapshot {
-        if (healthConnectState !is HealthConnectUiState.Available) {
-            return MetricReadSnapshot(
-                stepsLast24h = null,
-                avgHeartRateLast24h = null
-            )
-        }
-
-        var steps: Long? = null
-        var heartRate: Long? = null
-
-        if (permissionSnapshot.stepsPermissionGranted == true) {
-            try {
-                steps = getStepsLast24h()
-            } catch (_: Throwable) {
-                // keep null; engine will classify deterministically
-            }
-        }
-
-        if (permissionSnapshot.heartRatePermissionGranted == true) {
-            try {
-                heartRate = getAvgHeartRateLast24h()?.roundToLong()
-            } catch (_: Throwable) {
-                // keep null; engine will classify deterministically
-            }
-        }
-
-        return MetricReadSnapshot(
-            stepsLast24h = steps,
-            avgHeartRateLast24h = heartRate
-        )
-    }
-
-    private fun refreshDigitalTwin(
-        identityInitialized: Boolean,
-        metricReadSnapshot: MetricReadSnapshot,
-        permissionSnapshot: MetricPermissionSnapshot
-    ): DigitalTwinState {
-        return digitalTwinOrchestrator.refresh(
-            identityInitialized = identityInitialized,
-            stepsLast24h = metricReadSnapshot.stepsLast24h,
-            avgHeartRateLast24h = metricReadSnapshot.avgHeartRateLast24h,
-            stepsPermissionGranted = permissionSnapshot.stepsPermissionGranted,
-            heartRatePermissionGranted = permissionSnapshot.heartRatePermissionGranted
-        )
+        return lifeflowOrchestratorBootstrapIdentityIfNeeded(identityRepository)
     }
 
     /**
@@ -257,23 +65,31 @@ class LifeFlowOrchestrator(
      *
      * identityInitialized tells the twin whether identity core is ready.
      */
-    suspend fun refreshTwinBestEffort(identityInitialized: Boolean): ActionResult<DigitalTwinState> {
+    suspend fun refreshTwinBestEffort(
+        identityInitialized: Boolean
+    ): ActionResult<DigitalTwinState> {
         val healthConnectState = healthConnectUiState()
         val permissionSnapshot = if (healthConnectState is HealthConnectUiState.Available) {
-            resolveMetricPermissionSnapshot()
+            lifeflowOrchestratorResolveMetricPermissionSnapshotSafe(
+                getHealthPermissions = getHealthPermissions,
+                getGrantedHealthPermissions = getGrantedHealthPermissions
+            )
         } else {
-            unavailableMetricPermissionSnapshot()
+            lifeflowOrchestratorEmptyMetricPermissionSnapshot()
         }
 
-        val metricReadSnapshot = readMetricsBestEffort(
+        val metricReadSnapshot = lifeflowOrchestratorReadMetricsBestEffort(
             healthConnectState = healthConnectState,
-            permissionSnapshot = permissionSnapshot
+            permissionSnapshot = permissionSnapshot,
+            getStepsLast24h = getStepsLast24h,
+            getAvgHeartRateLast24h = getAvgHeartRateLast24h
         )
 
-        val state = refreshDigitalTwin(
+        val state = lifeflowOrchestratorRefreshDigitalTwin(
             identityInitialized = identityInitialized,
             metricReadSnapshot = metricReadSnapshot,
-            permissionSnapshot = permissionSnapshot
+            permissionSnapshot = permissionSnapshot,
+            digitalTwinOrchestrator = digitalTwinOrchestrator
         )
 
         return ActionResult.Success(state)
@@ -309,23 +125,26 @@ class LifeFlowOrchestrator(
         }
 
         val permissionSnapshot = if (healthConnectState is HealthConnectUiState.Available) {
-            resolveMetricPermissionSnapshot(
+            lifeflowOrchestratorResolveMetricPermissionSnapshot(
                 requiredPermissions = requiredPermissions,
                 grantedPermissions = grantedPermissions
             )
         } else {
-            unavailableMetricPermissionSnapshot()
+            lifeflowOrchestratorEmptyMetricPermissionSnapshot()
         }
 
-        val metricReadSnapshot = readMetricsBestEffort(
+        val metricReadSnapshot = lifeflowOrchestratorReadMetricsBestEffort(
             healthConnectState = healthConnectState,
-            permissionSnapshot = permissionSnapshot
+            permissionSnapshot = permissionSnapshot,
+            getStepsLast24h = getStepsLast24h,
+            getAvgHeartRateLast24h = getAvgHeartRateLast24h
         )
 
-        val digitalTwinState = refreshDigitalTwin(
+        val digitalTwinState = lifeflowOrchestratorRefreshDigitalTwin(
             identityInitialized = identityInitialized,
             metricReadSnapshot = metricReadSnapshot,
-            permissionSnapshot = permissionSnapshot
+            permissionSnapshot = permissionSnapshot,
+            digitalTwinOrchestrator = digitalTwinOrchestrator
         )
 
         return ActionResult.Success(
@@ -339,16 +158,4 @@ class LifeFlowOrchestrator(
             )
         )
     }
-}
-
-/**
- * Local UI state for Health Connect.
- * Keep it stable and explicit (no hidden magic).
- */
-sealed class HealthConnectUiState {
-    object Unknown : HealthConnectUiState()
-    object Available : HealthConnectUiState()
-    object NotInstalled : HealthConnectUiState()
-    object NotSupported : HealthConnectUiState()
-    object UpdateRequired : HealthConnectUiState()
 }
