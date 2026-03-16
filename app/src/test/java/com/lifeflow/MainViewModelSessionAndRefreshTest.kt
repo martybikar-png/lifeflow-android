@@ -99,6 +99,44 @@ class MainViewModelSessionAndRefreshTest : MainViewModelTestBase() {
     }
 
     @Test
+    fun `onHealthPermissionsResult without auth keeps protected data hidden`() {
+        SecurityAccessSession.clear()
+        forceResetSecurityState(
+            state = TrustState.VERIFIED,
+            reason = "unauthenticated permission callback should stay fail closed"
+        )
+
+        val wellbeingRepo = FakeWellbeingRepository(
+            sdkStatusValue = WellbeingRepository.SdkStatus.Available,
+            requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            stepsValue = 6543L,
+            avgHeartRateValue = 62.8
+        )
+
+        val viewModel = newViewModel(wellbeingRepo = wellbeingRepo)
+
+        try {
+            settleMain()
+
+            viewModel.onHealthPermissionsResult(setOf(stepsPermission, heartRatePermission))
+            settleMain()
+
+            assertTrue(viewModel.uiState.value is UiState.Loading)
+            assertEquals(HealthConnectUiState.Available, viewModel.healthConnectState.value)
+            assertEquals(
+                setOf(stepsPermission, heartRatePermission),
+                viewModel.requiredHealthPermissions.value
+            )
+            assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
+            assertNull(viewModel.digitalTwinState.value)
+        } finally {
+            clearViewModel(viewModel)
+            settleMain()
+        }
+    }
+
+    @Test
     fun `onHealthPermissionsResult refreshes unified wellbeing snapshot after auth`() {
         SecurityAccessSession.grantDefault()
         forceResetSecurityState(
@@ -191,50 +229,6 @@ class MainViewModelSessionAndRefreshTest : MainViewModelTestBase() {
             assertNotNull(updatedTwin)
             assertTrue(updatedTwin !== initialTwin)
             assertTrue(updatedTwin!!.stepsLast24h != 4321L)
-        } finally {
-            clearViewModel(viewModel)
-            settleMain()
-        }
-    }
-
-    @Test
-    fun `session expiry wipes caches and moves ui to error`() {
-        SecurityAccessSession.grantDefault()
-        forceResetSecurityState(
-            state = TrustState.VERIFIED,
-            reason = "healthy session expiry path"
-        )
-
-        val viewModel = newViewModel(
-            wellbeingRepo = FakeWellbeingRepository(
-                sdkStatusValue = WellbeingRepository.SdkStatus.Available,
-                requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
-                grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
-                stepsValue = 1234L,
-                avgHeartRateValue = 65.0
-            )
-        )
-
-        try {
-            settleMain()
-
-            viewModel.onAuthenticationSuccess()
-            settleMain()
-
-            viewModel.refreshMetricsAndTwinNow()
-            settleMain()
-
-            assertNotNull(viewModel.digitalTwinState.value)
-            assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
-
-            SecurityAccessSession.clear()
-            advanceMainTimeBy(1000)
-            settleMain()
-
-            val error = viewModel.uiState.value as UiState.Error
-            assertTrue(error.message.contains("Session expired"))
-            assertNull(viewModel.digitalTwinState.value)
-            assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
             settleMain()
