@@ -3,12 +3,13 @@ package com.lifeflow
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lifeflow.core.ActionResult
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.core.LifeFlowOrchestrator
+import com.lifeflow.core.WellbeingRefreshSnapshot
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
-import com.lifeflow.security.TrustState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -19,40 +20,39 @@ class MainViewModel(
     private val orchestrator: LifeFlowOrchestrator,
     private val performVaultReset: suspend () -> Unit
 ) : ViewModel() {
-
     var uiState = mutableStateOf<UiState>(UiState.Loading)
         private set
-
-    // Health Connect status
+    var lastAction = mutableStateOf("Initializing secure LifeFlow session...")
+        private set
     var healthConnectState = mutableStateOf<HealthConnectUiState>(HealthConnectUiState.Unknown)
         private set
-
-    // Permissions
     var requiredHealthPermissions = mutableStateOf<Set<String>>(emptySet())
         private set
-
     var grantedHealthPermissions = mutableStateOf<Set<String>>(emptySet())
         private set
-
-    // Visible reason if permissions init fails (never silent)
     var healthPermissionsInitError = mutableStateOf<String?>(null)
         private set
-
-    // Digital Twin state exposed to UI
     var digitalTwinState = mutableStateOf<DigitalTwinState?>(null)
         private set
 
-    // --- Phase B1/B2: session TTL / auto-expiry + trust-state reactions ---
     private var sessionExpiryNotified = false
-    private val SESSION_POLL_MS = 1000L
-
-    // Serialize protected refreshes so startup/auth/settings/manual refreshes do not overlap.
+    private val sessionPollMs = 1000L
     private val refreshMutex = Mutex()
 
+    init {
+        observeTrustState()
+        observeSessionExpiry()
+        refreshRequiredPermissionsDefinition()
+    }
+
+    private fun updateLastAction(message: String) {
+        lastAction.value = message
+    }
+
     private fun wipeUiCachesFailClosed() {
-        // keep requiredHealthPermissions (static), wipe granted + twin (dynamic)
         grantedHealthPermissions.value = emptySet()
         digitalTwinState.value = null
+        updateLastAction("Protected dashboard data cleared.")
     }
 
     private fun refreshPublicHealthStateOnly() {
@@ -60,6 +60,7 @@ class MainViewModel(
         refreshRequiredPermissionsDefinition()
         grantedHealthPermissions.value = emptySet()
         digitalTwinState.value = null
+        updateLastAction("Public Health Connect state refreshed.")
     }
 
     private fun failClosedWithError(
@@ -72,51 +73,44 @@ class MainViewModel(
         wipeUiCachesFailClosed()
         sessionExpiryNotified = false
         uiState.value = UiState.Error(message)
+        updateLastAction("Fail-closed: $message")
     }
 
-    private fun lockedReasonToUserMessage(reason: String): String {
-        return when {
-            reason.startsWith("COMPROMISED:", ignoreCase = true) ->
-                "Security compromised. Reset vault is required before continuing."
-
-            reason.startsWith("AUTH_REQUIRED:", ignoreCase = true) ->
-                "Authentication required. Please authenticate again."
-
-            reason.isBlank() ->
-                "Access locked. Please authenticate again."
-
-            else -> reason
-        }
-    }
-
-    private fun handleLockedProtectedOperation(reason: String) {
-        failClosedWithError(
-            message = lockedReasonToUserMessage(reason),
-            clearSession = true
+    private fun ensureProtectedEntryAllowed(): Boolean {
+        val blockedMessage = mainViewModelProtectedEntryBlockMessage(
+            isAuthorized = SecurityAccessSession.isAuthorized(),
+            trustState = SecurityRuleEngine.getTrustState()
         )
-    }
 
-    private fun canExposeProtectedUiData(): Boolean {
-        return uiState.value is UiState.Authenticated &&
-            SecurityAccessSession.isAuthorized() &&
-            SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
+        if (blockedMessage != null) {
+            failClosedWithError(blockedMessage)
+            return false
+        }
+
+        updateLastAction("Authentication verified. Bootstrapping identity...")
+        return true
     }
 
     private fun refreshRequiredPermissionsDefinition() {
         when (val res = orchestrator.requiredHealthPermissionsSafe()) {
-            is LifeFlowOrchestrator.ActionResult.Success -> {
+            is ActionResult.Success -> {
                 requiredHealthPermissions.value = res.value
                 healthPermissionsInitError.value = null
+                updateLastAction(
+                    "Health permission contract loaded (${res.value.size} required)."
+                )
             }
 
-            is LifeFlowOrchestrator.ActionResult.Error -> {
+            is ActionResult.Error -> {
                 requiredHealthPermissions.value = emptySet()
                 healthPermissionsInitError.value = res.message
+                updateLastAction("Health permission contract failed to load.")
             }
 
-            is LifeFlowOrchestrator.ActionResult.Locked -> {
+            is ActionResult.Locked -> {
                 requiredHealthPermissions.value = emptySet()
                 healthPermissionsInitError.value = res.reason
+                updateLastAction("Health permission contract locked.")
             }
         }
     }
@@ -127,6 +121,7 @@ class MainViewModel(
         }.getOrElse {
             HealthConnectUiState.Unknown
         }
+        updateLastAction("Health Connect state checked: ${healthConnectState.value}.")
     }
 
     private fun handleUnexpectedProtectedRefreshFailure() {
@@ -134,96 +129,92 @@ class MainViewModel(
 
         if (uiState.value is UiState.Authenticated) {
             failClosedWithError(
-                message = "Protected refresh failed unexpectedly. Please authenticate again.",
+                message = MAIN_VIEW_MODEL_UNEXPECTED_REFRESH_FAILURE_MESSAGE,
                 clearSession = true
             )
+        } else {
+            updateLastAction("Protected refresh failed unexpectedly.")
         }
     }
 
-    private fun applyWellbeingSnapshot(
-        snapshot: LifeFlowOrchestrator.WellbeingRefreshSnapshot
-    ) {
+    private fun applyWellbeingSnapshot(snapshot: WellbeingRefreshSnapshot) {
         healthConnectState.value = snapshot.healthConnectState
         requiredHealthPermissions.value = snapshot.requiredPermissions
         healthPermissionsInitError.value = null
 
-        if (canExposeProtectedUiData()) {
+        if (canMainViewModelExposeProtectedUiData(uiState.value)) {
             grantedHealthPermissions.value = snapshot.grantedPermissions
             digitalTwinState.value = snapshot.digitalTwinState
+            updateLastAction(
+                "Dashboard snapshot updated (${snapshot.grantedPermissions.size}/${snapshot.requiredPermissions.size} permissions granted)."
+            )
         } else {
             grantedHealthPermissions.value = emptySet()
             digitalTwinState.value = null
+            updateLastAction("Protected snapshot received but UI remained fail-closed.")
         }
     }
 
-    init {
-        // B2: Fail-closed reaction to TrustState changes
+    private fun observeTrustState() {
         viewModelScope.launch {
             SecurityRuleEngine.trustState.collect { state ->
-                when (state) {
-                    TrustState.COMPROMISED -> {
-                        failClosedWithError(
-                            "Security compromised. Reset vault is required before continuing."
-                        )
+                when (val update = resolveMainViewModelTrustUpdate(state, uiState.value)) {
+                    is MainViewModelTrustUpdate.FailClosed -> {
+                        failClosedWithError(update.message)
                     }
 
-                    TrustState.DEGRADED -> {
-                        // React only if user was already authenticated and got downgraded.
-                        if (uiState.value is UiState.Authenticated) {
-                            failClosedWithError("Security degraded. Please authenticate again.")
-                        }
+                    is MainViewModelTrustUpdate.LastAction -> {
+                        updateLastAction(update.message)
                     }
 
-                    TrustState.VERIFIED -> {
-                        // no-op
-                    }
+                    MainViewModelTrustUpdate.NoOp -> Unit
                 }
             }
         }
+    }
 
-        // B1: detect TTL expiry while app is running (fail-closed UX)
+    private fun observeSessionExpiry() {
         viewModelScope.launch {
             while (isActive) {
-                delay(SESSION_POLL_MS)
+                delay(sessionPollMs)
 
-                if (uiState.value is UiState.Authenticated) {
-                    val authorized = SecurityAccessSession.isAuthorized()
-                    if (!authorized) {
-                        if (!sessionExpiryNotified) {
-                            sessionExpiryNotified = true
-                            failClosedWithError("Session expired. Please authenticate again.")
-                        }
-                    } else {
-                        sessionExpiryNotified = false
+                if (shouldMainViewModelExpireSession(uiState.value)) {
+                    if (!sessionExpiryNotified) {
+                        sessionExpiryNotified = true
+                        failClosedWithError(MAIN_VIEW_MODEL_SESSION_EXPIRED_MESSAGE)
                     }
                 } else {
                     sessionExpiryNotified = false
                 }
             }
         }
-
-        // Required permissions via orchestrator (single boundary)
-        refreshRequiredPermissionsDefinition()
     }
 
     private suspend fun refreshWellbeingSnapshotSafe(identityInitialized: Boolean) {
         refreshMutex.withLock {
-            if (!canExposeProtectedUiData()) {
+            if (!canMainViewModelExposeProtectedUiData(uiState.value)) {
                 refreshPublicHealthStateOnly()
+                updateLastAction(MAIN_VIEW_MODEL_REFRESH_BLOCKED_MESSAGE)
                 return
             }
 
+            updateLastAction("Refreshing protected wellbeing snapshot...")
+
             when (val res = orchestrator.refreshWellbeingSnapshot(identityInitialized)) {
-                is LifeFlowOrchestrator.ActionResult.Success -> {
+                is ActionResult.Success -> {
                     applyWellbeingSnapshot(res.value)
                 }
 
-                is LifeFlowOrchestrator.ActionResult.Error -> {
+                is ActionResult.Error -> {
                     refreshPublicHealthStateOnly()
+                    updateLastAction("Protected refresh failed. Public state kept available.")
                 }
 
-                is LifeFlowOrchestrator.ActionResult.Locked -> {
-                    handleLockedProtectedOperation(res.reason)
+                is ActionResult.Locked -> {
+                    failClosedWithError(
+                        message = mainViewModelLockedReasonToUserMessage(res.reason),
+                        clearSession = true
+                    )
                 }
             }
         }
@@ -233,7 +224,7 @@ class MainViewModel(
         viewModelScope.launch {
             runCatching {
                 refreshWellbeingSnapshotSafe(
-                    identityInitialized = (uiState.value is UiState.Authenticated)
+                    identityInitialized = uiState.value is UiState.Authenticated
                 )
             }.onFailure {
                 handleUnexpectedProtectedRefreshFailure()
@@ -242,57 +233,41 @@ class MainViewModel(
     }
 
     fun refreshMetricsAndTwinNow() {
+        updateLastAction("Manual dashboard refresh requested.")
         requestProtectedRefresh()
     }
 
-    fun onHealthPermissionsResult(@Suppress("UNUSED_PARAMETER") granted: Set<String>) {
+    fun onHealthPermissionsResult(granted: Set<String>) {
+        updateLastAction("Health permission result received (${granted.size} granted).")
         requestProtectedRefresh()
     }
 
     fun onAuthenticationSuccess() {
         uiState.value = UiState.Loading
+        updateLastAction("Authentication succeeded. Preparing protected dashboard...")
 
         viewModelScope.launch {
-            if (!SecurityAccessSession.isAuthorized()) {
-                failClosedWithError("Active auth session missing. Please authenticate again.")
+            if (!ensureProtectedEntryAllowed()) {
                 return@launch
-            }
-
-            when (SecurityRuleEngine.getTrustState()) {
-                TrustState.COMPROMISED -> {
-                    failClosedWithError(
-                        "Security compromised. Reset vault is required before continuing."
-                    )
-                    return@launch
-                }
-
-                TrustState.DEGRADED -> {
-                    failClosedWithError("Security degraded. Please authenticate again.")
-                    return@launch
-                }
-
-                TrustState.VERIFIED -> {
-                    // continue
-                }
             }
 
             sessionExpiryNotified = false
 
             when (val boot = orchestrator.bootstrapIdentityIfNeeded()) {
-                is LifeFlowOrchestrator.ActionResult.Success -> {
-                    // Post-auth refresh is owned by MainActivity via
-                    // LaunchedEffect(uiState is UiState.Authenticated)
+                is ActionResult.Success -> {
                     uiState.value = UiState.Authenticated
+                    updateLastAction("Protected dashboard unlocked.")
                 }
 
-                is LifeFlowOrchestrator.ActionResult.Locked -> {
-                    handleLockedProtectedOperation(boot.reason)
-                    return@launch
+                is ActionResult.Locked -> {
+                    failClosedWithError(
+                        message = mainViewModelLockedReasonToUserMessage(boot.reason),
+                        clearSession = true
+                    )
                 }
 
-                is LifeFlowOrchestrator.ActionResult.Error -> {
+                is ActionResult.Error -> {
                     failClosedWithError(boot.message)
-                    return@launch
                 }
             }
         }
@@ -302,22 +277,24 @@ class MainViewModel(
         failClosedWithError(message)
     }
 
-    /**
-     * Hard reset: keystore key + vault prefs + ciphertext blobs.
-     * After reset we stay fail-closed and require a fresh auth.
-     */
     fun resetVault() {
         uiState.value = UiState.Loading
+        updateLastAction("Vault reset requested.")
+
         viewModelScope.launch {
-            val res = runCatching { performVaultReset() }
+            val result = runCatching { performVaultReset() }
             SecurityAccessSession.clear()
             wipeUiCachesFailClosed()
             sessionExpiryNotified = false
 
-            uiState.value = if (res.isSuccess) {
+            uiState.value = if (result.isSuccess) {
+                updateLastAction("Vault reset complete. Fresh authentication required.")
                 UiState.Error("Vault reset complete. Please authenticate again.")
             } else {
-                UiState.Error("Vault reset failed: ${res.exceptionOrNull()?.message ?: "unknown"}")
+                updateLastAction("Vault reset failed.")
+                UiState.Error(
+                    "Vault reset failed: ${result.exceptionOrNull()?.message ?: "unknown"}"
+                )
             }
         }
     }
