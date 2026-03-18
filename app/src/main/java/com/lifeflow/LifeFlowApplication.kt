@@ -8,6 +8,7 @@ import com.lifeflow.data.diary.LocalDiaryRepository
 import com.lifeflow.data.memory.LocalMemoryRepository
 import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.data.shopping.LocalShoppingRepository
+import com.lifeflow.data.store.EncryptedModuleStore
 import com.lifeflow.data.wellbeing.HealthConnectWellbeingRepository
 import com.lifeflow.domain.core.DataSovereigntyVault
 import com.lifeflow.domain.core.IdentityRepository
@@ -24,6 +25,7 @@ import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
 import com.lifeflow.security.AndroidDataSovereigntyVault
 import com.lifeflow.security.EncryptedIdentityRepository
+import com.lifeflow.security.EncryptionPortAdapter
 import com.lifeflow.security.EncryptionService
 import com.lifeflow.security.KeyManager
 import com.lifeflow.security.ResetVaultUseCase
@@ -114,7 +116,11 @@ class LifeFlowApplication : Application() {
             getHealthPermissions = getHealthPermissionsUseCase,
             getGrantedHealthPermissions = getGrantedHealthPermissionsUseCase,
             getStepsLast24h = getStepsLast24hUseCase,
-            getAvgHeartRateLast24h = getAvgHeartRateLast24hUseCase
+            getAvgHeartRateLast24h = getAvgHeartRateLast24hUseCase,
+            diaryRepository = diaryRepository,
+            memoryRepository = memoryRepository,
+            connectionRepository = connectionRepository,
+            shoppingRepository = shoppingRepository
         )
     }
 
@@ -190,21 +196,19 @@ class LifeFlowApplication : Application() {
             vault = androidVault
         )
 
-        // Module encryption
-        val encryptionPort = com.lifeflow.security.EncryptionPortAdapter(encryptionService)
+        val encryptionPort = EncryptionPortAdapter(encryptionService)
 
-        // Module repositories
-        diaryRepository = com.lifeflow.data.diary.LocalDiaryRepository(
-            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_diary", encryptionPort)
+        diaryRepository = LocalDiaryRepository(
+            EncryptedModuleStore(applicationContext, "lifeflow_diary", encryptionPort)
         )
-        memoryRepository = com.lifeflow.data.memory.LocalMemoryRepository(
-            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_memory", encryptionPort)
+        memoryRepository = LocalMemoryRepository(
+            EncryptedModuleStore(applicationContext, "lifeflow_memory", encryptionPort)
         )
-        connectionRepository = com.lifeflow.data.connection.LocalConnectionRepository(
-            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_connection", encryptionPort)
+        connectionRepository = LocalConnectionRepository(
+            EncryptedModuleStore(applicationContext, "lifeflow_connection", encryptionPort)
         )
-        shoppingRepository = com.lifeflow.data.shopping.LocalShoppingRepository(
-            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_shopping", encryptionPort)
+        shoppingRepository = LocalShoppingRepository(
+            EncryptedModuleStore(applicationContext, "lifeflow_shopping", encryptionPort)
         )
     }
 
@@ -223,4 +227,3 @@ class LifeFlowApplication : Application() {
         }
     }
 }
-
