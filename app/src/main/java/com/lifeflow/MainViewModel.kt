@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.lifeflow.core.ActionResult
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.core.LifeFlowOrchestrator
+import com.lifeflow.domain.core.TierState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.security.TrustStatePort
+import com.lifeflow.domain.wellbeing.WellbeingAssessment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -28,6 +30,8 @@ class MainViewModel(
     val grantedHealthPermissions = mutableStateOf<Set<String>>(emptySet())
     val healthPermissionsInitError = mutableStateOf<String?>(null)
     val digitalTwinState = mutableStateOf<DigitalTwinState?>(null)
+    val wellbeingAssessment = mutableStateOf<WellbeingAssessment?>(null)
+    val currentTier = mutableStateOf<TierState>(TierState.CORE)
 
     private var sessionExpiryNotified = false
     private val sessionPollMs = 1000L
@@ -50,6 +54,7 @@ class MainViewModel(
         grantedHealthPermissions = grantedHealthPermissions,
         healthPermissionsInitError = healthPermissionsInitError,
         digitalTwinState = digitalTwinState,
+        wellbeingAssessment = wellbeingAssessment,
         refreshMutex = refreshMutex,
         currentUiState = { uiState.value },
         currentSecuritySnapshot = ::currentSecuritySnapshot,
@@ -61,6 +66,7 @@ class MainViewModel(
         observeTrustState()
         observeSessionExpiry()
         wellbeingDelegate.refreshRequiredPermissionsDefinition()
+        currentTier.value = orchestrator.currentTier()
     }
 
     private fun currentSecuritySnapshot() = MainViewModelSecuritySnapshot(
@@ -87,6 +93,7 @@ class MainViewModel(
             grantedHealthPermissionsState = grantedHealthPermissions,
             healthPermissionsInitErrorState = healthPermissionsInitError,
             digitalTwinStateState = digitalTwinState,
+            wellbeingAssessmentState = wellbeingAssessment,
             updateLastAction = ::updateLastAction
         )
     }
@@ -130,13 +137,11 @@ class MainViewModel(
                     markAuthenticated = { uiState.value = UiState.Authenticated }
                 )
             }
-
             is ActionResult.Locked -> {
                 authDelegate.completeAuthenticationBootstrapLocked(
                     message = mainViewModelLockedReasonToUserMessage(boot.reason)
                 )
             }
-
             is ActionResult.Error -> {
                 authDelegate.completeAuthenticationBootstrapError(boot.message)
             }
@@ -161,7 +166,6 @@ class MainViewModel(
         authDelegate.beginAuthenticationSuccessFlow(
             setUiStateLoading = { uiState.value = UiState.Loading }
         )
-
         viewModelScope.launch {
             runAuthenticationBootstrap()
         }
@@ -174,7 +178,6 @@ class MainViewModel(
         authDelegate.beginVaultResetFlow(
             setUiStateLoading = { uiState.value = UiState.Loading }
         )
-
         viewModelScope.launch {
             runVaultReset()
         }
