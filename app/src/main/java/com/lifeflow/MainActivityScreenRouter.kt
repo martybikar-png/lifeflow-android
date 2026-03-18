@@ -1,4 +1,3 @@
-// app/src/main/java/com/lifeflow/MainActivityScreenRouter.kt
 package com.lifeflow
 
 import androidx.compose.runtime.Composable
@@ -10,7 +9,8 @@ internal fun MainActivityScreenRouter(
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
     onRefreshNow: () -> Unit,
-    onResetVault: () -> Unit
+    onResetVault: () -> Unit,
+    onUpgradeToCore: () -> Unit = {}
 ) {
     when (val uiState = screen.uiState) {
         UiState.Loading -> {
@@ -41,6 +41,14 @@ internal fun MainActivityScreenRouter(
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
                 onReAuthenticate = onAuthenticate,
+                debugLines = screen.debugLines
+            )
+        }
+        is UiState.FreeTier -> {
+            FreeTierScreen(
+                message = uiState.message,
+                lastAction = screen.displayedLastAction,
+                onUpgradeToCore = onUpgradeToCore,
                 debugLines = screen.debugLines
             )
         }

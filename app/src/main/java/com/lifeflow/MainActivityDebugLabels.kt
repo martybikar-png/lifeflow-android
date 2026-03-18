@@ -6,6 +6,7 @@ internal fun uiStateDebugLabel(uiState: UiState): String {
     return when (uiState) {
         UiState.Loading -> "Loading"
         UiState.Authenticated -> "Authenticated"
+        is UiState.FreeTier -> "FreeTier"
         is UiState.Error -> "Error"
     }
 }
@@ -40,21 +41,11 @@ internal fun digitalTwinDebugLabel(
     if (digitalTwinState == null) {
         return "Not loaded yet"
     }
-
     return when {
-        hasFullCardSignalCoverage(digitalTwinState) ->
-            "Complete"
-
-        hasPermissionDeniedCardSignal(digitalTwinState) ->
-            "Permission blocked"
-
-        hasNoCardSignalData(digitalTwinState) ->
-            "No data"
-
-        hasBlockedCardSignal(digitalTwinState) ->
-            "Blocked"
-
-        else ->
-            "Partial"
+        hasFullCardSignalCoverage(digitalTwinState) -> "Complete"
+        hasPermissionDeniedCardSignal(digitalTwinState) -> "Permission blocked"
+        hasNoCardSignalData(digitalTwinState) -> "No data"
+        hasBlockedCardSignal(digitalTwinState) -> "Blocked"
+        else -> "Partial"
     }
 }

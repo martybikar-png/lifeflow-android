@@ -1,4 +1,3 @@
-// app/src/main/java/com/lifeflow/AppScreens.kt
 package com.lifeflow
 
 import androidx.compose.foundation.Image
@@ -7,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,9 +32,7 @@ fun LoadingScreen(
 ) {
     ScreenContainer(title = "LifeFlow") {
         LoadingHeader()
-
         ScreenSectionSpacer()
-
         Text(
             text = loadingMessage(
                 isAuthenticating = isAuthenticating,
@@ -44,9 +42,7 @@ fun LoadingScreen(
             ),
             style = MaterialTheme.typography.bodyLarge
         )
-
         ScreenSectionSpacer()
-
         GuidanceCard(
             title = "Current focus",
             message = loadingGuidanceMessage(
@@ -56,9 +52,7 @@ fun LoadingScreen(
                 grantedCount = grantedCount
             )
         )
-
         ScreenSectionSpacer()
-
         HealthSummaryCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -66,9 +60,7 @@ fun LoadingScreen(
             stepsGranted = stepsGranted,
             hrGranted = hrGranted
         )
-
         ScreenSectionSpacer()
-
         LoadingActionsCard(
             isAuthenticating = isAuthenticating,
             healthState = healthState,
@@ -78,11 +70,7 @@ fun LoadingScreen(
             onGrantHealthPermissions = onGrantHealthPermissions,
             onOpenHealthConnectSettings = onOpenHealthConnectSettings
         )
-
-        ScreenFooter(
-            lastAction = lastAction,
-            debugLines = debugLines
-        )
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
 
@@ -108,9 +96,7 @@ fun DashboardScreen(
             grantedCount = grantedCount,
             digitalTwinState = digitalTwinState
         )
-
         ScreenSectionSpacer()
-
         GuidanceCard(
             title = "Next best step",
             message = dashboardGuidanceMessage(
@@ -120,9 +106,7 @@ fun DashboardScreen(
                 digitalTwinState = digitalTwinState
             )
         )
-
         ScreenSectionSpacer()
-
         HealthSummaryCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -130,13 +114,9 @@ fun DashboardScreen(
             stepsGranted = stepsGranted,
             hrGranted = hrGranted
         )
-
         ScreenSectionSpacer()
-
         DigitalTwinCard(digitalTwinState = digitalTwinState)
-
         ScreenSectionSpacer()
-
         DashboardActionsCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -147,11 +127,45 @@ fun DashboardScreen(
             onOpenHealthConnectSettings = onOpenHealthConnectSettings,
             onReAuthenticate = onReAuthenticate
         )
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
+    }
+}
 
-        ScreenFooter(
-            lastAction = lastAction,
-            debugLines = debugLines
+@Composable
+fun FreeTierScreen(
+    message: String,
+    lastAction: String,
+    onUpgradeToCore: () -> Unit,
+    debugLines: List<String>
+) {
+    ScreenContainer(title = "LifeFlow Free") {
+        LoadingHeader()
+        ScreenSectionSpacer()
+        Text(
+            text = "Local Mode active.",
+            style = MaterialTheme.typography.headlineSmall
         )
+        ScreenSectionSpacer()
+        GuidanceCard(
+            title = "Free tier",
+            message = message
+        )
+        ScreenSectionSpacer()
+        ActionCard(title = "Upgrade to Core") {
+            Text(
+                text = "Unlock Digital Twin, biometric vault, all modules and cross-module intelligence.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ScreenSectionSpacer()
+            Button(
+                onClick = onUpgradeToCore,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Upgrade to Core")
+            }
+        }
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
 
@@ -165,34 +179,24 @@ fun ErrorScreen(
 ) {
     ScreenContainer(title = "LifeFlow") {
         LoadingHeader()
-
         ScreenSectionSpacer()
-
         Text(
             text = if (resetRequired) "Vault reset required." else "Something needs your attention.",
             style = MaterialTheme.typography.headlineSmall
         )
-
         ScreenSectionSpacer()
-
         GuidanceCard(
             title = "Issue detected",
             message = message
         )
-
         ScreenSectionSpacer()
-
         Button(
             onClick = onRetry,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (resetRequired) "Reset vault" else "Try again")
         }
-
-        ScreenFooter(
-            lastAction = lastAction,
-            debugLines = debugLines
-        )
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
 
