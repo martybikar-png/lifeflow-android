@@ -13,22 +13,24 @@ internal fun healthReadinessColor(
     grantedCount: Int
 ): Color {
     val colors = MaterialTheme.colorScheme
-
     return when {
-        isHealthColorUnavailable(healthState) ->
-            colors.error
+        isHealthColorUnavailable(healthState) -> colors.error
+        isHealthColorReady(healthState, requiredCount, grantedCount) -> colors.primary
+        healthState == HealthConnectUiState.Available && requiredCount == 0 -> colors.onSurfaceVariant
+        healthState == HealthConnectUiState.Available && grantedCount < requiredCount -> colors.error
+        else -> colors.onSurfaceVariant
+    }
+}
 
-        isHealthColorReady(healthState, requiredCount, grantedCount) ->
-            colors.primary
-
-        healthState == HealthConnectUiState.Available && requiredCount == 0 ->
-            colors.tertiary
-
-        healthState == HealthConnectUiState.Available && grantedCount < requiredCount ->
-            colors.tertiary
-
-        else ->
-            colors.onSurfaceVariant
+@Composable
+internal fun healthStateColor(healthState: HealthConnectUiState): Color {
+    val colors = MaterialTheme.colorScheme
+    return when (healthState) {
+        HealthConnectUiState.Available -> colors.primary
+        HealthConnectUiState.Unknown -> colors.onSurfaceVariant
+        HealthConnectUiState.NotInstalled,
+        HealthConnectUiState.NotSupported,
+        HealthConnectUiState.UpdateRequired -> colors.error
     }
 }
 
@@ -38,11 +40,10 @@ internal fun permissionCoverageColor(
     grantedCount: Int
 ): Color {
     val colors = MaterialTheme.colorScheme
-
     return when {
-        requiredCount == 0 -> colors.tertiary
+        requiredCount == 0 -> colors.onSurfaceVariant
         grantedCount >= requiredCount -> colors.primary
-        else -> colors.tertiary
+        else -> colors.error
     }
 }
 
@@ -53,22 +54,12 @@ internal fun healthNextMoveColor(
     grantedCount: Int
 ): Color {
     val colors = MaterialTheme.colorScheme
-
     return when {
-        isHealthColorUnavailable(healthState) ->
-            colors.error
-
-        healthState != HealthConnectUiState.Available ->
-            colors.tertiary
-
-        requiredCount == 0 ->
-            colors.tertiary
-
-        grantedCount < requiredCount ->
-            colors.tertiary
-
-        else ->
-            colors.primary
+        isHealthColorUnavailable(healthState) -> colors.error
+        healthState != HealthConnectUiState.Available -> colors.error
+        requiredCount == 0 -> colors.onSurfaceVariant
+        grantedCount < requiredCount -> colors.error
+        else -> colors.primary
     }
 }
 
@@ -77,7 +68,7 @@ internal fun grantedStateColor(granted: Boolean): Color {
     return if (granted) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.tertiary
+        MaterialTheme.colorScheme.error
     }
 }
 
@@ -95,12 +86,11 @@ internal fun availabilityColor(
     availability: DigitalTwinState.Availability
 ): Color {
     val colors = MaterialTheme.colorScheme
-
     return when (availability) {
         DigitalTwinState.Availability.OK -> colors.primary
         DigitalTwinState.Availability.PERMISSION_DENIED -> colors.error
         DigitalTwinState.Availability.BLOCKED -> colors.error
-        DigitalTwinState.Availability.NO_DATA -> colors.tertiary
+        DigitalTwinState.Availability.NO_DATA -> colors.onSurfaceVariant
         DigitalTwinState.Availability.UNKNOWN -> colors.onSurfaceVariant
     }
 }

@@ -26,12 +26,16 @@ object SecurityAccessSession {
     private fun nowElapsedMs(): Long = System.nanoTime() / 1_000_000L
 
     fun grant(durationMs: Long) {
-        val now = nowElapsedMs()
-
         val safeDuration = durationMs
             .coerceAtLeast(0L)
             .coerceAtMost(MAX_SESSION_MS)
 
+        if (safeDuration == 0L) {
+            clear()
+            return
+        }
+
+        val now = nowElapsedMs()
         validUntilElapsedMs.set(now + safeDuration)
     }
 
@@ -45,8 +49,17 @@ object SecurityAccessSession {
 
     fun isAuthorized(): Boolean {
         if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) return false
+
         val now = nowElapsedMs()
-        return now <= validUntilElapsedMs.get()
+        val validUntil = validUntilElapsedMs.get()
+
+        if (validUntil == 0L) return false
+        if (now > validUntil) {
+            validUntilElapsedMs.compareAndSet(validUntil, 0L)
+            return false
+        }
+
+        return true
     }
 
     @Suppress("unused")

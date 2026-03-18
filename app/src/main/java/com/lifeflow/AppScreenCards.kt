@@ -94,11 +94,7 @@ internal fun HealthSummaryCard(
 ) {
     StatusCardShell(
         title = "Health Connect",
-        titleColor = healthReadinessColor(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount
-        ),
+        titleColor = MaterialTheme.colorScheme.primary,
         summary = healthSummaryMessage(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -108,11 +104,7 @@ internal fun HealthSummaryCard(
         KeyValueStatusLine(
             label = "State",
             value = healthStateLabel(healthState),
-            valueColor = healthReadinessColor(
-                healthState = healthState,
-                requiredCount = requiredCount,
-                grantedCount = grantedCount
-            )
+            valueColor = healthStateColor(healthState)
         )
         KeyValueStatusLine(
             label = "Readiness",

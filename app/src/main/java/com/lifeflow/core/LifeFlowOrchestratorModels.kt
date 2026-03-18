@@ -1,6 +1,7 @@
 package com.lifeflow.core
 
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+import com.lifeflow.domain.wellbeing.WellbeingAssessment
 
 internal data class MetricPermissionSnapshot(
     val stepsPermissionGranted: Boolean?,
@@ -24,5 +25,6 @@ data class WellbeingRefreshSnapshot(
     val grantedPermissions: Set<String>,
     val stepsPermissionGranted: Boolean?,
     val heartRatePermissionGranted: Boolean?,
-    val digitalTwinState: DigitalTwinState
+    val digitalTwinState: DigitalTwinState,
+    val wellbeingAssessment: WellbeingAssessment
 )

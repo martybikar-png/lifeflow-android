@@ -21,11 +21,14 @@ class EncryptedIdentityBlobStore(
     fun put(id: UUID, blob: ByteArray) {
         val key = keyFor(id)
         val encoded = Base64.encodeToString(blob, Base64.NO_WRAP)
+        val currentIndex = prefs.getStringSet(KEY_INDEX, emptySet())?.toSet() ?: emptySet()
 
-        prefs.edit()
+        val ok = prefs.edit()
             .putString(key, encoded)
-            .putStringSet(KEY_INDEX, (prefs.getStringSet(KEY_INDEX, emptySet()) ?: emptySet()) + key)
-            .apply()
+            .putStringSet(KEY_INDEX, currentIndex + key)
+            .commit()
+
+        if (!ok) throw IllegalStateException("BlobStore put commit failed for id=$id")
     }
 
     fun get(id: UUID): ByteArray? {
@@ -36,16 +39,18 @@ class EncryptedIdentityBlobStore(
 
     fun delete(id: UUID) {
         val key = keyFor(id)
-        val current = prefs.getStringSet(KEY_INDEX, emptySet()) ?: emptySet()
+        val currentIndex = prefs.getStringSet(KEY_INDEX, emptySet())?.toSet() ?: emptySet()
 
-        prefs.edit()
+        val ok = prefs.edit()
             .remove(key)
-            .putStringSet(KEY_INDEX, current - key)
-            .apply()
+            .putStringSet(KEY_INDEX, currentIndex - key)
+            .commit()
+
+        if (!ok) throw IllegalStateException("BlobStore delete commit failed for id=$id")
     }
 
     fun entries(): List<Pair<UUID, ByteArray>> {
-        val keys = prefs.getStringSet(KEY_INDEX, emptySet()) ?: emptySet()
+        val keys = prefs.getStringSet(KEY_INDEX, emptySet())?.toSet() ?: emptySet()
         return keys.mapNotNull { k ->
             val encoded = prefs.getString(k, null) ?: return@mapNotNull null
             val blob = Base64.decode(encoded, Base64.NO_WRAP)
@@ -60,7 +65,7 @@ class EncryptedIdentityBlobStore(
      * - uses commit() so reset flow can be fail-closed and reliable
      */
     fun clearAll() {
-        val keys = prefs.getStringSet(KEY_INDEX, emptySet()) ?: emptySet()
+        val keys = prefs.getStringSet(KEY_INDEX, emptySet())?.toSet() ?: emptySet()
         val editor = prefs.edit()
         keys.forEach { editor.remove(it) }
         editor.remove(KEY_INDEX)

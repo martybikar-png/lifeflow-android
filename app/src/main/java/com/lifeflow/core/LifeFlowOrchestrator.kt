@@ -3,6 +3,7 @@ package com.lifeflow.core
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+import com.lifeflow.domain.wellbeing.HolisticWellbeingNode
 import com.lifeflow.domain.wellbeing.WellbeingRepository
 import com.lifeflow.domain.wellbeing.usecase.GetAvgHeartRateLast24hUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
@@ -18,6 +19,7 @@ import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
  * - consent + HC status
  * - wellbeing reads
  * - digital twin refresh
+ * - holistic wellbeing assessment
  *
  * Zero-bypass principle: UI/ViewModel should call only this orchestrator
  * for sensitive work. Fail-closed for security gating.
@@ -29,9 +31,9 @@ class LifeFlowOrchestrator(
     private val getHealthPermissions: GetHealthPermissionsUseCase,
     private val getGrantedHealthPermissions: GetGrantedHealthPermissionsUseCase,
     private val getStepsLast24h: GetStepsLast24hUseCase,
-    private val getAvgHeartRateLast24h: GetAvgHeartRateLast24hUseCase
+    private val getAvgHeartRateLast24h: GetAvgHeartRateLast24hUseCase,
+    private val wellbeingNode: HolisticWellbeingNode = HolisticWellbeingNode()
 ) {
-
     fun healthConnectUiState(): HealthConnectUiState {
         return when (getHealthConnectStatus()) {
             WellbeingRepository.SdkStatus.Available -> HealthConnectUiState.Available
@@ -59,12 +61,6 @@ class LifeFlowOrchestrator(
         return lifeflowOrchestratorBootstrapIdentityIfNeeded(identityRepository)
     }
 
-    /**
-     * Best-effort metrics read is NOT security-sensitive by itself,
-     * but it MUST still obey consent boundary (HC availability + permissions).
-     *
-     * identityInitialized tells the twin whether identity core is ready.
-     */
     suspend fun refreshTwinBestEffort(
         identityInitialized: Boolean
     ): ActionResult<DigitalTwinState> {
@@ -95,18 +91,6 @@ class LifeFlowOrchestrator(
         return ActionResult.Success(state)
     }
 
-    /**
-     * Unified orchestration entrypoint for the next phase.
-     *
-     * Returns:
-     * - current Health Connect state
-     * - required/granted permission sets
-     * - per-metric permission resolution
-     * - freshly computed Digital Twin state
-     *
-     * This keeps the ViewModel slimmer and centralizes consent-aware
-     * wellbeing refresh logic inside the orchestrator layer.
-     */
     suspend fun refreshWellbeingSnapshot(
         identityInitialized: Boolean
     ): ActionResult<WellbeingRefreshSnapshot> {
@@ -147,6 +131,8 @@ class LifeFlowOrchestrator(
             digitalTwinOrchestrator = digitalTwinOrchestrator
         )
 
+        val wellbeingAssessment = wellbeingNode.assess(digitalTwinState)
+
         return ActionResult.Success(
             WellbeingRefreshSnapshot(
                 healthConnectState = healthConnectState,
@@ -154,7 +140,8 @@ class LifeFlowOrchestrator(
                 grantedPermissions = grantedPermissions,
                 stepsPermissionGranted = permissionSnapshot.stepsPermissionGranted,
                 heartRatePermissionGranted = permissionSnapshot.heartRatePermissionGranted,
-                digitalTwinState = digitalTwinState
+                digitalTwinState = digitalTwinState,
+                wellbeingAssessment = wellbeingAssessment
             )
         )
     }

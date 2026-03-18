@@ -18,6 +18,7 @@ import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
+import com.lifeflow.security.SecurityTrustStatePortAdapter
 import com.lifeflow.security.TrustState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,7 +95,10 @@ abstract class MainViewModelTestBase {
 
         return MainViewModel(
             orchestrator = orchestrator,
-            performVaultReset = performVaultReset
+            performVaultReset = performVaultReset,
+            trustStatePort = SecurityTrustStatePortAdapter(),
+            isSessionAuthorized = { SecurityAccessSession.isAuthorized() },
+            clearSession = { SecurityAccessSession.clear() }
         )
     }
 

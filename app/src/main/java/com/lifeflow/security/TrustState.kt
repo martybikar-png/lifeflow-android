@@ -3,17 +3,28 @@ package com.lifeflow.security
 /**
  * Phase V — Trust States
  *
- * VERIFIED:
- * - normal operation
- *
- * DEGRADED:
- * - partial operation (typically read-only) due to elevated risk conditions
- *
- * COMPROMISED:
- * - fail-closed, deny everything
+ * Source-of-truth security posture states used by the rule engine
+ * and auth/session boundary.
  */
 enum class TrustState {
+
+    /**
+     * Normal trusted operation.
+     */
     VERIFIED,
+
+    /**
+     * Elevated-risk mode.
+     * System remains available only in a reduced, fail-closed posture.
+     */
     DEGRADED,
-    COMPROMISED
+
+    /**
+     * Terminal lockdown state.
+     * All protected operations must be denied.
+     */
+    COMPROMISED;
+
+    val isFailClosed: Boolean
+        get() = this == COMPROMISED
 }

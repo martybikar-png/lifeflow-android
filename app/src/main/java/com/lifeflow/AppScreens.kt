@@ -1,9 +1,11 @@
+// app/src/main/java/com/lifeflow/AppScreens.kt
 package com.lifeflow
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -145,6 +147,47 @@ fun DashboardScreen(
             onOpenHealthConnectSettings = onOpenHealthConnectSettings,
             onReAuthenticate = onReAuthenticate
         )
+
+        ScreenFooter(
+            lastAction = lastAction,
+            debugLines = debugLines
+        )
+    }
+}
+
+@Composable
+fun ErrorScreen(
+    message: String,
+    resetRequired: Boolean,
+    lastAction: String,
+    onRetry: () -> Unit,
+    debugLines: List<String>
+) {
+    ScreenContainer(title = "LifeFlow") {
+        LoadingHeader()
+
+        ScreenSectionSpacer()
+
+        Text(
+            text = if (resetRequired) "Vault reset required." else "Something needs your attention.",
+            style = MaterialTheme.typography.headlineSmall
+        )
+
+        ScreenSectionSpacer()
+
+        GuidanceCard(
+            title = "Issue detected",
+            message = message
+        )
+
+        ScreenSectionSpacer()
+
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (resetRequired) "Reset vault" else "Try again")
+        }
 
         ScreenFooter(
             lastAction = lastAction,

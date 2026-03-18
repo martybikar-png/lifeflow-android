@@ -9,6 +9,7 @@ import com.lifeflow.domain.core.DataSovereigntyVault
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinEngine
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
+import com.lifeflow.domain.security.TrustStatePort
 import com.lifeflow.domain.usecase.GetActiveIdentityUseCase
 import com.lifeflow.domain.usecase.SaveIdentityUseCase
 import com.lifeflow.domain.wellbeing.WellbeingRepository
@@ -22,6 +23,8 @@ import com.lifeflow.security.EncryptedIdentityRepository
 import com.lifeflow.security.EncryptionService
 import com.lifeflow.security.KeyManager
 import com.lifeflow.security.ResetVaultUseCase
+import com.lifeflow.security.SecurityAccessSession
+import com.lifeflow.security.SecurityTrustStatePortAdapter
 
 class LifeFlowApplication : Application() {
 
@@ -89,6 +92,18 @@ class LifeFlowApplication : Application() {
 
     private val startupInitLock = Any()
 
+    private val sessionAuthorizationChecker: () -> Boolean = {
+        SecurityAccessSession.isAuthorized()
+    }
+
+    private val sessionClearAction: () -> Unit = {
+        SecurityAccessSession.clear()
+    }
+
+    private val mainTrustStatePort: TrustStatePort by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        SecurityTrustStatePortAdapter()
+    }
+
     val mainOrchestrator: LifeFlowOrchestrator by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         LifeFlowOrchestrator(
             identityRepository = identityRepository,
@@ -104,7 +119,10 @@ class LifeFlowApplication : Application() {
     val mainViewModelFactory: MainViewModelFactory by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         MainViewModelFactory(
             orchestrator = mainOrchestrator,
-            performVaultReset = { resetVaultUseCase() }
+            performVaultReset = resetVaultUseCase::invoke,
+            isSessionAuthorized = sessionAuthorizationChecker,
+            clearSession = sessionClearAction,
+            trustStatePort = mainTrustStatePort
         )
     }
 

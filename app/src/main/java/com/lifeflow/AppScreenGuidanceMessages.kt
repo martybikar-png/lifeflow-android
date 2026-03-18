@@ -19,7 +19,11 @@ internal fun loadingGuidanceMessage(
         healthState == HealthConnectUiState.UpdateRequired ->
             "Update Health Connect first, then come back and continue with authentication."
 
-        guidanceHasMissingHealthPermissions(requiredCount, grantedCount) ->
+        canGrantHealthPermissions(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount
+        ) ->
             "You can authenticate now, but reviewing Health access will unlock a fuller wellbeing snapshot."
 
         else ->

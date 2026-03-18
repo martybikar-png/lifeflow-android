@@ -13,6 +13,10 @@ class KeyManager(
     private val requireUserAuth: Boolean = true
 ) {
 
+    init {
+        require(alias.isNotBlank()) { "Key alias must not be blank" }
+    }
+
     private companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
         private const val KEY_SIZE_BITS = 256
@@ -116,6 +120,7 @@ class KeyManager(
         }
     }
 
+    @Synchronized
     fun keyExists(): Boolean {
         val keyStore = loadKeyStore()
         return keyStore.containsAlias(alias)

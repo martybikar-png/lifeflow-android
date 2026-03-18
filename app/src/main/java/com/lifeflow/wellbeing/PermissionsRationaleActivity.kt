@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -38,25 +39,46 @@ private fun PermissionsRationaleScreen(onClose: () -> Unit) {
                 .fillMaxSize()
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
 
             Text(
-                text = "Health Data Permissions",
-                style = MaterialTheme.typography.headlineSmall
+                text = "Health Access",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "LifeFlow reads only the health data you explicitly allow. You can change permissions anytime in system settings.",
-                style = MaterialTheme.typography.bodyMedium
+                text = "LifeFlow uses only the health data you choose to share to show wellbeing insights in the app.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Button(onClick = onClose) {
-                Text("Close")
+            Text(
+                text = "• Shared by you: steps and heart rate data",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "• Under your control: review or revoke access anytime in system settings",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Button(
+                onClick = onClose,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("Continue")
             }
         }
     }

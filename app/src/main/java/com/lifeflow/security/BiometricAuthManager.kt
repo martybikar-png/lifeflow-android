@@ -19,7 +19,10 @@ class BiometricAuthManager(
 
         val canAuthenticate = biometricManager.canAuthenticate(authenticators)
         if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
-            onError(userFriendlyBiometricAvailabilityMessage(canAuthenticate))
+            failClosed(
+                onError = onError,
+                message = userFriendlyBiometricAvailabilityMessage(canAuthenticate)
+            )
             return
         }
 
@@ -35,7 +38,10 @@ class BiometricAuthManager(
                 ) {
                     val authType = result.authenticationType
                     if (authType != BiometricPrompt.AUTHENTICATION_RESULT_TYPE_BIOMETRIC) {
-                        onError("Device credential is not allowed. Please use biometric authentication.")
+                        failClosed(
+                            onError = onError,
+                            message = "Device credential is not allowed. Please use biometric authentication."
+                        )
                         return
                     }
 
@@ -52,7 +58,10 @@ class BiometricAuthManager(
                     if (sessionOk && trustOk) {
                         onSuccess()
                     } else {
-                        onError("Biometric verified, but secure session could not be established. Reset vault may be required.")
+                        failClosed(
+                            onError = onError,
+                            message = "Biometric verified, but secure session could not be established. Reset vault may be required."
+                        )
                     }
                 }
 
@@ -60,7 +69,10 @@ class BiometricAuthManager(
                     errorCode: Int,
                     errString: CharSequence
                 ) {
-                    onError("Auth error ($errorCode): $errString")
+                    failClosed(
+                        onError = onError,
+                        message = "Auth error ($errorCode): $errString"
+                    )
                 }
 
                 override fun onAuthenticationFailed() {
@@ -77,6 +89,14 @@ class BiometricAuthManager(
             .build()
 
         biometricPrompt.authenticate(promptInfo)
+    }
+
+    private fun failClosed(
+        onError: (String) -> Unit,
+        message: String
+    ) {
+        SecurityAccessSession.clear()
+        onError(message)
     }
 
     private fun userFriendlyBiometricAvailabilityMessage(code: Int): String {

@@ -10,6 +10,7 @@ internal const val NO_ACTION_RECORDED = "—"
 
 internal data class MainActivityScreenSnapshot(
     val uiState: UiState,
+    val isAuthenticating: Boolean,
     val healthState: HealthConnectUiState,
     val digitalTwinState: DigitalTwinState?,
     val requiredPermissions: Set<String>,
@@ -25,6 +26,7 @@ internal fun collectMainActivityScreenSnapshot(
     uiLastAction: String
 ): MainActivityScreenSnapshot {
     val uiState = viewModel.uiState.value
+    val isAuthenticating = viewModel.isSessionAuthorizedForUi()
     val healthState = viewModel.healthConnectState.value
     val digitalTwinState = viewModel.digitalTwinState.value
     val viewModelLastAction = viewModel.lastAction.value
@@ -39,6 +41,7 @@ internal fun collectMainActivityScreenSnapshot(
 
     return MainActivityScreenSnapshot(
         uiState = uiState,
+        isAuthenticating = isAuthenticating,
         healthState = healthState,
         digitalTwinState = digitalTwinState,
         requiredPermissions = requiredPermissions,

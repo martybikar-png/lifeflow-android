@@ -66,17 +66,19 @@ private fun ErrorHealthAccessButton(
     grantedCount: Int,
     onGrantHealthPermissions: () -> Unit
 ) {
+    val canReviewHealthAccess = canGrantHealthPermissions(
+        healthState = healthState,
+        requiredCount = requiredCount,
+        grantedCount = grantedCount
+    )
+
     OutlinedButton(
         onClick = onGrantHealthPermissions,
-        enabled = canGrantHealthPermissions(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount
-        ),
+        enabled = canReviewHealthAccess,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
+            if (canReviewHealthAccess) {
                 "Review Health access"
             } else {
                 "Health access ready"

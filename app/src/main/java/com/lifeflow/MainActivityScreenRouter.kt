@@ -1,7 +1,7 @@
+// app/src/main/java/com/lifeflow/MainActivityScreenRouter.kt
 package com.lifeflow
 
 import androidx.compose.runtime.Composable
-import com.lifeflow.security.SecurityAccessSession
 
 @Composable
 internal fun MainActivityScreenRouter(
@@ -14,10 +14,8 @@ internal fun MainActivityScreenRouter(
 ) {
     when (val uiState = screen.uiState) {
         UiState.Loading -> {
-            val hasActiveSession = SecurityAccessSession.isAuthorized()
-
             LoadingScreen(
-                isAuthenticating = hasActiveSession,
+                isAuthenticating = screen.isAuthenticating,
                 healthState = screen.healthState,
                 requiredCount = screen.requiredPermissions.size,
                 grantedCount = screen.grantedPermissions.size,
@@ -30,7 +28,6 @@ internal fun MainActivityScreenRouter(
                 debugLines = screen.debugLines
             )
         }
-
         UiState.Authenticated -> {
             DashboardScreen(
                 healthState = screen.healthState,
@@ -47,27 +44,15 @@ internal fun MainActivityScreenRouter(
                 debugLines = screen.debugLines
             )
         }
-
         is UiState.Error -> {
             val message = uiState.message
             val resetRequired = requiresVaultReset(message)
-            val allowAuthenticate = !resetRequired
-
             ErrorScreen(
                 message = message,
-                healthState = screen.healthState,
-                requiredCount = screen.requiredPermissions.size,
-                grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
+                resetRequired = resetRequired,
                 lastAction = screen.displayedLastAction,
-                onAuthenticate = onAuthenticate,
-                onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                onResetVault = onResetVault,
-                debugLines = screen.debugLines,
-                showAuthenticateAction = allowAuthenticate,
-                showResetVaultAction = resetRequired
+                onRetry = if (resetRequired) onResetVault else onAuthenticate,
+                debugLines = screen.debugLines
             )
         }
     }

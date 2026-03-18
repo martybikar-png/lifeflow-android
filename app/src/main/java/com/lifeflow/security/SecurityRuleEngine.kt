@@ -218,6 +218,9 @@ object SecurityRuleEngine {
         }
 
         if (allowed) {
+            if (state == TrustState.VERIFIED) {
+                denyCount = 0
+            }
             record(Decision.ALLOW, action, reason, state)
             return
         }

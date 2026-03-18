@@ -19,7 +19,11 @@ internal fun loadingActionHint(
         healthState == HealthConnectUiState.UpdateRequired ->
             "Open settings first and update Health Connect before continuing."
 
-        hasMissingHealthPermissions(requiredCount, grantedCount) ->
+        canGrantHealthPermissions(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount
+        ) ->
             "Authenticate now or review Health access to improve the first dashboard snapshot."
 
         else ->

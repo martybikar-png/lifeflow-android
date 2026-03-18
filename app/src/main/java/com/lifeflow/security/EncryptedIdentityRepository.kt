@@ -5,7 +5,6 @@ import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 /**
@@ -34,6 +33,14 @@ class EncryptedIdentityRepository(
     private val encryptionService: EncryptionService,
     private val vault: AndroidDataSovereigntyVault
 ) : IdentityRepository {
+
+    private companion object {
+        private const val MARKER_VERSIONED: Int = 0xA1
+        private const val MARKER_LEGACY: Int = 0xA2
+
+        private val SCHEME_VERSIONED: Byte = MARKER_VERSIONED.toByte()
+        private val SCHEME_LEGACY: Byte = MARKER_LEGACY.toByte()
+    }
 
     private val mutex = Mutex()
 
@@ -115,7 +122,10 @@ class EncryptedIdentityRepository(
                     reason = "decrypt/deserialize failed during scan",
                     throwable = t
                 )
-                throw SecurityException("EncryptedIdentityRepository: getActiveIdentity() integrity failure", t)
+                throw SecurityException(
+                    "EncryptedIdentityRepository: getActiveIdentity() integrity failure",
+                    t
+                )
             }
         }
     }
@@ -127,7 +137,16 @@ class EncryptedIdentityRepository(
                 reason = "delete(identity) requires active auth session"
             )
 
+            val stored = blobStore.get(identity.id) ?: return@withLock
+            val version = vault.getIdentityVersion(identity.id)
+
             try {
+                val plain = decryptStrict(identity.id, version, stored)
+                val storedIdentity = deserialize(plain)
+                require(storedIdentity.id == identity.id) {
+                    "Identity id mismatch for delete id=${identity.id}"
+                }
+
                 blobStore.delete(identity.id)
                 vault.clearIdentityVersion(identity.id)
             } catch (t: Throwable) {
@@ -138,31 +157,6 @@ class EncryptedIdentityRepository(
                 )
                 throw SecurityException("EncryptedIdentityRepository: delete() failure", t)
             }
-        }
-    }
-
-    /**
-     * Strict decryption:
-     * - Reads explicit scheme marker if present
-     * - NO downgrade fallback
-     * - If blob is versioned, requires version > 0
-     * - If blob is legacy (or unmarked legacy), uses legacy AAD
-     * - Read paths stay read-only; no migration side effects here
-     */
-    private fun decryptStrict(id: UUID, version: Long, stored: ByteArray): ByteArray {
-        val (scheme, cipher) = unwrapSchemeMarker(stored)
-
-        return when (scheme) {
-            SCHEME_VERSIONED -> {
-                require(version > 0L) { "Missing vault version for versioned blob id=$id" }
-                encryptionService.decryptVersionedFormat(cipher, aadVersioned(id, version))
-            }
-
-            SCHEME_LEGACY -> {
-                encryptionService.decryptLegacyFormat(cipher, aadLegacy(id))
-            }
-
-            else -> throw SecurityException("Unknown blob scheme marker for id=$id")
         }
     }
 
@@ -188,11 +182,14 @@ class EncryptedIdentityRepository(
         require(nextVersion > 0L) { "Version overflow for id=$id" }
 
         val previousStored = blobStore.get(id)
-        val aad = aadVersioned(id, nextVersion)
 
         val stored = try {
-            val cipher = encryptionService.encrypt(plain, aad)
-            wrapWithSchemeMarker(SCHEME_VERSIONED, cipher)
+            encryptedIdentityEncryptVersionedBlob(
+                id = id,
+                version = nextVersion,
+                plain = plain,
+                encryptionService = encryptionService
+            )
         } catch (t: Throwable) {
             throw SecurityException(
                 "EncryptedIdentityRepository: $operation encrypt failed for id=$id",
@@ -216,7 +213,11 @@ class EncryptedIdentityRepository(
         }
     }
 
-    private fun restorePreviousBlob(id: UUID, previousStored: ByteArray?, original: Throwable) {
+    private fun restorePreviousBlob(
+        id: UUID,
+        previousStored: ByteArray?,
+        original: Throwable
+    ) {
         runCatching {
             if (previousStored == null) {
                 blobStore.delete(id)
@@ -228,68 +229,47 @@ class EncryptedIdentityRepository(
         }
     }
 
-    private fun aadLegacy(id: UUID): ByteArray =
-        id.toString().toByteArray(StandardCharsets.UTF_8)
-
-    private fun aadVersioned(id: UUID, version: Long): ByteArray =
-        "${id}|v$version".toByteArray(StandardCharsets.UTF_8)
-
-    private fun wrapWithSchemeMarker(marker: Byte, cipher: ByteArray): ByteArray {
-        val out = ByteArray(1 + cipher.size)
-        out[0] = marker
-        System.arraycopy(cipher, 0, out, 1, cipher.size)
-        return out
-    }
-
-    private fun unwrapSchemeMarker(stored: ByteArray): Pair<Byte, ByteArray> {
-        if (stored.isEmpty()) throw IllegalArgumentException("Empty stored blob")
-
-        val first = stored[0]
-        return when (first) {
-            SCHEME_VERSIONED, SCHEME_LEGACY -> {
-                val cipher = stored.copyOfRange(1, stored.size)
-                first to cipher
-            }
-
-            else -> {
-                SCHEME_LEGACY to stored
-            }
-        }
-    }
-
-    private fun serialize(identity: LifeFlowIdentity): ByteArray {
-        val s = buildString {
-            append(identity.id.toString())
-            append("|")
-            append(identity.createdAtEpochMillis)
-            append("|")
-            append(identity.isActive)
-        }
-        return s.toByteArray(StandardCharsets.UTF_8)
-    }
-
-    private fun deserialize(bytes: ByteArray): LifeFlowIdentity {
-        val s = String(bytes, StandardCharsets.UTF_8)
-        val parts = s.split("|")
-        require(parts.size == 3) { "Invalid identity payload" }
-
-        val id = UUID.fromString(parts[0])
-        val createdAt = parts[1].toLong()
-        val isActive = parts[2].toBooleanStrictOrNull()
-            ?: throw IllegalArgumentException("Invalid identity active flag")
-
-        return LifeFlowIdentity(
+    // Compatibility bridge for existing reflection-based unit tests.
+    private fun decryptStrict(
+        id: UUID,
+        version: Long,
+        stored: ByteArray
+    ): ByteArray {
+        return encryptedIdentityDecryptStrict(
             id = id,
-            createdAtEpochMillis = createdAt,
-            isActive = isActive
+            version = version,
+            stored = stored,
+            encryptionService = encryptionService
         )
     }
 
-    private companion object {
-        private const val MARKER_VERSIONED: Int = 0xA1
-        private const val MARKER_LEGACY: Int = 0xA2
+    private fun aadLegacy(id: UUID): ByteArray {
+        return encryptedIdentityAadLegacyForTests(id)
+    }
 
-        private val SCHEME_VERSIONED: Byte = MARKER_VERSIONED.toByte()
-        private val SCHEME_LEGACY: Byte = MARKER_LEGACY.toByte()
+    private fun aadVersioned(
+        id: UUID,
+        version: Long
+    ): ByteArray {
+        return encryptedIdentityAadVersionedForTests(id, version)
+    }
+
+    private fun wrapWithSchemeMarker(
+        marker: Byte,
+        cipher: ByteArray
+    ): ByteArray {
+        return encryptedIdentityWrapWithSchemeMarkerForTests(marker, cipher)
+    }
+
+    private fun unwrapSchemeMarker(stored: ByteArray): Pair<Byte, ByteArray> {
+        return encryptedIdentityUnwrapSchemeMarkerForTests(stored)
+    }
+
+    private fun serialize(identity: LifeFlowIdentity): ByteArray {
+        return encryptedIdentitySerialize(identity)
+    }
+
+    private fun deserialize(bytes: ByteArray): LifeFlowIdentity {
+        return encryptedIdentityDeserialize(bytes)
     }
 }

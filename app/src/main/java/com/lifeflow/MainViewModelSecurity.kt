@@ -1,8 +1,10 @@
 package com.lifeflow
 
+import com.lifeflow.domain.security.TrustState as DomainTrustState
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.TrustState
+import com.lifeflow.security.toDomainTrustState
 
 internal const val MAIN_VIEW_MODEL_UNEXPECTED_REFRESH_FAILURE_MESSAGE =
     "Protected refresh failed unexpectedly. Please authenticate again."
@@ -24,8 +26,8 @@ internal sealed interface MainViewModelTrustUpdate {
     data class LastAction(val message: String) : MainViewModelTrustUpdate
 }
 
-internal fun mainViewModelLockedReasonToUserMessage(reason: String): String {
-    return when {
+internal fun mainViewModelLockedReasonToUserMessage(reason: String): String =
+    when {
         reason.startsWith("COMPROMISED:", ignoreCase = true) ->
             SECURITY_COMPROMISED_MESSAGE
 
@@ -37,56 +39,87 @@ internal fun mainViewModelLockedReasonToUserMessage(reason: String): String {
 
         else -> reason
     }
-}
 
-internal fun canMainViewModelExposeProtectedUiData(uiState: UiState): Boolean {
-    return uiState is UiState.Authenticated &&
-            SecurityAccessSession.isAuthorized() &&
-            SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
-}
+internal fun canMainViewModelExposeProtectedUiData(uiState: UiState): Boolean =
+    canMainViewModelExposeProtectedUiData(
+        uiState = uiState,
+        isAuthorized = SecurityAccessSession.isAuthorized(),
+        trustState = SecurityRuleEngine.getTrustState().toDomainTrustState()
+    )
+
+internal fun canMainViewModelExposeProtectedUiData(
+    uiState: UiState,
+    isAuthorized: Boolean,
+    trustState: DomainTrustState
+): Boolean =
+    uiState is UiState.Authenticated &&
+            isAuthorized &&
+            trustState == DomainTrustState.VERIFIED
 
 internal fun mainViewModelProtectedEntryBlockMessage(
     isAuthorized: Boolean,
     trustState: TrustState
+): String? =
+    mainViewModelProtectedEntryBlockMessage(
+        isAuthorized = isAuthorized,
+        trustState = trustState.toDomainTrustState()
+    )
+
+internal fun mainViewModelProtectedEntryBlockMessage(
+    isAuthorized: Boolean,
+    trustState: DomainTrustState
 ): String? {
     if (!isAuthorized) {
         return AUTH_REQUIRED_MESSAGE
     }
 
     return when (trustState) {
-        TrustState.COMPROMISED -> SECURITY_COMPROMISED_MESSAGE
-        TrustState.DEGRADED -> SECURITY_DEGRADED_MESSAGE
-        TrustState.VERIFIED -> null
+        DomainTrustState.COMPROMISED -> SECURITY_COMPROMISED_MESSAGE
+        DomainTrustState.DEGRADED -> SECURITY_DEGRADED_MESSAGE
+        DomainTrustState.VERIFIED -> null
     }
 }
 
 internal fun resolveMainViewModelTrustUpdate(
     trustState: TrustState,
     uiState: UiState
-): MainViewModelTrustUpdate {
-    return when (trustState) {
-        TrustState.COMPROMISED -> {
-            MainViewModelTrustUpdate.FailClosed(SECURITY_COMPROMISED_MESSAGE)
-        }
+): MainViewModelTrustUpdate =
+    resolveMainViewModelTrustUpdate(
+        trustState = trustState.toDomainTrustState(),
+        uiState = uiState
+    )
 
-        TrustState.DEGRADED -> {
+internal fun resolveMainViewModelTrustUpdate(
+    trustState: DomainTrustState,
+    uiState: UiState
+): MainViewModelTrustUpdate =
+    when (trustState) {
+        DomainTrustState.COMPROMISED ->
+            MainViewModelTrustUpdate.FailClosed(SECURITY_COMPROMISED_MESSAGE)
+
+        DomainTrustState.DEGRADED ->
             if (uiState is UiState.Authenticated) {
                 MainViewModelTrustUpdate.FailClosed(SECURITY_DEGRADED_MESSAGE)
             } else {
                 MainViewModelTrustUpdate.NoOp
             }
-        }
 
-        TrustState.VERIFIED -> {
+        DomainTrustState.VERIFIED ->
             if (uiState is UiState.Authenticated) {
                 MainViewModelTrustUpdate.LastAction("Security trust verified.")
             } else {
                 MainViewModelTrustUpdate.NoOp
             }
-        }
     }
-}
 
-internal fun shouldMainViewModelExpireSession(uiState: UiState): Boolean {
-    return uiState is UiState.Authenticated && !SecurityAccessSession.isAuthorized()
-}
+internal fun shouldMainViewModelExpireSession(uiState: UiState): Boolean =
+    shouldMainViewModelExpireSession(
+        uiState = uiState,
+        isAuthorized = SecurityAccessSession.isAuthorized()
+    )
+
+internal fun shouldMainViewModelExpireSession(
+    uiState: UiState,
+    isAuthorized: Boolean
+): Boolean =
+    uiState is UiState.Authenticated && !isAuthorized

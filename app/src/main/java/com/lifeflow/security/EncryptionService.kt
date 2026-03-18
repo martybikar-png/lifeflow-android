@@ -111,6 +111,13 @@ class EncryptionService(
         cipherText: ByteArray,
         aad: ByteArray?
     ): ByteArray {
+        require(iv.size in MIN_IV_LEN..MAX_IV_LEN) {
+            "Invalid IV length for decrypt: ${iv.size}"
+        }
+        require(cipherText.isNotEmpty()) {
+            "Missing ciphertext payload"
+        }
+
         val secretKey: SecretKey = keyManager.getKey()
         val cipher = Cipher.getInstance(TRANSFORMATION)
         val spec = GCMParameterSpec(GCM_TAG_LENGTH, iv)

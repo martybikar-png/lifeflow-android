@@ -46,6 +46,7 @@ class AndroidDataSovereigntyVault(
     fun nextIdentityVersion(id: UUID): Long {
         val current = getIdentityVersion(id)
         val next = current + 1L
+        require(next > 0L) { "Vault version overflow for id=$id" }
 
         val ok = prefs.edit().putLong(versionKey(id), next).commit()
         if (!ok) throw IllegalStateException("Vault version commit failed for id=$id")
@@ -57,7 +58,8 @@ class AndroidDataSovereigntyVault(
      * Clears identity version tracking (e.g., delete).
      */
     fun clearIdentityVersion(id: UUID) {
-        prefs.edit().remove(versionKey(id)).commit()
+        val ok = prefs.edit().remove(versionKey(id)).commit()
+        if (!ok) throw IllegalStateException("Vault version clear failed for id=$id")
     }
 
     /**
