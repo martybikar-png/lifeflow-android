@@ -1,8 +1,9 @@
 package com.lifeflow.data.store
 
 import android.content.Context
-import android.util.Base64
+import android.content.SharedPreferences
 import com.lifeflow.domain.core.EncryptionPort
+import java.util.Base64
 
 /**
  * EncryptedModuleStore — generic encrypted key-value store for module data.
@@ -15,18 +16,25 @@ import com.lifeflow.domain.core.EncryptionPort
  * Each module uses its own prefsName to keep data isolated.
  * Size guard: rejects writes if stored data exceeds MAX_STORE_BYTES.
  */
-class EncryptedModuleStore(
-    context: Context,
-    prefsName: String,
+class EncryptedModuleStore internal constructor(
+    private val prefs: SharedPreferences,
     private val encryption: EncryptionPort,
     private val maxStoreBytes: Int = DEFAULT_MAX_STORE_BYTES
 ) {
-    private val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+    constructor(
+        context: Context,
+        prefsName: String,
+        encryption: EncryptionPort,
+        maxStoreBytes: Int = DEFAULT_MAX_STORE_BYTES
+    ) : this(
+        prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE),
+        encryption = encryption,
+        maxStoreBytes = maxStoreBytes
+    )
 
     fun put(key: String, plaintext: ByteArray) {
         val encrypted = encryption.encrypt(plaintext)
-        val encoded = Base64.encodeToString(encrypted, Base64.NO_WRAP)
-
+        val encoded = Base64.getEncoder().encodeToString(encrypted)
         val currentSize = estimateCurrentSizeBytes()
         val newEntrySize = encoded.length
         if (currentSize + newEntrySize > maxStoreBytes) {
@@ -35,7 +43,6 @@ class EncryptedModuleStore(
                 "(current=${currentSize}B, adding=${newEntrySize}B, max=${maxStoreBytes}B)"
             )
         }
-
         val ok = prefs.edit().putString(key, encoded).commit()
         if (!ok) throw IllegalStateException("EncryptedModuleStore put failed for key=$key")
     }
@@ -43,7 +50,7 @@ class EncryptedModuleStore(
     fun get(key: String): ByteArray? {
         val encoded = prefs.getString(key, null) ?: return null
         return try {
-            val encrypted = Base64.decode(encoded, Base64.NO_WRAP)
+            val encrypted = Base64.getDecoder().decode(encoded)
             encryption.decrypt(encrypted)
         } catch (_: Throwable) {
             null
@@ -69,6 +76,6 @@ class EncryptedModuleStore(
     }
 
     companion object {
-        const val DEFAULT_MAX_STORE_BYTES = 512 * 1024 // 512 KB per module store
+        const val DEFAULT_MAX_STORE_BYTES = 512 * 1024
     }
 }
