@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.lifeflow.BuildConfig
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 
@@ -119,8 +120,10 @@ internal fun ScreenFooter(
     ScreenSectionSpacer()
     LastActionCard(lastAction = lastAction)
 
-    ScreenSectionSpacer()
-    DebugCard(debugLines = debugLines)
+    if (BuildConfig.DEBUG) {
+        ScreenSectionSpacer()
+        DebugCard(debugLines = debugLines)
+    }
 }
 
 @Composable
@@ -222,3 +225,4 @@ private fun ReAuthenticateButton(
         Text("Authenticate again")
     }
 }
+
