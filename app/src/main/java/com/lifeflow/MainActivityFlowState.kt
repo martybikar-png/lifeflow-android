@@ -4,7 +4,9 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
 import com.lifeflow.core.HealthConnectUiState
+import com.lifeflow.domain.core.TierState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+import com.lifeflow.domain.wellbeing.WellbeingAssessment
 
 internal const val NO_ACTION_RECORDED = "—"
 
@@ -13,6 +15,8 @@ internal data class MainActivityScreenSnapshot(
     val isAuthenticating: Boolean,
     val healthState: HealthConnectUiState,
     val digitalTwinState: DigitalTwinState?,
+    val wellbeingAssessment: WellbeingAssessment?,
+    val currentTier: TierState,
     val requiredPermissions: Set<String>,
     val grantedPermissions: Set<String>,
     val stepsGranted: Boolean,
@@ -29,21 +33,22 @@ internal fun collectMainActivityScreenSnapshot(
     val isAuthenticating = viewModel.isSessionAuthorizedForUi()
     val healthState = viewModel.healthConnectState.value
     val digitalTwinState = viewModel.digitalTwinState.value
+    val wellbeingAssessment = viewModel.wellbeingAssessment.value
+    val currentTier = viewModel.currentTier.value
     val viewModelLastAction = viewModel.lastAction.value
     val requiredPermissions = viewModel.requiredHealthPermissions.value
     val grantedPermissions = viewModel.grantedHealthPermissions.value
-
     val stepsReadPerm = HealthPermission.getReadPermission(StepsRecord::class)
     val hrReadPerm = HealthPermission.getReadPermission(HeartRateRecord::class)
-
     val stepsGranted = grantedPermissions.contains(stepsReadPerm)
     val hrGranted = grantedPermissions.contains(hrReadPerm)
-
     return MainActivityScreenSnapshot(
         uiState = uiState,
         isAuthenticating = isAuthenticating,
         healthState = healthState,
         digitalTwinState = digitalTwinState,
+        wellbeingAssessment = wellbeingAssessment,
+        currentTier = currentTier,
         requiredPermissions = requiredPermissions,
         grantedPermissions = grantedPermissions,
         stepsGranted = stepsGranted,
