@@ -1,6 +1,6 @@
 package com.lifeflow.data.connection
 
-import android.content.Context
+import com.lifeflow.data.store.EncryptedModuleStore
 import com.lifeflow.domain.connection.ConnectionDepth
 import com.lifeflow.domain.connection.ConnectionEntry
 import com.lifeflow.domain.connection.ConnectionSignal
@@ -8,17 +8,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-/**
- * LocalConnectionRepository — persistent local storage for connection entries.
- *
- * Uses SharedPreferences with JSON serialization.
- * Fail-closed on read errors — returns empty list.
- * Fail-closed on write errors — throws.
- */
-class LocalConnectionRepository(context: Context) {
-
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
+class LocalConnectionRepository(
+    private val store: EncryptedModuleStore
+) {
     fun saveEntry(entry: ConnectionEntry) {
         val entries = loadAllEntries().toMutableList()
         entries.removeAll { it.id == entry.id }
@@ -28,8 +20,8 @@ class LocalConnectionRepository(context: Context) {
 
     fun loadAllEntries(): List<ConnectionEntry> {
         return try {
-            val json = prefs.getString(KEY_ENTRIES, null) ?: return emptyList()
-            val array = JSONArray(json)
+            val bytes = store.get(KEY_ENTRIES) ?: return emptyList()
+            val array = JSONArray(String(bytes))
             (0 until array.length()).mapNotNull { i ->
                 deserializeEntry(array.getJSONObject(i))
             }
@@ -43,15 +35,12 @@ class LocalConnectionRepository(context: Context) {
         persistEntries(entries)
     }
 
-    fun clearAll() {
-        prefs.edit().remove(KEY_ENTRIES).commit()
-    }
+    fun clearAll() { store.clearAll() }
 
     private fun persistEntries(entries: List<ConnectionEntry>) {
         val array = JSONArray()
         entries.forEach { array.put(serializeEntry(it)) }
-        val ok = prefs.edit().putString(KEY_ENTRIES, array.toString()).commit()
-        if (!ok) throw IllegalStateException("Connection entries commit failed")
+        store.put(KEY_ENTRIES, array.toString().toByteArray())
     }
 
     private fun serializeEntry(entry: ConnectionEntry): JSONObject {
@@ -73,13 +62,10 @@ class LocalConnectionRepository(context: Context) {
                 signal = ConnectionSignal.valueOf(obj.getString("signal")),
                 depth = ConnectionDepth.valueOf(obj.getString("depth"))
             )
-        } catch (_: Throwable) {
-            null
-        }
+        } catch (_: Throwable) { null }
     }
 
     companion object {
-        private const val PREFS_NAME = "lifeflow_connection"
         private const val KEY_ENTRIES = "connection_entries"
 
         fun newEntry(

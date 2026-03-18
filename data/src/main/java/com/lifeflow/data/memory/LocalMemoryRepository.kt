@@ -1,6 +1,6 @@
 package com.lifeflow.data.memory
 
-import android.content.Context
+import com.lifeflow.data.store.EncryptedModuleStore
 import com.lifeflow.domain.memory.MemoryEntry
 import com.lifeflow.domain.memory.MemorySignificance
 import com.lifeflow.domain.memory.MemoryTag
@@ -8,17 +8,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-/**
- * LocalMemoryRepository — persistent local storage for memory entries.
- *
- * Uses SharedPreferences with JSON serialization.
- * Fail-closed on read errors — returns empty list.
- * Fail-closed on write errors — throws.
- */
-class LocalMemoryRepository(context: Context) {
-
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
+class LocalMemoryRepository(
+    private val store: EncryptedModuleStore
+) {
     fun saveEntry(entry: MemoryEntry) {
         val entries = loadAllEntries().toMutableList()
         entries.removeAll { it.id == entry.id }
@@ -28,8 +20,8 @@ class LocalMemoryRepository(context: Context) {
 
     fun loadAllEntries(): List<MemoryEntry> {
         return try {
-            val json = prefs.getString(KEY_ENTRIES, null) ?: return emptyList()
-            val array = JSONArray(json)
+            val bytes = store.get(KEY_ENTRIES) ?: return emptyList()
+            val array = JSONArray(String(bytes))
             (0 until array.length()).mapNotNull { i ->
                 deserializeEntry(array.getJSONObject(i))
             }
@@ -43,15 +35,12 @@ class LocalMemoryRepository(context: Context) {
         persistEntries(entries)
     }
 
-    fun clearAll() {
-        prefs.edit().remove(KEY_ENTRIES).commit()
-    }
+    fun clearAll() { store.clearAll() }
 
     private fun persistEntries(entries: List<MemoryEntry>) {
         val array = JSONArray()
         entries.forEach { array.put(serializeEntry(it)) }
-        val ok = prefs.edit().putString(KEY_ENTRIES, array.toString()).commit()
-        if (!ok) throw IllegalStateException("Memory entries commit failed")
+        store.put(KEY_ENTRIES, array.toString().toByteArray())
     }
 
     private fun serializeEntry(entry: MemoryEntry): JSONObject {
@@ -70,9 +59,7 @@ class LocalMemoryRepository(context: Context) {
         return try {
             val tagsArray = obj.getJSONArray("tags")
             val tags = (0 until tagsArray.length())
-                .mapNotNull { i ->
-                    runCatching { MemoryTag.valueOf(tagsArray.getString(i)) }.getOrNull()
-                }
+                .mapNotNull { i -> runCatching { MemoryTag.valueOf(tagsArray.getString(i)) }.getOrNull() }
                 .toSet()
             MemoryEntry(
                 id = obj.getString("id"),
@@ -81,13 +68,10 @@ class LocalMemoryRepository(context: Context) {
                 tags = tags,
                 significance = MemorySignificance.valueOf(obj.getString("significance"))
             )
-        } catch (_: Throwable) {
-            null
-        }
+        } catch (_: Throwable) { null }
     }
 
     companion object {
-        private const val PREFS_NAME = "lifeflow_memory"
         private const val KEY_ENTRIES = "memory_entries"
 
         fun newEntry(

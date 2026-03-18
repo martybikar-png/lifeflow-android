@@ -1,6 +1,6 @@
 package com.lifeflow.data.diary
 
-import android.content.Context
+import com.lifeflow.data.store.EncryptedModuleStore
 import com.lifeflow.domain.diary.DiaryEntry
 import com.lifeflow.domain.diary.DiarySignal
 import com.lifeflow.domain.diary.SignalIntensity
@@ -9,16 +9,15 @@ import org.json.JSONObject
 import java.util.UUID
 
 /**
- * LocalDiaryRepository — persistent local storage for diary entries.
+ * LocalDiaryRepository — encrypted persistent storage for diary entries.
  *
- * Uses SharedPreferences with JSON serialization.
+ * Uses EncryptedModuleStore (AES-256-GCM) for all persistence.
  * Fail-closed on read errors — returns empty list.
  * Fail-closed on write errors — throws.
  */
-class LocalDiaryRepository(context: Context) {
-
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
+class LocalDiaryRepository(
+    private val store: EncryptedModuleStore
+) {
     fun saveEntry(entry: DiaryEntry) {
         val entries = loadAllEntries().toMutableList()
         entries.removeAll { it.id == entry.id }
@@ -28,8 +27,8 @@ class LocalDiaryRepository(context: Context) {
 
     fun loadAllEntries(): List<DiaryEntry> {
         return try {
-            val json = prefs.getString(KEY_ENTRIES, null) ?: return emptyList()
-            val array = JSONArray(json)
+            val bytes = store.get(KEY_ENTRIES) ?: return emptyList()
+            val array = JSONArray(String(bytes))
             (0 until array.length()).mapNotNull { i ->
                 deserializeEntry(array.getJSONObject(i))
             }
@@ -44,14 +43,13 @@ class LocalDiaryRepository(context: Context) {
     }
 
     fun clearAll() {
-        prefs.edit().remove(KEY_ENTRIES).commit()
+        store.clearAll()
     }
 
     private fun persistEntries(entries: List<DiaryEntry>) {
         val array = JSONArray()
         entries.forEach { array.put(serializeEntry(it)) }
-        val ok = prefs.edit().putString(KEY_ENTRIES, array.toString()).commit()
-        if (!ok) throw IllegalStateException("Diary entries commit failed")
+        store.put(KEY_ENTRIES, array.toString().toByteArray())
     }
 
     private fun serializeEntry(entry: DiaryEntry): JSONObject {
@@ -79,7 +77,6 @@ class LocalDiaryRepository(context: Context) {
     }
 
     companion object {
-        private const val PREFS_NAME = "lifeflow_diary"
         private const val KEY_ENTRIES = "diary_entries"
 
         fun newEntry(

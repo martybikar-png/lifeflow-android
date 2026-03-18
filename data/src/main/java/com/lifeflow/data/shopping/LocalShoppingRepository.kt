@@ -1,6 +1,6 @@
 package com.lifeflow.data.shopping
 
-import android.content.Context
+import com.lifeflow.data.store.EncryptedModuleStore
 import com.lifeflow.domain.shopping.ConsumptionRate
 import com.lifeflow.domain.shopping.ItemCategory
 import com.lifeflow.domain.shopping.StockLevel
@@ -9,17 +9,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-/**
- * LocalShoppingRepository — persistent local storage for tracked items.
- *
- * Uses SharedPreferences with JSON serialization.
- * Fail-closed on read errors — returns empty list.
- * Fail-closed on write errors — throws.
- */
-class LocalShoppingRepository(context: Context) {
-
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
+class LocalShoppingRepository(
+    private val store: EncryptedModuleStore
+) {
     fun saveItem(item: TrackedItem) {
         val items = loadAllItems().toMutableList()
         items.removeAll { it.id == item.id }
@@ -29,8 +21,8 @@ class LocalShoppingRepository(context: Context) {
 
     fun loadAllItems(): List<TrackedItem> {
         return try {
-            val json = prefs.getString(KEY_ITEMS, null) ?: return emptyList()
-            val array = JSONArray(json)
+            val bytes = store.get(KEY_ITEMS) ?: return emptyList()
+            val array = JSONArray(String(bytes))
             (0 until array.length()).mapNotNull { i ->
                 deserializeItem(array.getJSONObject(i))
             }
@@ -53,15 +45,12 @@ class LocalShoppingRepository(context: Context) {
         persistItems(items)
     }
 
-    fun clearAll() {
-        prefs.edit().remove(KEY_ITEMS).commit()
-    }
+    fun clearAll() { store.clearAll() }
 
     private fun persistItems(items: List<TrackedItem>) {
         val array = JSONArray()
         items.forEach { array.put(serializeItem(it)) }
-        val ok = prefs.edit().putString(KEY_ITEMS, array.toString()).commit()
-        if (!ok) throw IllegalStateException("Shopping items commit failed")
+        store.put(KEY_ITEMS, array.toString().toByteArray())
     }
 
     private fun serializeItem(item: TrackedItem): JSONObject {
@@ -83,13 +72,10 @@ class LocalShoppingRepository(context: Context) {
                 currentStock = StockLevel.valueOf(obj.getString("currentStock")),
                 consumptionRate = ConsumptionRate.valueOf(obj.getString("consumptionRate"))
             )
-        } catch (_: Throwable) {
-            null
-        }
+        } catch (_: Throwable) { null }
     }
 
     companion object {
-        private const val PREFS_NAME = "lifeflow_shopping"
         private const val KEY_ITEMS = "tracked_items"
 
         fun newItem(

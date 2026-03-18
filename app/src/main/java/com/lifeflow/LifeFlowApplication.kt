@@ -190,11 +190,22 @@ class LifeFlowApplication : Application() {
             vault = androidVault
         )
 
+        // Module encryption
+        val encryptionPort = com.lifeflow.security.EncryptionPortAdapter(encryptionService)
+
         // Module repositories
-        diaryRepository = LocalDiaryRepository(applicationContext)
-        memoryRepository = LocalMemoryRepository(applicationContext)
-        connectionRepository = LocalConnectionRepository(applicationContext)
-        shoppingRepository = LocalShoppingRepository(applicationContext)
+        diaryRepository = com.lifeflow.data.diary.LocalDiaryRepository(
+            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_diary", encryptionPort)
+        )
+        memoryRepository = com.lifeflow.data.memory.LocalMemoryRepository(
+            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_memory", encryptionPort)
+        )
+        connectionRepository = com.lifeflow.data.connection.LocalConnectionRepository(
+            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_connection", encryptionPort)
+        )
+        shoppingRepository = com.lifeflow.data.shopping.LocalShoppingRepository(
+            com.lifeflow.data.store.EncryptedModuleStore(applicationContext, "lifeflow_shopping", encryptionPort)
+        )
     }
 
     private fun buildStartupFailureMessage(t: Throwable): String {
@@ -212,3 +223,4 @@ class LifeFlowApplication : Application() {
         }
     }
 }
+
