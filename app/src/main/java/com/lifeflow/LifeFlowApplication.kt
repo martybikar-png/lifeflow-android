@@ -31,6 +31,7 @@ import com.lifeflow.security.KeyManager
 import com.lifeflow.security.ResetVaultUseCase
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityTrustStatePortAdapter
+import com.lifeflow.security.hardening.SecurityHardeningGuard
 
 class LifeFlowApplication : Application() {
 
@@ -85,6 +86,10 @@ class LifeFlowApplication : Application() {
     lateinit var connectionRepository: LocalConnectionRepository
         private set
     lateinit var shoppingRepository: LocalShoppingRepository
+        private set
+
+    @Volatile
+    var hardeningReport: SecurityHardeningGuard.HardeningReport? = null
         private set
 
     @Volatile
@@ -159,6 +164,20 @@ class LifeFlowApplication : Application() {
 
     private fun initializeDependencyGraph() {
         val isInstrumentation = isRunningInstrumentation()
+
+        // Security hardening check — before vault initialization
+        if (!isInstrumentation) {
+            val report = SecurityHardeningGuard.assess(applicationContext)
+            hardeningReport = report
+            if (report.isCritical) {
+                throw SecurityException(
+                    "Security hardening check failed: ${report.findings.joinToString("; ")}"
+                )
+            }
+            if (report.isDegraded) {
+                Log.w(TAG, "Security hardening: degraded environment detected. ${report.findings}")
+            }
+        }
 
         keyManager = if (isInstrumentation) {
             KeyManager(alias = "LifeFlow_Test_Key", requireUserAuth = false)

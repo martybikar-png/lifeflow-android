@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -11,6 +12,12 @@ import com.lifeflow.ui.theme.LifeFlowTheme
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Screenshot protection — prevent screen capture and app switcher preview
+        if (!BuildConfig.DEBUG) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+
         val app = application as LifeFlowApplication
         val startupBindings = resolveStartupBindings(app)
         setContent {
