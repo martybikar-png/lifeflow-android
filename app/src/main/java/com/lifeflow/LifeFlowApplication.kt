@@ -3,7 +3,11 @@ package com.lifeflow
 import android.app.Application
 import android.util.Log
 import com.lifeflow.core.LifeFlowOrchestrator
+import com.lifeflow.data.connection.LocalConnectionRepository
+import com.lifeflow.data.diary.LocalDiaryRepository
+import com.lifeflow.data.memory.LocalMemoryRepository
 import com.lifeflow.data.repository.EncryptedIdentityBlobStore
+import com.lifeflow.data.shopping.LocalShoppingRepository
 import com.lifeflow.data.wellbeing.HealthConnectWellbeingRepository
 import com.lifeflow.domain.core.DataSovereigntyVault
 import com.lifeflow.domain.core.IdentityRepository
@@ -34,44 +38,32 @@ class LifeFlowApplication : Application() {
 
     lateinit var identityRepository: IdentityRepository
         private set
-
     lateinit var encryptedIdentityRepository: EncryptedIdentityRepository
         private set
-
     lateinit var identityBlobStore: EncryptedIdentityBlobStore
         private set
-
     lateinit var vault: DataSovereigntyVault
         private set
-
     lateinit var androidVault: AndroidDataSovereigntyVault
         private set
-
     lateinit var keyManager: KeyManager
         private set
-
     lateinit var getActiveIdentityUseCase: GetActiveIdentityUseCase
         private set
-
     lateinit var saveIdentityUseCase: SaveIdentityUseCase
         private set
 
     // Wellbeing
     lateinit var wellbeingRepository: WellbeingRepository
         private set
-
     lateinit var getHealthConnectStatusUseCase: GetHealthConnectStatusUseCase
         private set
-
     lateinit var getHealthPermissionsUseCase: GetHealthPermissionsUseCase
         private set
-
     lateinit var getGrantedHealthPermissionsUseCase: GetGrantedHealthPermissionsUseCase
         private set
-
     lateinit var getStepsLast24hUseCase: GetStepsLast24hUseCase
         private set
-
     lateinit var getAvgHeartRateLast24hUseCase: GetAvgHeartRateLast24hUseCase
         private set
 
@@ -81,6 +73,16 @@ class LifeFlowApplication : Application() {
 
     // Recovery
     lateinit var resetVaultUseCase: ResetVaultUseCase
+        private set
+
+    // Module repositories
+    lateinit var diaryRepository: LocalDiaryRepository
+        private set
+    lateinit var memoryRepository: LocalMemoryRepository
+        private set
+    lateinit var connectionRepository: LocalConnectionRepository
+        private set
+    lateinit var shoppingRepository: LocalShoppingRepository
         private set
 
     @Volatile
@@ -133,10 +135,8 @@ class LifeFlowApplication : Application() {
 
     fun ensureStartupInitialized(): Boolean {
         if (startupInitialized) return true
-
         synchronized(startupInitLock) {
             if (startupInitialized) return true
-
             return try {
                 initializeDependencyGraph()
                 startupInitialized = true
@@ -155,10 +155,7 @@ class LifeFlowApplication : Application() {
         val isInstrumentation = isRunningInstrumentation()
 
         keyManager = if (isInstrumentation) {
-            KeyManager(
-                alias = "LifeFlow_Test_Key",
-                requireUserAuth = false
-            )
+            KeyManager(alias = "LifeFlow_Test_Key", requireUserAuth = false)
         } else {
             KeyManager()
         }
@@ -168,22 +165,17 @@ class LifeFlowApplication : Application() {
         vault.ensureInitialized()
 
         val encryptionService = EncryptionService(keyManager)
-
         identityBlobStore = EncryptedIdentityBlobStore(applicationContext)
-
         encryptedIdentityRepository = EncryptedIdentityRepository(
             blobStore = identityBlobStore,
             encryptionService = encryptionService,
             vault = androidVault
         )
-
         identityRepository = encryptedIdentityRepository
-
         getActiveIdentityUseCase = GetActiveIdentityUseCase(identityRepository)
         saveIdentityUseCase = SaveIdentityUseCase(identityRepository)
 
         wellbeingRepository = HealthConnectWellbeingRepository(applicationContext)
-
         getHealthConnectStatusUseCase = GetHealthConnectStatusUseCase(wellbeingRepository)
         getHealthPermissionsUseCase = GetHealthPermissionsUseCase(wellbeingRepository)
         getGrantedHealthPermissionsUseCase = GetGrantedHealthPermissionsUseCase(wellbeingRepository)
@@ -197,6 +189,12 @@ class LifeFlowApplication : Application() {
             blobStore = identityBlobStore,
             vault = androidVault
         )
+
+        // Module repositories
+        diaryRepository = LocalDiaryRepository(applicationContext)
+        memoryRepository = LocalMemoryRepository(applicationContext)
+        connectionRepository = LocalConnectionRepository(applicationContext)
+        shoppingRepository = LocalShoppingRepository(applicationContext)
     }
 
     private fun buildStartupFailureMessage(t: Throwable): String {
