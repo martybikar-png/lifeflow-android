@@ -100,6 +100,10 @@ internal fun MainActivityContent(
         )
     }
 
+    val onUpgradeToCore: () -> Unit = {
+        setLastAction("Upgrade to Core shell action requested. Commercial upgrade flow is not wired yet.")
+    }
+
     MainActivityScreenRouter(
         screen = screen,
         onAuthenticate = onAuthenticate,
@@ -115,6 +119,7 @@ internal fun MainActivityContent(
         onResetVault = {
             setLastAction("Vault reset requested")
             viewModel.resetVault()
-        }
+        },
+        onUpgradeToCore = onUpgradeToCore
     )
 }
