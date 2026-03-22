@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Wellness/health "connected system" (NOT a heart) -->
+    <!-- Shield outline -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,3.9C15.6,5.9 18.2,6.2 20.1,6.0V12.2C20.1,16.8 17.1,19.2 12.0,20.2C6.9,19.2 3.9,16.8 3.9,12.2V6.0C5.8,6.2 8.4,5.9 12.0,3.9Z" />
+    <!-- Pulse/wave line -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M7.2,13.3C8.6,11.8 10.0,11.8 11.4,13.3C12.8,14.8 14.2,14.8 15.6,13.3C17.0,11.8 18.4,11.8 19.0,12.7" />
+    <!-- Small "connection" spark -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12.0,7.7c0.8,0 1.4,0.6 1.4,1.4c0,0.8 -0.6,1.4 -1.4,1.4c-0.8,0 -1.4,-0.6 -1.4,-1.4c0,-0.8 0.6,-1.4 1.4,-1.4Z" />
+</vector>

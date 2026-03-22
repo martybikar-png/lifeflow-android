@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import androidx.compose.runtime.Composable
+import com.lifeflow.navigation.LifeFlowNavHost
 
 @Composable
 internal fun MainActivityScreenRouter(
@@ -28,22 +29,13 @@ internal fun MainActivityScreenRouter(
                 debugLines = screen.debugLines
             )
         }
+
         UiState.Authenticated -> {
-            DashboardScreen(
-                healthState = screen.healthState,
-                requiredCount = screen.requiredPermissions.size,
-                grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
-                digitalTwinState = screen.digitalTwinState,
-                lastAction = screen.displayedLastAction,
-                onRefreshNow = onRefreshNow,
-                onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                onReAuthenticate = onAuthenticate,
-                debugLines = screen.debugLines
+            LifeFlowNavHost(
+                isOnboardingComplete = true
             )
         }
+
         is UiState.FreeTier -> {
             FreeTierScreen(
                 message = uiState.message,
@@ -52,6 +44,7 @@ internal fun MainActivityScreenRouter(
                 debugLines = screen.debugLines
             )
         }
+
         is UiState.Error -> {
             val message = uiState.message
             val resetRequired = requiresVaultReset(message)

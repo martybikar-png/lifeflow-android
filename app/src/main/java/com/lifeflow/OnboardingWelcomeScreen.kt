@@ -1,0 +1,87 @@
+package com.lifeflow
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun OnboardingWelcomeScreen(
+    lastAction: String = "Onboarding welcome shell active",
+    onContinue: () -> Unit = {},
+    onSkipToHome: () -> Unit = {},
+    debugLines: List<String> = emptyList()
+) {
+    ScreenContainer(title = "Welcome") {
+        GuidanceCard(
+            title = "Start quietly",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = "LifeFlow begins with a calm introduction. This screen frames the product clearly, gently, and without heavy system language."
+        )
+        ScreenSectionSpacer()
+        Card {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "What this step does",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "It introduces the shell, the tone, and the core shape of the app. This is orientation first, not a final security, biometric, or execution layer.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                ScreenSectionSpacer()
+                Text(
+                    text = "What comes next",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = "1. Welcome\n2. Permissions shell\n3. Privacy shell",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                ScreenSectionSpacer()
+                Button(
+                    onClick = onContinue,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Continue to permissions")
+                }
+                OutlinedButton(
+                    onClick = onSkipToHome,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Go to Home shell")
+                }
+            }
+        }
+        ScreenSectionSpacer()
+        Card {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Current boundary",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "This onboarding layer does not define biometric authority, protected execution, trust-state truth, or final recovery behavior.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
+    }
+}

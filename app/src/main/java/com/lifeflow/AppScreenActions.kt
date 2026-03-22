@@ -1,14 +1,23 @@
 package com.lifeflow
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.lifeflow.BuildConfig
 import com.lifeflow.core.HealthConnectUiState
@@ -24,7 +33,10 @@ internal fun LoadingActionsCard(
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit
 ) {
-    ActionCard(title = "Recommended actions") {
+    ActionCard(
+        title = "Recommended actions",
+        leadingIconResId = R.drawable.lf_ic_recommended_actions
+    ) {
         Text(
             text = loadingActionHint(
                 isAuthenticating = isAuthenticating,
@@ -151,7 +163,20 @@ private fun AuthenticateButton(
         enabled = !isAuthenticating,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(if (isAuthenticating) "Authenticating..." else "Authenticate")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.lf_ic_authenticate),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                colorFilter = ColorFilter.tint(LocalContentColor.current)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (isAuthenticating) "Authenticating..." else "Authenticate")
+        }
     }
 }
 
@@ -166,13 +191,26 @@ private fun RefreshDashboardButton(
         enabled = canRefreshDashboard(healthState),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            if (digitalTwinState == null) {
-                "Load first snapshot"
-            } else {
-                "Refresh now"
-            }
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.lf_ic_refresh),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                colorFilter = ColorFilter.tint(LocalContentColor.current)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                if (digitalTwinState == null) {
+                    "Load first snapshot"
+                } else {
+                    "Refresh now"
+                }
+            )
+        }
     }
 }
 
@@ -192,13 +230,26 @@ private fun HealthPermissionsButton(
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
-                "Review health access"
-            } else {
-                "Health access ready"
-            }
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.lf_ic_permissions),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                colorFilter = ColorFilter.tint(LocalContentColor.current)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
+                    "Review health access"
+                } else {
+                    "Health access ready"
+                }
+            )
+        }
     }
 }
 
@@ -210,7 +261,20 @@ private fun OpenHealthConnectSettingsButton(
         onClick = onOpenHealthConnectSettings,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text("Open Health Connect settings")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.lf_ic_settings),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                colorFilter = ColorFilter.tint(LocalContentColor.current)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Open Health Connect settings")
+        }
     }
 }
 

@@ -1,0 +1,303 @@
+package com.lifeflow
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import com.lifeflow.core.HealthConnectUiState
+import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+
+@Composable
+fun LoadingScreen(
+    isAuthenticating: Boolean,
+    healthState: HealthConnectUiState,
+    requiredCount: Int,
+    grantedCount: Int,
+    stepsGranted: Boolean,
+    hrGranted: Boolean,
+    lastAction: String,
+    onAuthenticate: () -> Unit,
+    onGrantHealthPermissions: () -> Unit,
+    onOpenHealthConnectSettings: () -> Unit,
+    debugLines: List<String>
+) {
+    ScreenContainer(title = "LifeFlow") {
+        LoadingHeader()
+        ScreenSectionSpacer()
+        Text(
+            text = loadingMessage(
+                isAuthenticating = isAuthenticating,
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount
+            ),
+            style = MaterialTheme.typography.bodyLarge
+        )
+        ScreenSectionSpacer()
+        GuidanceCard(
+            title = "Current focus",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = loadingGuidanceMessage(
+                isAuthenticating = isAuthenticating,
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount
+            )
+        )
+        ScreenSectionSpacer()
+        HealthSummaryCard(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            stepsGranted = stepsGranted,
+            hrGranted = hrGranted
+        )
+        ScreenSectionSpacer()
+        LoadingActionsCard(
+            isAuthenticating = isAuthenticating,
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            onAuthenticate = onAuthenticate,
+            onGrantHealthPermissions = onGrantHealthPermissions,
+            onOpenHealthConnectSettings = onOpenHealthConnectSettings
+        )
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
+    }
+}
+
+@Composable
+fun DashboardScreen(
+    healthState: HealthConnectUiState,
+    requiredCount: Int,
+    grantedCount: Int,
+    stepsGranted: Boolean,
+    hrGranted: Boolean,
+    digitalTwinState: DigitalTwinState?,
+    lastAction: String,
+    onRefreshNow: () -> Unit,
+    onGrantHealthPermissions: () -> Unit,
+    onOpenHealthConnectSettings: () -> Unit,
+    onReAuthenticate: () -> Unit,
+    debugLines: List<String>
+) {
+    val permissionsMissing = requiredCount > grantedCount
+    val primaryAction = if (permissionsMissing) onGrantHealthPermissions else onRefreshNow
+    val secondaryAction = if (permissionsMissing) onOpenHealthConnectSettings else onReAuthenticate
+
+    ScreenContainer(title = "LifeFlow Home") {
+        GuidanceCard(
+            title = "Today in LifeFlow",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = dashboardHomeIntroMessage(
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                digitalTwinState = digitalTwinState
+            )
+        )
+        ScreenSectionSpacer()
+        ActionCard(title = "Primary action") {
+            Text(
+                text = dashboardPrimaryActionMessage(
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount,
+                    digitalTwinState = digitalTwinState
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ScreenSectionSpacer()
+            Button(
+                onClick = primaryAction,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    dashboardPrimaryActionLabel(
+                        requiredCount = requiredCount,
+                        grantedCount = grantedCount
+                    )
+                )
+            }
+            ScreenSectionSpacer()
+            OutlinedButton(
+                onClick = secondaryAction,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    dashboardSecondaryActionLabel(
+                        requiredCount = requiredCount,
+                        grantedCount = grantedCount
+                    )
+                )
+            }
+        }
+        ScreenSectionSpacer()
+        DashboardStatusCard(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            digitalTwinState = digitalTwinState
+        )
+        ScreenSectionSpacer()
+        HealthSummaryCard(
+            healthState = healthState,
+            requiredCount = requiredCount,
+            grantedCount = grantedCount,
+            stepsGranted = stepsGranted,
+            hrGranted = hrGranted
+        )
+        if (digitalTwinState != null) {
+            ScreenSectionSpacer()
+            DigitalTwinCard(digitalTwinState = digitalTwinState)
+        }
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
+    }
+}
+
+@Composable
+fun FreeTierScreen(
+    message: String,
+    lastAction: String,
+    onUpgradeToCore: () -> Unit,
+    debugLines: List<String>
+) {
+    ScreenContainer(title = "LifeFlow Free") {
+        LoadingHeader()
+        ScreenSectionSpacer()
+        Text(
+            text = "Local Mode active.",
+            style = MaterialTheme.typography.headlineSmall
+        )
+        ScreenSectionSpacer()
+        GuidanceCard(
+            title = "Free tier",
+            message = message
+        )
+        ScreenSectionSpacer()
+        ActionCard(title = "Upgrade to Core") {
+            Text(
+                text = "Unlock Digital Twin, biometric vault, all modules and cross-module intelligence.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ScreenSectionSpacer()
+            Button(
+                onClick = onUpgradeToCore,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Upgrade to Core")
+            }
+        }
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
+    }
+}
+
+@Composable
+fun ErrorScreen(
+    message: String,
+    resetRequired: Boolean,
+    lastAction: String,
+    onRetry: () -> Unit,
+    debugLines: List<String>
+) {
+    ScreenContainer(title = "LifeFlow") {
+        LoadingHeader()
+        ScreenSectionSpacer()
+        Text(
+            text = if (resetRequired) "Vault reset required." else "Something needs your attention.",
+            style = MaterialTheme.typography.headlineSmall
+        )
+        ScreenSectionSpacer()
+        GuidanceCard(
+            title = "Issue detected",
+            message = message
+        )
+        ScreenSectionSpacer()
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (resetRequired) "Reset vault" else "Try again")
+        }
+        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
+    }
+}
+
+@Composable
+private fun LoadingHeader() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.lifeflow_one_icon),
+            contentDescription = "LifeFlow One icon",
+            modifier = Modifier.size(96.dp)
+        )
+    }
+}
+
+private fun dashboardHomeIntroMessage(
+    requiredCount: Int,
+    grantedCount: Int,
+    digitalTwinState: DigitalTwinState?
+): String {
+    return when {
+        requiredCount > grantedCount ->
+            "Complete the remaining health access step first. The home stays calm and lightweight until the required inputs are available."
+
+        digitalTwinState == null ->
+            "Your home shell is ready. Refresh when you want the latest local snapshot to appear here."
+
+        else ->
+            "This home is intentionally quiet: one clear next step first, supporting context underneath."
+    }
+}
+
+private fun dashboardPrimaryActionMessage(
+    requiredCount: Int,
+    grantedCount: Int,
+    digitalTwinState: DigitalTwinState?
+): String {
+    return when {
+        requiredCount > grantedCount ->
+            "Grant the remaining Health Connect permissions to unlock a fuller home surface."
+
+        digitalTwinState == null ->
+            "Refresh the home to pull the newest available local state."
+
+        else ->
+            "Refresh when you want the latest local snapshot for this overview."
+    }
+}
+
+private fun dashboardPrimaryActionLabel(
+    requiredCount: Int,
+    grantedCount: Int
+): String {
+    return if (requiredCount > grantedCount) {
+        "Grant health permissions"
+    } else {
+        "Refresh home"
+    }
+}
+
+private fun dashboardSecondaryActionLabel(
+    requiredCount: Int,
+    grantedCount: Int
+): String {
+    return if (requiredCount > grantedCount) {
+        "Open Health Connect settings"
+    } else {
+        "Authenticate again"
+    }
+}

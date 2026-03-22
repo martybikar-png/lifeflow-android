@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Calm focus / attention glyph (stroke + soft core). Tintable via Compose ColorFilter. -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12.0,18.6C11.2,17.0,8.1,15.0,8.1,11.4C8.1,8.8,10.0,6.9,12.0,6.9C14.0,6.9,15.9,8.8,15.9,11.4C15.9,15.0,12.8,17.0,12.0,18.6Z" />
+    <!-- Spark rays (very subtle) -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:pathData="M12.0,3.9 L12.0,6.2" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:pathData="M7.0,7.5 L8.7,9.1" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:pathData="M17.0,7.5 L15.3,9.1" />
+</vector>

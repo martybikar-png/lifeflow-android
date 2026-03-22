@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Preferences: soft horizontal tracks + gentle knobs (wellness sliders; tint in Compose). -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:pathData="M5.5,8.5 L18.5,8.5" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:pathData="M5.5,12 L18.5,12" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:pathData="M5.5,15.5 L18.5,15.5" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:pathData="M14.5,8.5 m -1.15,0 a 1.15,1.15 0 1,1 2.3,0 a 1.15,1.15 0 1,1 -2.3,0" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:pathData="M9.5,12 m -1.15,0 a 1.15,1.15 0 1,1 2.3,0 a 1.15,1.15 0 1,1 -2.3,0" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:pathData="M12.5,15.5 m -1.15,0 a 1.15,1.15 0 1,1 2.3,0 a 1.15,1.15 0 1,1 -2.3,0" />
+</vector>

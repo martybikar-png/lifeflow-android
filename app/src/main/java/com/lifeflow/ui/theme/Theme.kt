@@ -37,6 +37,7 @@ fun LifeFlowTheme(
     MaterialTheme(
         colorScheme = LifeFlowColorScheme,
         typography = Typography,
+        shapes = LifeFlowShapes,
         content = content
     )
 }

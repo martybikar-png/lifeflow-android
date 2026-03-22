@@ -1,16 +1,23 @@
 package com.lifeflow
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
@@ -95,6 +102,7 @@ internal fun HealthSummaryCard(
     StatusCardShell(
         title = "Health Connect",
         titleColor = MaterialTheme.colorScheme.primary,
+        leadingIconResId = R.drawable.lf_ic_health_connect,
         summary = healthSummaryMessage(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -163,15 +171,29 @@ internal fun StatusCardShell(
     title: String,
     titleColor: Color,
     summary: String,
+    leadingIconResId: Int? = null,
     content: @Composable () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = titleColor
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (leadingIconResId != null) {
+                    Image(
+                        painter = painterResource(id = leadingIconResId),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        colorFilter = ColorFilter.tint(titleColor)
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = titleColor
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 

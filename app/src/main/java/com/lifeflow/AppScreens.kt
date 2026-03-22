@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.lifeflow.core.HealthConnectUiState
-import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 
 @Composable
 fun LoadingScreen(
@@ -45,6 +43,7 @@ fun LoadingScreen(
         ScreenSectionSpacer()
         GuidanceCard(
             title = "Current focus",
+            leadingIconResId = R.drawable.lf_ic_focus,
             message = loadingGuidanceMessage(
                 isAuthenticating = isAuthenticating,
                 healthState = healthState,
@@ -69,63 +68,6 @@ fun LoadingScreen(
             onAuthenticate = onAuthenticate,
             onGrantHealthPermissions = onGrantHealthPermissions,
             onOpenHealthConnectSettings = onOpenHealthConnectSettings
-        )
-        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
-    }
-}
-
-@Composable
-fun DashboardScreen(
-    healthState: HealthConnectUiState,
-    requiredCount: Int,
-    grantedCount: Int,
-    stepsGranted: Boolean,
-    hrGranted: Boolean,
-    digitalTwinState: DigitalTwinState?,
-    lastAction: String,
-    onRefreshNow: () -> Unit,
-    onGrantHealthPermissions: () -> Unit,
-    onOpenHealthConnectSettings: () -> Unit,
-    onReAuthenticate: () -> Unit,
-    debugLines: List<String>
-) {
-    ScreenContainer(title = "LifeFlow Dashboard") {
-        DashboardStatusCard(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            digitalTwinState = digitalTwinState
-        )
-        ScreenSectionSpacer()
-        GuidanceCard(
-            title = "Next best step",
-            message = dashboardGuidanceMessage(
-                healthState = healthState,
-                requiredCount = requiredCount,
-                grantedCount = grantedCount,
-                digitalTwinState = digitalTwinState
-            )
-        )
-        ScreenSectionSpacer()
-        HealthSummaryCard(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            stepsGranted = stepsGranted,
-            hrGranted = hrGranted
-        )
-        ScreenSectionSpacer()
-        DigitalTwinCard(digitalTwinState = digitalTwinState)
-        ScreenSectionSpacer()
-        DashboardActionsCard(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            digitalTwinState = digitalTwinState,
-            onRefreshNow = onRefreshNow,
-            onGrantHealthPermissions = onGrantHealthPermissions,
-            onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-            onReAuthenticate = onReAuthenticate
         )
         ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
