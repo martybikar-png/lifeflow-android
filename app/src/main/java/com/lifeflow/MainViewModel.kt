@@ -65,8 +65,13 @@ class MainViewModel(
     init {
         observeTrustState()
         observeSessionExpiry()
-        wellbeingDelegate.refreshRequiredPermissionsDefinition()
         currentTier.value = orchestrator.currentTier()
+
+        if (currentTier.value == TierState.FREE) {
+            activateFreeTierUi()
+        } else {
+            wellbeingDelegate.refreshRequiredPermissionsDefinition()
+        }
     }
 
     private fun currentSecuritySnapshot() = MainViewModelSecuritySnapshot(
@@ -80,8 +85,20 @@ class MainViewModel(
         lastAction.value = message
     }
 
+    private fun activateFreeTierUi() {
+        uiState.value = UiState.FreeTier()
+        wellbeingDelegate.refreshPublicHealthStateOnly()
+        updateLastAction("LifeFlow Free active. Public state ready.")
+    }
+
     private fun triggerProtectedRefresh(lastActionMessage: String) {
         updateLastAction(lastActionMessage)
+
+        if (currentTier.value == TierState.FREE) {
+            wellbeingDelegate.refreshPublicHealthStateOnly()
+            return
+        }
+
         requestProtectedRefresh()
     }
 
@@ -128,6 +145,12 @@ class MainViewModel(
     }
 
     private suspend fun runAuthenticationBootstrap() {
+        if (currentTier.value == TierState.FREE) {
+            authDelegate.clearSessionExpiryNotification()
+            activateFreeTierUi()
+            return
+        }
+
         if (!authDelegate.ensureProtectedEntryAllowed()) return
         authDelegate.clearSessionExpiryNotification()
 
