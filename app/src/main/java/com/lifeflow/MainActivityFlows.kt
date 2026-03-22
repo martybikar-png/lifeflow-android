@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.health.connect.client.PermissionController
 import com.lifeflow.security.BiometricAuthManager
@@ -18,8 +18,8 @@ internal fun MainActivityContent(
     appPackageName: String,
     onStartIntent: (Intent) -> Unit
 ) {
-    var uiLastAction by remember { mutableStateOf(NO_ACTION_RECORDED) }
-    var pendingSettingsRefresh by remember { mutableStateOf(false) }
+    var uiLastAction by rememberSaveable { mutableStateOf(NO_ACTION_RECORDED) }
+    var pendingSettingsRefresh by rememberSaveable { mutableStateOf(false) }
 
     fun setLastAction(message: String) {
         uiLastAction = message.ifBlank { NO_ACTION_RECORDED }
