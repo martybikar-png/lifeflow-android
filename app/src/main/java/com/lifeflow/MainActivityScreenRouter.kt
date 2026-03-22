@@ -31,9 +31,7 @@ internal fun MainActivityScreenRouter(
         }
 
         UiState.Authenticated -> {
-            LifeFlowNavHost(
-                isOnboardingComplete = true
-            )
+            LifeFlowNavHost()
         }
 
         is UiState.FreeTier -> {

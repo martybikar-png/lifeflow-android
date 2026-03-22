@@ -1,6 +1,11 @@
 package com.lifeflow.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,10 +21,11 @@ import com.lifeflow.TrustScreen
 
 @Composable
 internal fun LifeFlowNavHost(
-    isOnboardingComplete: Boolean,
-    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
+    modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    var isOnboardingComplete by rememberSaveable { mutableStateOf(false) }
+
     NavHost(
         navController = navController,
         startDestination = LifeFlowScreenMap.startDestination(isOnboardingComplete),
@@ -32,7 +38,8 @@ internal fun LifeFlowNavHost(
                     navController.navigateSingleTopTo(LifeFlowScreenMap.onboardingPermissions.route)
                 },
                 onSkipToHome = {
-                    navController.navigateSingleTopTo(LifeFlowScreenMap.home.route)
+                    isOnboardingComplete = true
+                    navController.navigateToHomeClearingOnboarding()
                 },
                 debugLines = listOf(
                     "Shell mode active",
@@ -61,7 +68,8 @@ internal fun LifeFlowNavHost(
             OnboardingPrivacyScreen(
                 lastAction = "Onboarding privacy shell active",
                 onFinish = {
-                    navController.navigateSingleTopTo(LifeFlowScreenMap.home.route)
+                    isOnboardingComplete = true
+                    navController.navigateToHomeClearingOnboarding()
                 },
                 onBack = {
                     navController.popBackStack()
@@ -165,6 +173,15 @@ internal fun LifeFlowNavHost(
 
 private fun NavHostController.navigateSingleTopTo(route: String) {
     navigate(route) {
+        launchSingleTop = true
+    }
+}
+
+private fun NavHostController.navigateToHomeClearingOnboarding() {
+    navigate(LifeFlowScreenMap.home.route) {
+        popUpTo(LifeFlowScreenMap.onboardingWelcome.route) {
+            inclusive = true
+        }
         launchSingleTop = true
     }
 }
