@@ -31,15 +31,24 @@ fun LoadingScreen(
     ScreenContainer(title = "LifeFlow") {
         LoadingHeader()
         ScreenSectionSpacer()
-        Text(
-            text = loadingMessage(
-                isAuthenticating = isAuthenticating,
-                healthState = healthState,
-                requiredCount = requiredCount,
-                grantedCount = grantedCount
-            ),
-            style = MaterialTheme.typography.bodyLarge
+        GuidanceCard(
+            title = "Preparing the shell calmly",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = "This loading layer keeps the next step clear and proportional while LifeFlow checks access, session state, and health surfaces."
         )
+        ScreenSectionSpacer()
+        ActionCard(title = "Current state") {
+            Text(
+                text = loadingMessage(
+                    isAuthenticating = isAuthenticating,
+                    healthState = healthState,
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         ScreenSectionSpacer()
         GuidanceCard(
             title = "Current focus",
@@ -83,19 +92,23 @@ fun FreeTierScreen(
     ScreenContainer(title = "LifeFlow Free") {
         LoadingHeader()
         ScreenSectionSpacer()
-        Text(
-            text = "Local Mode active.",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        ScreenSectionSpacer()
         GuidanceCard(
-            title = "Free tier",
-            message = message
+            title = "Free mode, explained clearly",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = "This screen explains the current product tier in a calm way. It should feel informative and low-pressure, not like a hard sales wall."
         )
         ScreenSectionSpacer()
-        ActionCard(title = "Upgrade to Core") {
+        ActionCard(title = "Current tier state") {
             Text(
-                text = "Unlock Digital Twin, biometric vault, all modules and cross-module intelligence.",
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        ScreenSectionSpacer()
+        ActionCard(title = "What Core opens") {
+            Text(
+                text = "Core opens the Digital Twin, biometric vault, broader module access, and deeper cross-module intelligence.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -106,6 +119,14 @@ fun FreeTierScreen(
             ) {
                 Text("Upgrade to Core")
             }
+        }
+        ScreenSectionSpacer()
+        ActionCard(title = "Current boundary") {
+            Text(
+                text = "This is a tier-state screen only. It does not define trust-state truth, biometric authority, or protected execution behavior.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
@@ -122,21 +143,45 @@ fun ErrorScreen(
     ScreenContainer(title = "LifeFlow") {
         LoadingHeader()
         ScreenSectionSpacer()
-        Text(
-            text = if (resetRequired) "Vault reset required." else "Something needs your attention.",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        ScreenSectionSpacer()
         GuidanceCard(
-            title = "Issue detected",
-            message = message
+            title = if (resetRequired) "Recovery needs a stronger step" else "Something needs attention",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = "This screen explains the current state and offers the next safe action without turning the moment into a harsh system wall."
         )
         ScreenSectionSpacer()
-        Button(
-            onClick = onRetry,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (resetRequired) "Reset vault" else "Try again")
+        ActionCard(title = "Current state") {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        ScreenSectionSpacer()
+        ActionCard(title = "Recommended next step") {
+            Text(
+                text = if (resetRequired) {
+                    "A vault reset is required before continuing safely."
+                } else {
+                    "You can retry after reviewing the current state."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ScreenSectionSpacer()
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (resetRequired) "Reset vault" else "Try again")
+            }
+        }
+        ScreenSectionSpacer()
+        ActionCard(title = "Current boundary") {
+            Text(
+                text = "This screen surfaces the current state and the next safe action. It does not redefine trust-state truth or protected rules in UI.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }

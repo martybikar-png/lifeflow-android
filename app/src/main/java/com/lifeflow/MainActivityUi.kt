@@ -1,8 +1,6 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -12,7 +10,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -49,17 +46,26 @@ internal fun StartupFailureScreen(
     onRetryStartup: () -> Unit,
     onOpenAppSettings: () -> Unit
 ) {
-    ScreenContainer(title = "LifeFlow Startup Error") {
+    ScreenContainer(title = "LifeFlow Startup") {
+        GuidanceCard(
+            title = "Startup needs a calmer recovery step",
+            leadingIconResId = R.drawable.lf_ic_focus,
+            message = "This screen explains why startup could not complete and keeps the next action clear, safe, and proportional."
+        )
+
+        ScreenSectionSpacer()
+
         StartupFailureMessageCard(message = message)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         GuidanceCard(
             title = "What to do next",
+            leadingIconResId = R.drawable.lf_ic_focus,
             message = startupRecoveryGuidance(message)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
 
         ActionCard(title = "Recovery actions") {
             Text(
@@ -68,7 +74,7 @@ internal fun StartupFailureScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            ScreenSectionSpacer()
 
             Button(
                 onClick = onRetryStartup,
@@ -76,8 +82,6 @@ internal fun StartupFailureScreen(
             ) {
                 Text("Retry startup")
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedButton(
                 onClick = onOpenAppSettings,
@@ -87,7 +91,17 @@ internal fun StartupFailureScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ScreenSectionSpacer()
+
+        ActionCard(title = "Current boundary") {
+            Text(
+                text = "This startup screen surfaces the current state and the next safe action. It does not redefine trust-state truth or protected execution rules in UI.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        ScreenSectionSpacer()
 
         LastActionCard(lastAction = lastAction)
     }
@@ -95,25 +109,23 @@ internal fun StartupFailureScreen(
 
 @Composable
 private fun StartupFailureMessageCard(message: String) {
-    ActionCard(title = "Application startup failed") {
+    ActionCard(title = "Current startup state") {
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        ScreenSectionSpacer()
 
         Text(
             text = "Startup status",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
+            style = MaterialTheme.typography.titleSmall
         )
-
-        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = startupStatusLabel(message),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
