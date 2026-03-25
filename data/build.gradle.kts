@@ -34,18 +34,17 @@ android {
 }
 
 dependencies {
-
     implementation(project(":domain"))
 
     implementation(libs.kotlinx.coroutines.core)
 
     // Health Connect belongs to data layer (platform integration)
-    implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation(libs.androidx.health.connect.client)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.kotlinx.coroutines.test)
 }
