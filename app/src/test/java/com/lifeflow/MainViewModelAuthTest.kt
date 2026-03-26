@@ -5,6 +5,7 @@ import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.TrustState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,6 +23,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Active auth session missing"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
@@ -46,6 +48,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             settleMain()
 
             assertTrue(viewModel.uiState.value is UiState.Authenticated)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertEquals(TrustState.VERIFIED, SecurityRuleEngine.getTrustState())
         } finally {
             clearViewModel(viewModel)
@@ -80,12 +83,16 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             viewModel.refreshMetricsAndTwinNow()
             settleMain()
 
+            assertNotNull(viewModel.digitalTwinState.value)
+            assertNotNull(viewModel.wellbeingAssessment.value)
+
             viewModel.onAuthenticationError("Biometric authentication failed")
             settleMain()
 
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Biometric authentication failed"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
@@ -112,6 +119,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Vault reset complete"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
@@ -136,6 +144,7 @@ class MainViewModelAuthTest : MainViewModelTestBase() {
             assertTrue(error.message.contains("Vault reset failed"))
             assertTrue(error.message.contains("reset exploded"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
