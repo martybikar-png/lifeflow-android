@@ -15,9 +15,10 @@ class HardeningReportTest {
             instrumentationDetected = false,
             installerTrustWarningDetected = false,
             tamperSignalDetected = false,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = false,
             findings = emptyList()
         )
-
         assertTrue(report.isClean)
         assertFalse(report.isCritical)
         assertFalse(report.isDegraded)
@@ -32,9 +33,10 @@ class HardeningReportTest {
             instrumentationDetected = false,
             installerTrustWarningDetected = false,
             tamperSignalDetected = false,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = false,
             findings = listOf("Root: su binary found")
         )
-
         assertTrue(report.isCritical)
         assertFalse(report.isClean)
     }
@@ -48,9 +50,10 @@ class HardeningReportTest {
             instrumentationDetected = false,
             installerTrustWarningDetected = false,
             tamperSignalDetected = false,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = false,
             findings = listOf("Debugger: connected")
         )
-
         assertTrue(report.isCritical)
         assertFalse(report.isClean)
     }
@@ -64,9 +67,10 @@ class HardeningReportTest {
             instrumentationDetected = false,
             installerTrustWarningDetected = false,
             tamperSignalDetected = false,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = false,
             findings = listOf("Emulator: detected")
         )
-
         assertFalse(report.isCritical)
         assertTrue(report.isDegraded)
         assertFalse(report.isClean)
@@ -81,9 +85,10 @@ class HardeningReportTest {
             instrumentationDetected = false,
             installerTrustWarningDetected = true,
             tamperSignalDetected = false,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = false,
             findings = listOf("Installer trust: installer source unavailable")
         )
-
         assertFalse(report.isCritical)
         assertTrue(report.isDegraded)
         assertFalse(report.isClean)
@@ -98,11 +103,46 @@ class HardeningReportTest {
             instrumentationDetected = false,
             installerTrustWarningDetected = false,
             tamperSignalDetected = true,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = false,
             findings = listOf("Tamper: suspicious runtime mapping detected (frida)")
         )
-
         assertTrue(report.isCritical)
         assertFalse(report.isDegraded)
+        assertFalse(report.isClean)
+    }
+
+    @Test
+    fun `signature invalid is critical`() {
+        val report = SecurityHardeningGuard.HardeningReport(
+            rootDetected = false,
+            debuggerDetected = false,
+            emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = false,
+            signatureInvalid = true,
+            runtimeIntegrityFailed = false,
+            findings = listOf("Signature: APK signature mismatch")
+        )
+        assertTrue(report.isCritical)
+        assertFalse(report.isClean)
+    }
+
+    @Test
+    fun `runtime integrity failed is critical`() {
+        val report = SecurityHardeningGuard.HardeningReport(
+            rootDetected = false,
+            debuggerDetected = false,
+            emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = false,
+            signatureInvalid = false,
+            runtimeIntegrityFailed = true,
+            findings = listOf("Integrity: TracerPid detected")
+        )
+        assertTrue(report.isCritical)
         assertFalse(report.isClean)
     }
 }
