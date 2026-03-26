@@ -11,7 +11,7 @@ internal fun loadingActionHint(
 ): String {
     return when {
         isAuthenticating ->
-            "Authentication is already running. Wait for the current protected check to complete."
+            "A protected session is already available. Wait for the current protected check to complete."
         healthState == HealthConnectUiState.NotInstalled ->
             "Open settings first and finish the Health Connect installation path."
         healthState == HealthConnectUiState.UpdateRequired ->

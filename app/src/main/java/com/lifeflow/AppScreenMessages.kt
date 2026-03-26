@@ -11,7 +11,7 @@ internal fun loadingMessage(
 ): String {
     return when {
         isAuthenticating ->
-            "Authentication session is active. LifeFlow is preparing your protected dashboard."
+            "A protected session is active. LifeFlow is preparing your protected dashboard."
 
         healthState == HealthConnectUiState.NotInstalled ->
             "Health Connect is not installed yet. Install it first, then authenticate to continue."

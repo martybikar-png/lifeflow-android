@@ -175,7 +175,7 @@ private fun AuthenticateButton(
                 colorFilter = ColorFilter.tint(LocalContentColor.current)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(if (isAuthenticating) "Authenticating..." else "Authenticate")
+            Text(if (isAuthenticating) "Protected session active" else "Authenticate")
         }
     }
 }
@@ -289,4 +289,3 @@ private fun ReAuthenticateButton(
         Text("Authenticate again")
     }
 }
-

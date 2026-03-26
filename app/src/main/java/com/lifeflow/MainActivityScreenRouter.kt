@@ -1,7 +1,6 @@
 package com.lifeflow
 
 import androidx.compose.runtime.Composable
-import com.lifeflow.navigation.LifeFlowNavHost
 
 @Composable
 internal fun MainActivityScreenRouter(
@@ -31,7 +30,21 @@ internal fun MainActivityScreenRouter(
         }
 
         UiState.Authenticated -> {
-            LifeFlowNavHost()
+            AuthenticatedDashboardScreen(
+                healthState = screen.healthState,
+                requiredCount = screen.requiredPermissions.size,
+                grantedCount = screen.grantedPermissions.size,
+                stepsGranted = screen.stepsGranted,
+                hrGranted = screen.hrGranted,
+                digitalTwinState = screen.digitalTwinState,
+                wellbeingAssessment = screen.wellbeingAssessment,
+                lastAction = screen.displayedLastAction,
+                onRefreshNow = onRefreshNow,
+                onGrantHealthPermissions = onGrantHealthPermissions,
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
+                onReAuthenticate = onAuthenticate,
+                debugLines = screen.debugLines
+            )
         }
 
         is UiState.FreeTier -> {

@@ -11,7 +11,7 @@ internal fun loadingGuidanceMessage(
 ): String {
     return when {
         isAuthenticating ->
-            "Authentication is already active. As soon as the current checks finish, the protected dashboard can continue."
+            "A protected session is already available. As soon as the current checks finish, the protected dashboard can continue."
 
         healthState == HealthConnectUiState.NotInstalled ->
             "Install Health Connect first, then return here and authenticate again."
