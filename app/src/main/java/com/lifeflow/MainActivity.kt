@@ -23,7 +23,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             LifeFlowTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MainActivityRootContent(
+                    ActiveRuntimeEntryContent(
                         app = app,
                         startupBindings = startupBindings,
                         appPackageName = packageName,
@@ -54,7 +54,7 @@ class MainActivity : FragmentActivity() {
 }
 
 @Composable
-private fun MainActivityRootContent(
+private fun ActiveRuntimeEntryContent(
     app: LifeFlowApplication,
     startupBindings: StartupBindings,
     appPackageName: String,
@@ -72,8 +72,9 @@ private fun MainActivityRootContent(
     }
 
     // Active runtime entry path:
-    // MainActivity -> ActiveRuntimeContent -> ActiveRuntimeScreenRouter -> protected/public UI state rendering.
-    // PublicShellNavHost remains a separate shell flow and is not the active runtime entry here.
+    // MainActivity -> ActiveRuntimeEntryContent -> ActiveRuntimeContent -> ActiveRuntimeScreenRouter
+    // -> protected/public UI state rendering.
+    // PublicShellNavHost remains a separate standalone shell flow and is not the active runtime entry here.
     ActiveRuntimeContent(
         viewModel = requireNotNull(startupBindings.viewModel),
         biometricAuthManager = requireNotNull(startupBindings.biometricAuthManager),
