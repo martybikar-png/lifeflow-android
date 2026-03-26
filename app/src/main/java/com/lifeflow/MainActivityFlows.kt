@@ -15,12 +15,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.lifeflow.security.BiometricAuthManager
 import kotlinx.coroutines.delay
 
@@ -88,7 +88,7 @@ internal fun ActiveRuntimeContent(
         showIntroSplash = false
     }
 
-    val screen = collectMainActivityScreenSnapshot(
+    val screen = collectActiveRuntimeScreenSnapshot(
         viewModel = viewModel,
         uiLastAction = uiLastAction
     )

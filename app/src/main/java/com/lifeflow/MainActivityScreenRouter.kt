@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 
 @Composable
 internal fun ActiveRuntimeScreenRouter(
-    screen: MainActivityScreenSnapshot,
+    screen: ActiveRuntimeScreenSnapshot,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,

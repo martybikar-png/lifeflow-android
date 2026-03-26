@@ -10,7 +10,7 @@ import com.lifeflow.domain.wellbeing.WellbeingAssessment
 
 internal const val NO_ACTION_RECORDED = "—"
 
-internal data class MainActivityScreenSnapshot(
+internal data class ActiveRuntimeScreenSnapshot(
     val uiState: UiState,
     val isAuthenticating: Boolean,
     val healthState: HealthConnectUiState,
@@ -25,10 +25,10 @@ internal data class MainActivityScreenSnapshot(
     val debugLines: List<String>
 )
 
-internal fun collectMainActivityScreenSnapshot(
+internal fun collectActiveRuntimeScreenSnapshot(
     viewModel: MainViewModel,
     uiLastAction: String
-): MainActivityScreenSnapshot {
+): ActiveRuntimeScreenSnapshot {
     val uiState = viewModel.uiState.value
     val isAuthenticating = viewModel.isSessionAuthorizedForUi()
     val healthState = viewModel.healthConnectState.value
@@ -42,7 +42,8 @@ internal fun collectMainActivityScreenSnapshot(
     val hrReadPerm = HealthPermission.getReadPermission(HeartRateRecord::class)
     val stepsGranted = grantedPermissions.contains(stepsReadPerm)
     val hrGranted = grantedPermissions.contains(hrReadPerm)
-    return MainActivityScreenSnapshot(
+
+    return ActiveRuntimeScreenSnapshot(
         uiState = uiState,
         isAuthenticating = isAuthenticating,
         healthState = healthState,
