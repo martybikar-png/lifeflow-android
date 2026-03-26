@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -22,11 +21,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 
-private val HomeCardShape = RoundedCornerShape(28.dp)
-private val HomeInnerShape = RoundedCornerShape(22.dp)
-private val HomePillShape = RoundedCornerShape(18.dp)
+private val HomeCardShape = RoundedCornerShape(30.dp)
+private val HomeActionShape = RoundedCornerShape(20.dp)
 private val HomeCardPadding = 24.dp
-private val HomeCardSpacing = 18.dp
+private val HomeCardSpacing = 16.dp
 
 @Composable
 fun HomeScreen(
@@ -56,22 +54,22 @@ private fun HomeHeroCard() {
     Card(
         shape = HomeCardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(HomeCardPadding),
-            verticalArrangement = Arrangement.spacedBy(HomeCardSpacing)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Surface(
-                    shape = HomeInnerShape,
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 2.dp
                 ) {
@@ -80,35 +78,35 @@ private fun HomeHeroCard() {
                         contentDescription = "Home focus",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
-                            .size(44.dp)
-                            .padding(10.dp)
+                            .size(48.dp)
+                            .padding(12.dp)
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Quiet home",
+                        text = "LifeFlow home",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "One clear step first",
+                        text = "One calm step first",
                         style = MaterialTheme.typography.headlineSmall
                     )
                 }
             }
 
             Text(
-                text = "Home is the calm center of LifeFlow. It should feel soft, focused, and premium — one meaningful action first, then only a small amount of supporting context.",
+                text = "Home should feel quiet, clear, and premium. The first move stays obvious, and the rest stays soft.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                HomePill(text = "Focus-first")
-                HomePill(text = "Calm shell")
-                HomePill(text = "Soft direction")
-            }
+            Text(
+                text = "Quick Capture stays first. Settings and Trust remain available, but secondary.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -120,9 +118,9 @@ private fun HomePrimaryFocusCard(
     Card(
         shape = HomeCardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -132,49 +130,29 @@ private fun HomePrimaryFocusCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Primary focus",
+                    text = "Quick Capture",
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = "Open Quick Capture to add one small thing without turning the home into a busy dashboard. This keeps the first step light, fast, and emotionally quiet.",
+                    text = "Add one small thing without turning Home into a dense dashboard.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Surface(
-                shape = HomeInnerShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "Capture something small",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = "Quick note, mood reflection, signal, or lightweight prompt — one clean action before the rest of the system gets involved.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
             Button(
                 onClick = onOpenQuickCapture,
                 modifier = Modifier.fillMaxWidth(),
-                shape = HomeInnerShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                shape = HomeActionShape
             ) {
                 Text("Open Quick Capture")
             }
+
+            Text(
+                text = "Best for a note, signal, mood check, or short reflection.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -187,9 +165,9 @@ private fun HomeSupportingSurfacesCard(
     Card(
         shape = HomeCardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
@@ -200,29 +178,34 @@ private fun HomeSupportingSurfacesCard(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Supporting surfaces",
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Settings and Trust stay secondary here. They should remain accessible, but visually softer than the primary capture path.",
+                    text = "Settings and Trust stay close, but visually quieter than the main action.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            OutlinedButton(
-                onClick = onOpenSettings,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = HomeInnerShape
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Open Settings")
-            }
+                OutlinedButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.weight(1f),
+                    shape = HomeActionShape
+                ) {
+                    Text("Settings")
+                }
 
-            OutlinedButton(
-                onClick = onOpenTrust,
-                modifier = Modifier.fillMaxWidth(),
-                shape = HomeInnerShape
-            ) {
-                Text("Open Trust")
+                OutlinedButton(
+                    onClick = onOpenTrust,
+                    modifier = Modifier.weight(1f),
+                    shape = HomeActionShape
+                ) {
+                    Text("Trust")
+                }
             }
         }
     }
@@ -233,22 +216,22 @@ private fun HomeBoundaryCard() {
     Card(
         shape = HomeCardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(HomeCardPadding),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = "Current boundary",
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "This is still a shell-oriented home. It does not decide biometric truth, trust-state branching, recovery behavior, or protected execution. The goal here is calm structure and visual direction.",
+                text = "This Home screen is still a shell. It shapes structure and hierarchy only — not biometric truth, trust-state branching, recovery, or protected execution.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -256,18 +239,3 @@ private fun HomeBoundaryCard() {
     }
 }
 
-@Composable
-private fun HomePill(text: String) {
-    Surface(
-        shape = HomePillShape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
-    }
-}
