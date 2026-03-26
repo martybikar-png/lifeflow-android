@@ -17,8 +17,8 @@ internal fun MainViewModelSecuritySnapshot.canExposeProtectedUiData(
     )
 }
 
-internal fun MainViewModelSecuritySnapshot.protectedEntryBlockMessage(): String? {
-    return mainViewModelProtectedEntryBlockMessage(
+internal fun MainViewModelSecuritySnapshot.runtimeEntryBlockMessage(): String? {
+    return mainViewModelRuntimeEntryBlockMessage(
         isAuthorized = isAuthorized,
         trustState = trustState
     )

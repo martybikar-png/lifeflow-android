@@ -164,7 +164,7 @@ class MainViewModel(
             return
         }
 
-        if (!authDelegate.ensureProtectedEntryAllowed()) return
+        if (!authDelegate.ensureRuntimeEntryAllowed()) return
         authDelegate.clearSessionExpiryNotification()
 
         when (val boot = orchestrator.bootstrapIdentityIfNeeded()) {

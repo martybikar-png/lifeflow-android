@@ -29,7 +29,7 @@ internal sealed interface MainViewModelTrustUpdate {
 private fun isAuthenticatedUi(uiState: UiState): Boolean =
     uiState is UiState.Authenticated
 
-private fun protectedEntryTrustStateBlockMessage(
+private fun runtimeEntryTrustStateBlockMessage(
     trustState: DomainTrustState
 ): String? =
     when (trustState) {
@@ -77,16 +77,16 @@ internal fun canMainViewModelExposeProtectedUiData(
         isAuthorized &&
         trustState == DomainTrustState.VERIFIED
 
-internal fun mainViewModelProtectedEntryBlockMessage(
+internal fun mainViewModelRuntimeEntryBlockMessage(
     isAuthorized: Boolean,
     trustState: TrustState
 ): String? =
-    mainViewModelProtectedEntryBlockMessage(
+    mainViewModelRuntimeEntryBlockMessage(
         isAuthorized = isAuthorized,
         trustState = trustState.toDomainTrustState()
     )
 
-internal fun mainViewModelProtectedEntryBlockMessage(
+internal fun mainViewModelRuntimeEntryBlockMessage(
     isAuthorized: Boolean,
     trustState: DomainTrustState
 ): String? {
@@ -94,7 +94,7 @@ internal fun mainViewModelProtectedEntryBlockMessage(
         return AUTH_REQUIRED_MESSAGE
     }
 
-    return protectedEntryTrustStateBlockMessage(trustState)
+    return runtimeEntryTrustStateBlockMessage(trustState)
 }
 
 internal fun resolveMainViewModelTrustUpdate(

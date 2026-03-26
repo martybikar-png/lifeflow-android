@@ -12,8 +12,8 @@ internal class MainViewModelAuthDelegate(
     private val currentUiState: () -> UiState = { UiState.Loading }
 ) {
 
-    private fun protectedEntryBlockMessage(): String? {
-        return currentSecuritySnapshot().protectedEntryBlockMessage()
+    private fun runtimeEntryBlockMessage(): String? {
+        return currentSecuritySnapshot().runtimeEntryBlockMessage()
     }
 
     private fun shouldExpireSession(): Boolean {
@@ -45,8 +45,8 @@ internal class MainViewModelAuthDelegate(
         updateLastAction("Fail-closed: $message")
     }
 
-    fun ensureProtectedEntryAllowed(): Boolean {
-        val blockedMessage = protectedEntryBlockMessage()
+    fun ensureRuntimeEntryAllowed(): Boolean {
+        val blockedMessage = runtimeEntryBlockMessage()
 
         if (blockedMessage == null) {
             updateLastAction("Authentication verified. Bootstrapping identity...")
