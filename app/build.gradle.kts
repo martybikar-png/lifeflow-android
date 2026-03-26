@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.org.json)
     // Biometric
     implementation(libs.androidx.biometric)
+    implementation(libs.play.integrity)
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
