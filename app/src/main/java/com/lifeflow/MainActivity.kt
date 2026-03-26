@@ -6,6 +6,7 @@ import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import com.lifeflow.ui.theme.LifeFlowTheme
@@ -18,24 +19,17 @@ class MainActivity : FragmentActivity() {
 
         val app = application as LifeFlowApplication
         val startupBindings = resolveStartupBindings(app)
+
         setContent {
             LifeFlowTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    if (!startupBindings.startupReady) {
-                        StartupFailureContent(
-                            app = app,
-                            appPackageName = packageName,
-                            onStartIntent = { intent -> startActivity(intent) },
-                            onRecreateActivity = { recreate() }
-                        )
-                    } else {
-                        MainActivityContent(
-                            viewModel = requireNotNull(startupBindings.viewModel),
-                            biometricAuthManager = requireNotNull(startupBindings.biometricAuthManager),
-                            appPackageName = packageName,
-                            onStartIntent = { intent -> startActivity(intent) }
-                        )
-                    }
+                    MainActivityRootContent(
+                        app = app,
+                        startupBindings = startupBindings,
+                        appPackageName = packageName,
+                        onStartIntent = { intent -> startActivity(intent) },
+                        onRecreateActivity = { recreate() }
+                    )
                 }
             }
         }
@@ -57,4 +51,33 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
+}
+
+@Composable
+private fun MainActivityRootContent(
+    app: LifeFlowApplication,
+    startupBindings: StartupBindings,
+    appPackageName: String,
+    onStartIntent: (android.content.Intent) -> Unit,
+    onRecreateActivity: () -> Unit
+) {
+    if (!startupBindings.startupReady) {
+        StartupFailureContent(
+            app = app,
+            appPackageName = appPackageName,
+            onStartIntent = onStartIntent,
+            onRecreateActivity = onRecreateActivity
+        )
+        return
+    }
+
+    // Active runtime entry path:
+    // MainActivity -> MainActivityContent -> MainActivityScreenRouter -> protected/public UI state rendering.
+    // PublicShellNavHost is a separate shell flow and is not the main active entry path here.
+    MainActivityContent(
+        viewModel = requireNotNull(startupBindings.viewModel),
+        biometricAuthManager = requireNotNull(startupBindings.biometricAuthManager),
+        appPackageName = appPackageName,
+        onStartIntent = onStartIntent
+    )
 }
