@@ -4,6 +4,9 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.lifeflow.security.audit.SecurityAuditLog
+import com.lifeflow.security.audit.SecurityAuditLog.EventType
+import com.lifeflow.security.audit.SecurityAuditLog.Severity
 
 class BiometricAuthManager(
     private val activity: FragmentActivity
@@ -19,10 +22,13 @@ class BiometricAuthManager(
 
         val canAuthenticate = biometricManager.canAuthenticate(authenticators)
         if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
-            failClosed(
-                onError = onError,
-                message = userFriendlyBiometricAvailabilityMessage(canAuthenticate)
+            val message = userFriendlyBiometricAvailabilityMessage(canAuthenticate)
+            SecurityAuditLog.warning(
+                EventType.AUTH_FAILURE,
+                "Biometric not available",
+                mapOf("code" to canAuthenticate.toString())
             )
+            failClosed(onError = onError, message = message)
             return
         }
 
@@ -38,6 +44,11 @@ class BiometricAuthManager(
                 ) {
                     val authType = result.authenticationType
                     if (authType != BiometricPrompt.AUTHENTICATION_RESULT_TYPE_BIOMETRIC) {
+                        SecurityAuditLog.warning(
+                            EventType.AUTH_FAILURE,
+                            "Non-biometric auth type rejected",
+                            mapOf("authType" to authType.toString())
+                        )
                         failClosed(
                             onError = onError,
                             message = "Device credential is not allowed. Please use biometric authentication."
@@ -56,8 +67,25 @@ class BiometricAuthManager(
                     val trustOk = SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
 
                     if (sessionOk && trustOk) {
+                        SecurityAuditLog.info(
+                            EventType.AUTH_SUCCESS,
+                            "Biometric authentication succeeded"
+                        )
+                        SecurityAuditLog.info(
+                            EventType.SESSION_CREATED,
+                            "Security session established"
+                        )
+                        SecurityAuditLog.info(
+                            EventType.TRUST_VERIFIED,
+                            "Trust state set to VERIFIED"
+                        )
                         onSuccess()
                     } else {
+                        SecurityAuditLog.critical(
+                            EventType.AUTH_FAILURE,
+                            "Session establishment failed post-auth",
+                            mapOf("sessionOk" to sessionOk.toString(), "trustOk" to trustOk.toString())
+                        )
                         failClosed(
                             onError = onError,
                             message = "Biometric verified, but secure session could not be established. Reset vault may be required."
@@ -69,6 +97,11 @@ class BiometricAuthManager(
                     errorCode: Int,
                     errString: CharSequence
                 ) {
+                    SecurityAuditLog.warning(
+                        EventType.AUTH_FAILURE,
+                        "Biometric auth error",
+                        mapOf("errorCode" to errorCode.toString())
+                    )
                     failClosed(
                         onError = onError,
                         message = "Auth error ($errorCode): $errString"
@@ -76,7 +109,10 @@ class BiometricAuthManager(
                 }
 
                 override fun onAuthenticationFailed() {
-                    // User presented a different biometric; keep prompt active.
+                    SecurityAuditLog.info(
+                        EventType.AUTH_FAILURE,
+                        "Biometric mismatch - prompt remains active"
+                    )
                 }
             }
         )
@@ -96,6 +132,10 @@ class BiometricAuthManager(
         message: String
     ) {
         SecurityAccessSession.clear()
+        SecurityAuditLog.info(
+            EventType.SESSION_INVALIDATED,
+            "Session cleared on auth failure"
+        )
         onError(message)
     }
 
