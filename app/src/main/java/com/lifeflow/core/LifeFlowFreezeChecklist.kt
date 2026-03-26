@@ -43,7 +43,7 @@ object LifeFlowFreezeChecklist {
         FreezeCheckItem("UI-01", "UiState: Loading / Authenticated / Error only"),
         FreezeCheckItem("UI-02", "ErrorScreen shows user-friendly guidance via errorGuidanceMessage"),
         FreezeCheckItem("UI-03", "resetRequired flag propagates from router to ErrorScreen"),
-        FreezeCheckItem("UI-04", "MainActivityScreenSnapshot assembles cleanly from ViewModel"),
+        FreezeCheckItem("UI-04", "ActiveRuntimeScreenSnapshot assembles cleanly from ViewModel"),
 
         // — Tests —
         FreezeCheckItem("TST-01", "All domain module unit tests passing"),
