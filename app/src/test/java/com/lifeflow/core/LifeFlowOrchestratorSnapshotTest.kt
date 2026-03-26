@@ -1,6 +1,9 @@
 package com.lifeflow.core
 
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+import com.lifeflow.domain.wellbeing.ActivityLevel
+import com.lifeflow.domain.wellbeing.HeartRateStatus
+import com.lifeflow.domain.wellbeing.OverallReadiness
 import com.lifeflow.domain.wellbeing.WellbeingRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -109,6 +112,12 @@ class LifeFlowOrchestratorSnapshotTest {
         assertEquals(72L, twin.avgHeartRateLast24h)
         assertEquals(DigitalTwinState.Availability.OK, twin.stepsAvailability)
         assertEquals(DigitalTwinState.Availability.OK, twin.heartRateAvailability)
+
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.LOW, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.NORMAL, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.LOW, wellbeing.overallReadiness)
+        assertTrue(wellbeing.notes.isEmpty())
     }
 
     @Test
@@ -145,6 +154,14 @@ class LifeFlowOrchestratorSnapshotTest {
         assertNull(twin.stepsLast24h)
         assertNull(twin.avgHeartRateLast24h)
 
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.UNKNOWN, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.UNKNOWN, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.INSUFFICIENT_DATA, wellbeing.overallReadiness)
+        assertTrue(
+            wellbeing.notes.any { it.contains("Not enough signals", ignoreCase = true) }
+        )
+
         assertEquals(0, repo.readTotalStepsCalls)
         assertEquals(0, repo.readAvgHeartRateCalls)
     }
@@ -180,6 +197,12 @@ class LifeFlowOrchestratorSnapshotTest {
         assertEquals(DigitalTwinState.Availability.PERMISSION_DENIED, twin.heartRateAvailability)
         assertNull(twin.stepsLast24h)
         assertNull(twin.avgHeartRateLast24h)
+
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.NO_ACCESS, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.NO_ACCESS, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.NO_ACCESS, wellbeing.overallReadiness)
+        assertTrue(wellbeing.notes.isEmpty())
 
         assertEquals(0, repo.readTotalStepsCalls)
         assertEquals(0, repo.readAvgHeartRateCalls)
