@@ -1,6 +1,9 @@
 package com.lifeflow.core
 
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+import com.lifeflow.domain.wellbeing.ActivityLevel
+import com.lifeflow.domain.wellbeing.HeartRateStatus
+import com.lifeflow.domain.wellbeing.OverallReadiness
 import com.lifeflow.domain.wellbeing.WellbeingRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -46,6 +49,12 @@ class LifeFlowOrchestratorMetricResolutionTest {
             "Expected diagnostic note for denied heart-rate permission.",
             state.notes.any { it.contains("permission denied", ignoreCase = true) }
         )
+
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.LOW, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.NO_ACCESS, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.LOW, wellbeing.overallReadiness)
+        assertTrue(wellbeing.notes.isEmpty())
     }
 
     @Test
@@ -74,6 +83,14 @@ class LifeFlowOrchestratorMetricResolutionTest {
 
         assertEquals(DigitalTwinState.Availability.OK, state.heartRateAvailability)
         assertEquals(68L, state.avgHeartRateLast24h)
+
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.NO_ACCESS, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.NORMAL, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.INSUFFICIENT_DATA, wellbeing.overallReadiness)
+        assertTrue(
+            wellbeing.notes.any { it.contains("Not enough signals", ignoreCase = true) }
+        )
     }
 
     @Test
@@ -104,6 +121,12 @@ class LifeFlowOrchestratorMetricResolutionTest {
 
         assertEquals(1, repo.readTotalStepsCalls)
         assertEquals(0, repo.readAvgHeartRateCalls)
+
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.LOW, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.UNKNOWN, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.LOW, wellbeing.overallReadiness)
+        assertTrue(wellbeing.notes.isEmpty())
     }
 
     @Test
@@ -134,5 +157,13 @@ class LifeFlowOrchestratorMetricResolutionTest {
 
         assertEquals(0, repo.readTotalStepsCalls)
         assertEquals(1, repo.readAvgHeartRateCalls)
+
+        val wellbeing = snapshot.wellbeingAssessment
+        assertEquals(ActivityLevel.UNKNOWN, wellbeing.activityLevel)
+        assertEquals(HeartRateStatus.NORMAL, wellbeing.heartRateStatus)
+        assertEquals(OverallReadiness.INSUFFICIENT_DATA, wellbeing.overallReadiness)
+        assertTrue(
+            wellbeing.notes.any { it.contains("Not enough signals", ignoreCase = true) }
+        )
     }
 }
