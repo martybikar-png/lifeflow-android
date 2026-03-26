@@ -29,6 +29,7 @@ internal fun MainViewModelSecuritySnapshot.shouldExpireSession(
 ): Boolean {
     return shouldMainViewModelExpireSession(
         uiState = uiState,
-        isAuthorized = isAuthorized
+        isAuthorized = isAuthorized,
+        trustState = trustState
     )
 }

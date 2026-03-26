@@ -57,6 +57,20 @@ object LifeFlowScreenMap {
         isPrimary = true
     )
 
+    val captureEntry = LifeFlowDestination(
+        route = "capture/entry",
+        section = LifeFlowNavSection.CAPTURE,
+        title = "Capture Entry",
+        supportsBack = true
+    )
+
+    val captureLibrary = LifeFlowDestination(
+        route = "capture/library",
+        section = LifeFlowNavSection.CAPTURE,
+        title = "Capture Library",
+        supportsBack = true
+    )
+
     val trust = LifeFlowDestination(
         route = "trust",
         section = LifeFlowNavSection.TRUST,
@@ -91,6 +105,11 @@ object LifeFlowScreenMap {
         settings
     )
 
+    val captureSupportDestinations = listOf(
+        captureEntry,
+        captureLibrary
+    )
+
     val supportingDestinations = listOf(
         privacy
     )
@@ -103,6 +122,10 @@ object LifeFlowScreenMap {
         LifeFlowFlowGroup(
             title = "Core shell",
             destinations = primaryDestinations
+        ),
+        LifeFlowFlowGroup(
+            title = "Capture support",
+            destinations = captureSupportDestinations
         ),
         LifeFlowFlowGroup(
             title = "Support",

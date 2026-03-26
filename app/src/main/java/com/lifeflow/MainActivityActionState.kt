@@ -11,13 +11,7 @@ internal fun permissionResultMessage(grantedPermissions: Set<String>): String {
 }
 
 internal fun requiresVaultReset(message: String): Boolean {
-    return message.contains(
-        "Reset vault is required",
-        ignoreCase = true
-    ) || message.contains(
-        "Security compromised",
-        ignoreCase = true
-    )
+    return isRecoveryRequiredMessage(message)
 }
 
 internal fun resolveDisplayedLastAction(

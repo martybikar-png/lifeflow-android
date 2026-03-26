@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,7 +18,11 @@ fun OnboardingPermissionsScreen(
     onBack: () -> Unit = {},
     debugLines: List<String> = emptyList()
 ) {
-    ScreenContainer(title = "Permissions") {
+    ScreenContainer(
+        title = "Permissions",
+        showBackButton = true,
+        onBack = onBack
+    ) {
         GuidanceCard(
             title = "Explain first, request later",
             leadingIconResId = R.drawable.lf_ic_focus,
@@ -66,12 +69,6 @@ fun OnboardingPermissionsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Continue to privacy")
-                }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Back")
                 }
             }
         }

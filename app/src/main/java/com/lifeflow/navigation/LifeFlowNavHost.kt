@@ -10,10 +10,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.lifeflow.CaptureEntryScreen
+import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
-import com.lifeflow.OnboardingPermissionsScreen
-import com.lifeflow.OnboardingPrivacyScreen
-import com.lifeflow.OnboardingWelcomeScreen
 import com.lifeflow.PrivacyScreen
 import com.lifeflow.QuickCaptureScreen
 import com.lifeflow.SettingsScreen
@@ -24,72 +23,15 @@ internal fun LifeFlowNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
-    var isOnboardingComplete by rememberSaveable { mutableStateOf(false) }
     var shellLastAction by rememberSaveable {
         mutableStateOf("Shell navigation ready.")
     }
 
     NavHost(
         navController = navController,
-        startDestination = LifeFlowScreenMap.startDestination(isOnboardingComplete),
+        startDestination = LifeFlowScreenMap.home.route,
         modifier = modifier
     ) {
-        composable(LifeFlowScreenMap.onboardingWelcome.route) {
-            OnboardingWelcomeScreen(
-                lastAction = shellLastAction,
-                onContinue = {
-                    shellLastAction = "Onboarding welcome continued."
-                    navController.navigateSingleTopTo(LifeFlowScreenMap.onboardingPermissions.route)
-                },
-                onSkipToHome = {
-                    shellLastAction = "Onboarding skipped to Home shell."
-                    isOnboardingComplete = true
-                    navController.navigateToHomeClearingOnboarding()
-                },
-                debugLines = listOf(
-                    "Shell mode active",
-                    "No final onboarding authority connected"
-                )
-            )
-        }
-
-        composable(LifeFlowScreenMap.onboardingPermissions.route) {
-            OnboardingPermissionsScreen(
-                lastAction = shellLastAction,
-                onContinue = {
-                    shellLastAction = "Onboarding permissions continued to privacy."
-                    navController.navigateSingleTopTo(LifeFlowScreenMap.onboardingPrivacy.route)
-                },
-                onBack = {
-                    shellLastAction = "Returned to onboarding welcome shell."
-                    navController.popBackStack()
-                },
-                debugLines = listOf(
-                    "Shell mode active",
-                    "No final permission flow connected"
-                )
-            )
-        }
-
-        composable(LifeFlowScreenMap.onboardingPrivacy.route) {
-            OnboardingPrivacyScreen(
-                lastAction = shellLastAction,
-                onFinish = {
-                    shellLastAction = "Onboarding privacy finished. Home shell opened."
-                    isOnboardingComplete = true
-                    navController.navigateToHomeClearingOnboarding()
-                },
-                onBack = {
-                    shellLastAction = "Returned to onboarding permissions shell."
-                    navController.popBackStack()
-                },
-                debugLines = listOf(
-                    "Shell mode active",
-                    "No final privacy authority connected"
-                )
-            )
-        }
-
         composable(LifeFlowScreenMap.home.route) {
             HomeScreen(
                 lastAction = shellLastAction,
@@ -116,12 +58,12 @@ internal fun LifeFlowNavHost(
             QuickCaptureScreen(
                 lastAction = shellLastAction,
                 onPrimaryCapture = {
-                    shellLastAction =
-                        "Quick Capture shell action triggered. Final capture pipeline is not wired yet."
+                    shellLastAction = "Capture Entry shell opened from Quick Capture."
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.captureEntry.route)
                 },
                 onOpenCaptureLibrary = {
-                    shellLastAction =
-                        "Capture library shell action triggered. Final library flow is not wired yet."
+                    shellLastAction = "Capture Library shell opened from Quick Capture."
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.captureLibrary.route)
                 },
                 onBackToHome = {
                     shellLastAction = "Returned to Home from Quick Capture shell."
@@ -130,6 +72,34 @@ internal fun LifeFlowNavHost(
                 debugLines = listOf(
                     "Shell mode active",
                     "No protected capture pipeline connected"
+                )
+            )
+        }
+
+        composable(LifeFlowScreenMap.captureEntry.route) {
+            CaptureEntryScreen(
+                lastAction = shellLastAction,
+                onBackToQuickCapture = {
+                    shellLastAction = "Returned to Quick Capture from Capture Entry shell."
+                    navController.popBackStack()
+                },
+                debugLines = listOf(
+                    "Shell mode active",
+                    "No protected capture entry connected"
+                )
+            )
+        }
+
+        composable(LifeFlowScreenMap.captureLibrary.route) {
+            CaptureLibraryScreen(
+                lastAction = shellLastAction,
+                onBackToQuickCapture = {
+                    shellLastAction = "Returned to Quick Capture from Capture Library shell."
+                    navController.popBackStack()
+                },
+                debugLines = listOf(
+                    "Shell mode active",
+                    "No protected capture library connected"
                 )
             )
         }
@@ -200,15 +170,6 @@ internal fun LifeFlowNavHost(
 
 private fun NavHostController.navigateSingleTopTo(route: String) {
     navigate(route) {
-        launchSingleTop = true
-    }
-}
-
-private fun NavHostController.navigateToHomeClearingOnboarding() {
-    navigate(LifeFlowScreenMap.home.route) {
-        popUpTo(LifeFlowScreenMap.onboardingWelcome.route) {
-            inclusive = true
-        }
         launchSingleTop = true
     }
 }

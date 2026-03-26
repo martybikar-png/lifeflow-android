@@ -12,8 +12,12 @@ class HardeningReportTest {
             rootDetected = false,
             debuggerDetected = false,
             emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = false,
             findings = emptyList()
         )
+
         assertTrue(report.isClean)
         assertFalse(report.isCritical)
         assertFalse(report.isDegraded)
@@ -25,8 +29,12 @@ class HardeningReportTest {
             rootDetected = true,
             debuggerDetected = false,
             emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = false,
             findings = listOf("Root: su binary found")
         )
+
         assertTrue(report.isCritical)
         assertFalse(report.isClean)
     }
@@ -37,8 +45,12 @@ class HardeningReportTest {
             rootDetected = false,
             debuggerDetected = true,
             emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = false,
             findings = listOf("Debugger: connected")
         )
+
         assertTrue(report.isCritical)
         assertFalse(report.isClean)
     }
@@ -49,10 +61,48 @@ class HardeningReportTest {
             rootDetected = false,
             debuggerDetected = false,
             emulatorDetected = true,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = false,
             findings = listOf("Emulator: detected")
         )
+
         assertFalse(report.isCritical)
         assertTrue(report.isDegraded)
+        assertFalse(report.isClean)
+    }
+
+    @Test
+    fun `installer trust warning is degraded not critical`() {
+        val report = SecurityHardeningGuard.HardeningReport(
+            rootDetected = false,
+            debuggerDetected = false,
+            emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = true,
+            tamperSignalDetected = false,
+            findings = listOf("Installer trust: installer source unavailable")
+        )
+
+        assertFalse(report.isCritical)
+        assertTrue(report.isDegraded)
+        assertFalse(report.isClean)
+    }
+
+    @Test
+    fun `tamper signal is critical`() {
+        val report = SecurityHardeningGuard.HardeningReport(
+            rootDetected = false,
+            debuggerDetected = false,
+            emulatorDetected = false,
+            instrumentationDetected = false,
+            installerTrustWarningDetected = false,
+            tamperSignalDetected = true,
+            findings = listOf("Tamper: suspicious runtime mapping detected (frida)")
+        )
+
+        assertTrue(report.isCritical)
+        assertFalse(report.isDegraded)
         assertFalse(report.isClean)
     }
 }

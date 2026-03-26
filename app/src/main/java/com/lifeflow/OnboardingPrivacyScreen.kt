@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,7 +18,11 @@ fun OnboardingPrivacyScreen(
     onBack: () -> Unit = {},
     debugLines: List<String> = emptyList()
 ) {
-    ScreenContainer(title = "Privacy") {
+    ScreenContainer(
+        title = "Privacy",
+        showBackButton = true,
+        onBack = onBack
+    ) {
         GuidanceCard(
             title = "Privacy, explained calmly",
             leadingIconResId = R.drawable.lf_ic_focus,
@@ -56,12 +59,6 @@ fun OnboardingPrivacyScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Finish onboarding shell")
-                }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Back")
                 }
             }
         }

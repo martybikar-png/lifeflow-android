@@ -34,6 +34,7 @@ class MainViewModel(
     val currentTier = mutableStateOf<TierState>(TierState.CORE)
 
     private var sessionExpiryNotified = false
+    private var pendingForegroundRefresh = false
     private val sessionPollMs = 1000L
     private val refreshMutex = Mutex()
 
@@ -187,7 +188,7 @@ class MainViewModel(
 
     fun onAuthenticationSuccess() {
         authDelegate.beginAuthenticationSuccessFlow(
-            setUiStateLoading = { uiState.value = UiState.Loading }
+            setUiStateLoading = {}
         )
         viewModelScope.launch {
             runAuthenticationBootstrap()
@@ -197,9 +198,33 @@ class MainViewModel(
     fun onAuthenticationError(message: String) =
         authDelegate.handleAuthenticationError(message)
 
+    fun onAppBackgrounded() {
+        if (currentTier.value == TierState.FREE) {
+            pendingForegroundRefresh = false
+            return
+        }
+
+        pendingForegroundRefresh = uiState.value is UiState.Authenticated
+    }
+
+    fun onAppForegrounded() {
+        val shouldRefreshAfterRecheck = pendingForegroundRefresh
+        pendingForegroundRefresh = false
+
+        authDelegate.handleSessionPollTick(sessionExpiryNotified)
+
+        if (!shouldRefreshAfterRecheck) {
+            return
+        }
+
+        if (currentSecuritySnapshot().canExposeProtectedUiData(uiState.value)) {
+            triggerProtectedRefresh("Returned to foreground; secure refresh requested.")
+        }
+    }
+
     fun resetVault() {
         authDelegate.beginVaultResetFlow(
-            setUiStateLoading = { uiState.value = UiState.Loading }
+            setUiStateLoading = {}
         )
         viewModelScope.launch {
             runVaultReset()

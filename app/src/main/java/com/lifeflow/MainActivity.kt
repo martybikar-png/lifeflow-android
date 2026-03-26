@@ -1,5 +1,6 @@
 package com.lifeflow
 
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
@@ -13,10 +14,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Screenshot protection — prevent screen capture and app switcher preview
-        if (!BuildConfig.DEBUG) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        }
+        applyWindowSecurityHardening()
 
         val app = application as LifeFlowApplication
         val startupBindings = resolveStartupBindings(app)
@@ -39,6 +37,23 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                 }
+            }
+        }
+    }
+
+    private fun applyWindowSecurityHardening() {
+        if (BuildConfig.DEBUG) return
+
+        // Prevent screenshots, screen recording, and app switcher previews on sensitive surfaces.
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
+        // Reduce overlay/tapjacking risk on supported Android versions without requiring
+        // the compile-time symbol to be present.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            runCatching {
+                javaClass
+                    .getMethod("setHideOverlayWindows", Boolean::class.javaPrimitiveType)
+                    .invoke(this, true)
             }
         }
     }

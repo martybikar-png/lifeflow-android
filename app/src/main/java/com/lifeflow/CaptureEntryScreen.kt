@@ -3,7 +3,6 @@ package com.lifeflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -13,61 +12,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun QuickCaptureScreen(
-    lastAction: String = "No capture action yet",
-    onPrimaryCapture: () -> Unit = {},
-    onOpenCaptureLibrary: () -> Unit = {},
-    onBackToHome: () -> Unit = {},
+fun CaptureEntryScreen(
+    lastAction: String = "Capture entry shell active",
+    onBackToQuickCapture: () -> Unit = {},
     debugLines: List<String> = emptyList()
 ) {
-    ScreenContainer(title = "Quick Capture") {
+    ScreenContainer(title = "Capture Entry") {
         GuidanceCard(
-            title = "Capture something small",
+            title = "Start one small capture",
             leadingIconResId = R.drawable.lf_ic_focus,
-            message = "Quick Capture is a lightweight entry point for a fast thought, note, signal, or reflection. In this phase it is only a calm structure layer."
+            message = "Capture Entry is the calm first step for starting a lightweight input. In this phase it stays a shell destination without final orchestration, storage, or protected execution."
         )
         ScreenSectionSpacer()
         Card {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ButtonDefaultsSpacing)
+                verticalArrangement = Arrangement.spacedBy(CaptureEntrySpacing)
             ) {
                 Text(
-                    text = "Primary action",
+                    text = "What this step does",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Use one simple action first. No protected execution, orchestration, or final routing is attached here yet.",
+                    text = "It gives the main Quick Capture action its own destination, so the flow can move into a focused entry screen instead of stopping at feedback text only.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 ScreenSectionSpacer()
-                Button(
-                    onClick = onPrimaryCapture,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Capture now")
-                }
-                OutlinedButton(
-                    onClick = onOpenCaptureLibrary,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Open saved captures")
-                }
-            }
-        }
-        ScreenSectionSpacer()
-        Card {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ButtonDefaultsSpacing)
-            ) {
                 Text(
-                    text = "Capture types",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "Entry focus",
+                    style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    text = "• Quick note\n• Mood / state check\n• Reflection prompt\n• Lightweight signal",
+                    text = "This shell can later host a lightweight note, short reflection, mood signal, or another small input. Right now it only defines the place where that future capture begins.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -77,23 +54,40 @@ fun QuickCaptureScreen(
         Card {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ButtonDefaultsSpacing)
+                verticalArrangement = Arrangement.spacedBy(CaptureEntrySpacing)
             ) {
                 Text(
-                    text = "Shell boundary",
+                    text = "Planned shell direction",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "This screen is intentionally non-final. It does not assert trust-state truth, biometric authority, recovery logic, or protected execution behavior.",
+                    text = "• Quick note start\n• Reflection entry point\n• Lightweight signal input\n• Calm pre-orchestration layer",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        ScreenSectionSpacer()
+        Card {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(CaptureEntrySpacing)
+            ) {
+                Text(
+                    text = "Current boundary",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "This screen does not assert biometric authority, trust-state truth, protected storage, or final capture execution. It remains fully inside the current shell phase.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 ScreenSectionSpacer()
                 OutlinedButton(
-                    onClick = onBackToHome,
+                    onClick = onBackToQuickCapture,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Back to Home")
+                    Text("Back to Quick Capture")
                 }
             }
         }
@@ -101,4 +95,4 @@ fun QuickCaptureScreen(
     }
 }
 
-private val ButtonDefaultsSpacing = 14.dp
+private val CaptureEntrySpacing = 14.dp

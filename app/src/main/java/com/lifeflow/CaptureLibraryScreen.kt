@@ -3,7 +3,6 @@ package com.lifeflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -13,90 +12,87 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HomeScreen(
-    lastAction: String = "Home shell active",
-    onOpenQuickCapture: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
-    onOpenTrust: () -> Unit = {},
+fun CaptureLibraryScreen(
+    lastAction: String = "Capture library shell active",
+    onBackToQuickCapture: () -> Unit = {},
     debugLines: List<String> = emptyList()
 ) {
-    ScreenContainer(title = "Home") {
+    ScreenContainer(title = "Capture Library") {
         GuidanceCard(
-            title = "One clear step first",
+            title = "Review lightweight captures",
             leadingIconResId = R.drawable.lf_ic_focus,
-            message = "This home stays intentionally quiet. It gives you one main focal action first, then a small amount of supporting context."
+            message = "Capture Library is a calm shell destination for browsing lightweight entries. In this phase it remains structure only, without protected retrieval or final storage behavior."
         )
         ScreenSectionSpacer()
         Card {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(CaptureLibrarySpacing)
             ) {
                 Text(
-                    text = "Primary action",
+                    text = "What this step does",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Open Quick Capture to add something small without turning the home into a busy dashboard.",
+                    text = "It gives Quick Capture a real follow-up destination, so the flow can move from one capture entry point into a simple review shell instead of stopping at feedback only.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 ScreenSectionSpacer()
-                Button(
-                    onClick = onOpenQuickCapture,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Open Quick Capture")
-                }
+                Text(
+                    text = "Library focus",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = "This screen can later hold lightweight notes, short reflections, and simple signals. Right now it only establishes a dedicated place for that future flow.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
         ScreenSectionSpacer()
         Card {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(CaptureLibrarySpacing)
             ) {
                 Text(
-                    text = "Supporting surfaces",
+                    text = "Planned shell content",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Use Settings for app controls and Privacy entry points. Use Trust for calm orientation around future trust-related surfaces.",
+                    text = "• Recent captures\n• Lightweight notes\n• Reflection items\n• Simple signal history",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                ScreenSectionSpacer()
-                OutlinedButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Open Settings")
-                }
-                OutlinedButton(
-                    onClick = onOpenTrust,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Open Trust")
-                }
             }
         }
         ScreenSectionSpacer()
         Card {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(CaptureLibrarySpacing)
             ) {
                 Text(
                     text = "Current boundary",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "This is a shell-only home. No biometric truth, trust-state branching, recovery behavior, or protected execution is decided here.",
+                    text = "This screen does not claim storage truth, trust-state authority, biometric access, or protected retrieval. It stays inside the current UI shell phase.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                ScreenSectionSpacer()
+                OutlinedButton(
+                    onClick = onBackToQuickCapture,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Back to Quick Capture")
+                }
             }
         }
         ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
+
+private val CaptureLibrarySpacing = 14.dp

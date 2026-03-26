@@ -115,11 +115,29 @@ internal fun resolveMainViewModelTrustUpdate(
 internal fun shouldMainViewModelExpireSession(uiState: UiState): Boolean =
     shouldMainViewModelExpireSession(
         uiState = uiState,
-        isAuthorized = SecurityAccessSession.isAuthorized()
+        isAuthorized = SecurityAccessSession.isAuthorized(),
+        trustState = SecurityRuleEngine.getTrustState().toDomainTrustState()
     )
 
 internal fun shouldMainViewModelExpireSession(
     uiState: UiState,
     isAuthorized: Boolean
 ): Boolean =
-    uiState is UiState.Authenticated && !isAuthorized
+    shouldMainViewModelExpireSession(
+        uiState = uiState,
+        isAuthorized = isAuthorized,
+        trustState = SecurityRuleEngine.getTrustState().toDomainTrustState()
+    )
+
+internal fun shouldMainViewModelExpireSession(
+    uiState: UiState,
+    isAuthorized: Boolean,
+    trustState: DomainTrustState
+): Boolean =
+    uiState is UiState.Authenticated &&
+            !isAuthorized &&
+            when (trustState) {
+                DomainTrustState.COMPROMISED -> true
+                DomainTrustState.DEGRADED -> true
+                DomainTrustState.VERIFIED -> true
+            }

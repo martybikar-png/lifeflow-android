@@ -234,4 +234,55 @@ class MainViewModelSessionAndRefreshTest : MainViewModelTestBase() {
             settleMain()
         }
     }
+
+    @Test
+    fun `foreground after authenticated background performs secure refresh when session remains valid`() {
+        SecurityAccessSession.grantDefault()
+        forceResetSecurityState(
+            state = TrustState.VERIFIED,
+            reason = "foreground recheck should refresh protected data when session remains valid"
+        )
+
+        val wellbeingRepo = FakeWellbeingRepository(
+            sdkStatusValue = WellbeingRepository.SdkStatus.Available,
+            requiredPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            grantedPermissionsValue = setOf(stepsPermission, heartRatePermission),
+            stepsValue = 4321L,
+            avgHeartRateValue = 71.6
+        )
+
+        val viewModel = newViewModel(wellbeingRepo = wellbeingRepo)
+
+        try {
+            settleMain()
+
+            viewModel.onAuthenticationSuccess()
+            settleMain()
+
+            viewModel.refreshMetricsAndTwinNow()
+            settleMain()
+
+            val initialTwin = viewModel.digitalTwinState.value
+            assertNotNull(initialTwin)
+            assertEquals(4321L, initialTwin!!.stepsLast24h)
+            assertEquals(72L, initialTwin.avgHeartRateLast24h)
+
+            viewModel.onAppBackgrounded()
+
+            wellbeingRepo.stepsValue = 2222L
+            wellbeingRepo.avgHeartRateValue = 73.9
+
+            viewModel.onAppForegrounded()
+            settleMain()
+
+            val refreshedTwin = viewModel.digitalTwinState.value
+            assertNotNull(refreshedTwin)
+            assertEquals(2222L, refreshedTwin!!.stepsLast24h)
+            assertEquals(74L, refreshedTwin.avgHeartRateLast24h)
+            assertTrue(viewModel.uiState.value is UiState.Authenticated)
+        } finally {
+            clearViewModel(viewModel)
+            settleMain()
+        }
+    }
 }

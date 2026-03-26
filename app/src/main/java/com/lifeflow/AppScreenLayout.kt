@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,10 +23,13 @@ import androidx.compose.ui.unit.dp
 private val ScreenOuterPadding = 20.dp
 private val SectionSpacing = 20.dp
 private val ScreenContentMaxWidth = 560.dp
+private val ScreenHeaderSpacing = 12.dp
 
 @Composable
 internal fun ScreenContainer(
     title: String,
+    showBackButton: Boolean = false,
+    onBack: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Box(
@@ -41,10 +45,22 @@ internal fun ScreenContainer(
                 .align(Alignment.TopCenter),
             verticalArrangement = Arrangement.Top
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ScreenHeaderSpacing)
+            ) {
+                if (showBackButton && onBack != null) {
+                    TextButton(onClick = onBack) {
+                        Text("Back")
+                    }
+                }
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
 
             Spacer(modifier = Modifier.height(SectionSpacing))
 
