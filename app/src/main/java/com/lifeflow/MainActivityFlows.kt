@@ -27,7 +27,7 @@ import kotlinx.coroutines.delay
 private const val INTRO_SPLASH_DURATION_MS = 3000L
 
 @Composable
-internal fun MainActivityContent(
+internal fun ActiveRuntimeContent(
     viewModel: MainViewModel,
     biometricAuthManager: BiometricAuthManager,
     appPackageName: String,
@@ -52,6 +52,7 @@ internal fun MainActivityContent(
                         viewModel.onAppBackgrounded()
                     }
                 }
+
                 else -> Unit
             }
         }
@@ -151,7 +152,7 @@ internal fun MainActivityContent(
         return
     }
 
-    MainActivityScreenRouter(
+    ActiveRuntimeScreenRouter(
         screen = screen,
         onAuthenticate = onAuthenticate,
         onGrantHealthPermissions = onGrantPermissions,

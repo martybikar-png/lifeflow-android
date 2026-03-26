@@ -3,7 +3,7 @@ package com.lifeflow
 import androidx.compose.runtime.Composable
 
 @Composable
-internal fun MainActivityScreenRouter(
+internal fun ActiveRuntimeScreenRouter(
     screen: MainActivityScreenSnapshot,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,

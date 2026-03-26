@@ -72,9 +72,9 @@ private fun MainActivityRootContent(
     }
 
     // Active runtime entry path:
-    // MainActivity -> MainActivityContent -> MainActivityScreenRouter -> protected/public UI state rendering.
-    // PublicShellNavHost is a separate shell flow and is not the main active entry path here.
-    MainActivityContent(
+    // MainActivity -> ActiveRuntimeContent -> ActiveRuntimeScreenRouter -> protected/public UI state rendering.
+    // PublicShellNavHost remains a separate shell flow and is not the active runtime entry here.
+    ActiveRuntimeContent(
         viewModel = requireNotNull(startupBindings.viewModel),
         biometricAuthManager = requireNotNull(startupBindings.biometricAuthManager),
         appPackageName = appPackageName,
