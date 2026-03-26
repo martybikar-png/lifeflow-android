@@ -68,7 +68,7 @@ class MainViewModel(
         observeSessionExpiry()
         currentTier.value = orchestrator.currentTier()
 
-        if (currentTier.value == TierState.FREE) {
+        if (isFreeTier()) {
             activateFreeTierUi()
         } else {
             wellbeingDelegate.refreshRequiredPermissionsDefinition()
@@ -79,6 +79,16 @@ class MainViewModel(
         isAuthorized = isSessionAuthorized(),
         trustState = trustStatePort.currentTrustState()
     )
+
+    private fun isFreeTier(): Boolean = currentTier.value == TierState.FREE
+
+    private fun canExposeProtectedUiDataNow(): Boolean {
+        return currentSecuritySnapshot().canExposeProtectedUiData(uiState.value)
+    }
+
+    private fun shouldQueueForegroundRefresh(): Boolean {
+        return !isFreeTier() && uiState.value is UiState.Authenticated
+    }
 
     internal fun isSessionAuthorizedForUi(): Boolean = isSessionAuthorized()
 
@@ -92,15 +102,17 @@ class MainViewModel(
         updateLastAction("LifeFlow Free active. Public state ready.")
     }
 
-    private fun triggerProtectedRefresh(lastActionMessage: String) {
+    private fun triggerRuntimeRefresh(lastActionMessage: String) {
         updateLastAction(lastActionMessage)
 
-        if (currentTier.value == TierState.FREE) {
+        if (isFreeTier()) {
             wellbeingDelegate.refreshPublicHealthStateOnly()
             return
         }
 
-        requestProtectedRefresh()
+        requestProtectedRefresh(
+            identityInitialized = uiState.value is UiState.Authenticated
+        )
     }
 
     private fun wipeUiCachesFailClosed() {
@@ -133,11 +145,11 @@ class MainViewModel(
         }
     }
 
-    private fun requestProtectedRefresh() {
+    private fun requestProtectedRefresh(identityInitialized: Boolean) {
         viewModelScope.launch {
             runCatching {
                 wellbeingDelegate.refreshWellbeingSnapshotSafe(
-                    identityInitialized = uiState.value is UiState.Authenticated
+                    identityInitialized = identityInitialized
                 )
             }.onFailure {
                 wellbeingDelegate.handleUnexpectedProtectedRefreshFailure()
@@ -146,7 +158,7 @@ class MainViewModel(
     }
 
     private suspend fun runAuthenticationBootstrap() {
-        if (currentTier.value == TierState.FREE) {
+        if (isFreeTier()) {
             authDelegate.clearSessionExpiryNotification()
             activateFreeTierUi()
             return
@@ -161,11 +173,13 @@ class MainViewModel(
                     markAuthenticated = { uiState.value = UiState.Authenticated }
                 )
             }
+
             is ActionResult.Locked -> {
                 authDelegate.completeAuthenticationBootstrapLocked(
                     message = mainViewModelLockedReasonToUserMessage(boot.reason)
                 )
             }
+
             is ActionResult.Error -> {
                 authDelegate.completeAuthenticationBootstrapError(boot.message)
             }
@@ -181,10 +195,10 @@ class MainViewModel(
     }
 
     fun refreshMetricsAndTwinNow() =
-        triggerProtectedRefresh("Manual dashboard refresh requested.")
+        triggerRuntimeRefresh("Manual dashboard refresh requested.")
 
     fun onHealthPermissionsResult(granted: Set<String>) =
-        triggerProtectedRefresh("Health permission result received (${granted.size} granted).")
+        triggerRuntimeRefresh("Health permission result received (${granted.size} granted).")
 
     fun onAuthenticationSuccess() {
         authDelegate.beginAuthenticationSuccessFlow(
@@ -199,12 +213,7 @@ class MainViewModel(
         authDelegate.handleAuthenticationError(message)
 
     fun onAppBackgrounded() {
-        if (currentTier.value == TierState.FREE) {
-            pendingForegroundRefresh = false
-            return
-        }
-
-        pendingForegroundRefresh = uiState.value is UiState.Authenticated
+        pendingForegroundRefresh = shouldQueueForegroundRefresh()
     }
 
     fun onAppForegrounded() {
@@ -217,8 +226,8 @@ class MainViewModel(
             return
         }
 
-        if (currentSecuritySnapshot().canExposeProtectedUiData(uiState.value)) {
-            triggerProtectedRefresh("Returned to foreground; secure refresh requested.")
+        if (canExposeProtectedUiDataNow()) {
+            triggerRuntimeRefresh("Returned to foreground; secure refresh requested.")
         }
     }
 
