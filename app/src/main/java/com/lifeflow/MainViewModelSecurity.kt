@@ -26,6 +26,27 @@ internal sealed interface MainViewModelTrustUpdate {
     data class LastAction(val message: String) : MainViewModelTrustUpdate
 }
 
+private fun isAuthenticatedUi(uiState: UiState): Boolean =
+    uiState is UiState.Authenticated
+
+private fun protectedEntryTrustStateBlockMessage(
+    trustState: DomainTrustState
+): String? =
+    when (trustState) {
+        DomainTrustState.COMPROMISED -> SECURITY_COMPROMISED_MESSAGE
+        DomainTrustState.DEGRADED -> SECURITY_DEGRADED_MESSAGE
+        DomainTrustState.VERIFIED -> null
+    }
+
+private fun requiresSessionExpiryForTrustState(
+    trustState: DomainTrustState
+): Boolean =
+    when (trustState) {
+        DomainTrustState.COMPROMISED,
+        DomainTrustState.DEGRADED,
+        DomainTrustState.VERIFIED -> true
+    }
+
 internal fun mainViewModelLockedReasonToUserMessage(reason: String): String =
     when {
         reason.startsWith("COMPROMISED:", ignoreCase = true) ->
@@ -52,9 +73,9 @@ internal fun canMainViewModelExposeProtectedUiData(
     isAuthorized: Boolean,
     trustState: DomainTrustState
 ): Boolean =
-    uiState is UiState.Authenticated &&
-            isAuthorized &&
-            trustState == DomainTrustState.VERIFIED
+    isAuthenticatedUi(uiState) &&
+        isAuthorized &&
+        trustState == DomainTrustState.VERIFIED
 
 internal fun mainViewModelProtectedEntryBlockMessage(
     isAuthorized: Boolean,
@@ -73,11 +94,7 @@ internal fun mainViewModelProtectedEntryBlockMessage(
         return AUTH_REQUIRED_MESSAGE
     }
 
-    return when (trustState) {
-        DomainTrustState.COMPROMISED -> SECURITY_COMPROMISED_MESSAGE
-        DomainTrustState.DEGRADED -> SECURITY_DEGRADED_MESSAGE
-        DomainTrustState.VERIFIED -> null
-    }
+    return protectedEntryTrustStateBlockMessage(trustState)
 }
 
 internal fun resolveMainViewModelTrustUpdate(
@@ -98,14 +115,14 @@ internal fun resolveMainViewModelTrustUpdate(
             MainViewModelTrustUpdate.FailClosed(SECURITY_COMPROMISED_MESSAGE)
 
         DomainTrustState.DEGRADED ->
-            if (uiState is UiState.Authenticated) {
+            if (isAuthenticatedUi(uiState)) {
                 MainViewModelTrustUpdate.FailClosed(SECURITY_DEGRADED_MESSAGE)
             } else {
                 MainViewModelTrustUpdate.NoOp
             }
 
         DomainTrustState.VERIFIED ->
-            if (uiState is UiState.Authenticated) {
+            if (isAuthenticatedUi(uiState)) {
                 MainViewModelTrustUpdate.LastAction("Security trust verified.")
             } else {
                 MainViewModelTrustUpdate.NoOp
@@ -134,10 +151,6 @@ internal fun shouldMainViewModelExpireSession(
     isAuthorized: Boolean,
     trustState: DomainTrustState
 ): Boolean =
-    uiState is UiState.Authenticated &&
-            !isAuthorized &&
-            when (trustState) {
-                DomainTrustState.COMPROMISED -> true
-                DomainTrustState.DEGRADED -> true
-                DomainTrustState.VERIFIED -> true
-            }
+    isAuthenticatedUi(uiState) &&
+        !isAuthorized &&
+        requiresSessionExpiryForTrustState(trustState)
