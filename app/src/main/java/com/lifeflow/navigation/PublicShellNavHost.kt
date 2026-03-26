@@ -24,7 +24,7 @@ internal fun PublicShellNavHost(
     onEnterProtectedFlow: () -> Unit = {}
 ) {
     var shellLastAction by rememberSaveable {
-        mutableStateOf("Public shell navigation ready.")
+        mutableStateOf("Public shell flow ready.")
     }
 
     var currentRoute by rememberSaveable {
@@ -61,7 +61,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow not entered yet",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.onboardingWelcome.route}"
                     )
                 )
@@ -80,7 +80,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow not entered yet",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.onboardingPermissions.route}"
                     )
                 )
@@ -99,7 +99,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow not entered yet",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.onboardingPrivacy.route}"
                     )
                 )
@@ -122,7 +122,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.home.route}"
                     )
                 )
@@ -145,7 +145,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.quickCapture.route}"
                     )
                 )
@@ -160,7 +160,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.captureEntry.route}"
                     )
                 )
@@ -175,7 +175,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.captureLibrary.route}"
                     )
                 )
@@ -194,7 +194,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.trust.route}"
                     )
                 )
@@ -217,7 +217,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.settings.route}"
                     )
                 )
@@ -240,7 +240,7 @@ internal fun PublicShellNavHost(
                     },
                     debugLines = listOf(
                         "Public shell mode active",
-                        "Protected flow bypassed for shell-only navigation",
+                        "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.privacy.route}"
                     )
                 )
