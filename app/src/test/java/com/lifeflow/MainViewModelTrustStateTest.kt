@@ -27,6 +27,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
             assertTrue(viewModel.uiState.value is UiState.Error)
             assertTrue(viewModel.uiState.value !is UiState.Authenticated)
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
@@ -53,6 +54,7 @@ class MainViewModelTrustStateTest : MainViewModelTestBase() {
             assertTrue(error.message.contains("Reset vault is required"))
             assertTrue(viewModel.uiState.value !is UiState.Authenticated)
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
