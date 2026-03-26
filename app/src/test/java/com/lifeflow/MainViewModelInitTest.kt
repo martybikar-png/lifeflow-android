@@ -29,6 +29,7 @@ class MainViewModelInitTest : MainViewModelTestBase() {
                 viewModel.requiredHealthPermissions.value
             )
             assertNull(viewModel.healthPermissionsInitError.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.uiState.value is UiState.Loading)
         } finally {
             clearViewModel(viewModel)
@@ -58,6 +59,7 @@ class MainViewModelInitTest : MainViewModelTestBase() {
             )
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertNull(viewModel.healthPermissionsInitError.value)
         } finally {
             clearViewModel(viewModel)
@@ -83,6 +85,7 @@ class MainViewModelInitTest : MainViewModelTestBase() {
 
             assertTrue(viewModel.requiredHealthPermissions.value.isEmpty())
             assertNotNull(viewModel.healthPermissionsInitError.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(
                 viewModel.healthPermissionsInitError.value!!.contains("IllegalStateException")
             )
