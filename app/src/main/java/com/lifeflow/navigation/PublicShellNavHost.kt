@@ -20,8 +20,7 @@ import com.lifeflow.TrustScreen
 
 @Composable
 internal fun PublicShellNavHost(
-    modifier: Modifier = Modifier,
-    onEnterProtectedFlow: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     var shellLastAction by rememberSaveable {
         mutableStateOf("Public shell flow ready.")
