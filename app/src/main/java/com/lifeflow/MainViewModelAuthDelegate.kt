@@ -12,6 +12,14 @@ internal class MainViewModelAuthDelegate(
     private val currentUiState: () -> UiState = { UiState.Loading }
 ) {
 
+    private fun protectedEntryBlockMessage(): String? {
+        return currentSecuritySnapshot().protectedEntryBlockMessage()
+    }
+
+    private fun shouldExpireSession(): Boolean {
+        return currentSecuritySnapshot().shouldExpireSession(currentUiState())
+    }
+
     private fun applyFailClosedState(clearSession: Boolean) {
         if (clearSession) {
             clearSession()
@@ -19,6 +27,13 @@ internal class MainViewModelAuthDelegate(
 
         wipeUiCachesFailClosed()
         setSessionExpiryNotified(false)
+    }
+
+    private fun failClosedAuthentication(message: String, clearSession: Boolean = true) {
+        failClosedWithError(
+            message = message,
+            clearSession = clearSession
+        )
     }
 
     fun failClosedWithError(
@@ -31,15 +46,15 @@ internal class MainViewModelAuthDelegate(
     }
 
     fun ensureProtectedEntryAllowed(): Boolean {
-        val blockedMessage = currentSecuritySnapshot().protectedEntryBlockMessage()
+        val blockedMessage = protectedEntryBlockMessage()
 
-        if (blockedMessage != null) {
-            failClosedWithError(blockedMessage)
-            return false
+        if (blockedMessage == null) {
+            updateLastAction("Authentication verified. Bootstrapping identity...")
+            return true
         }
 
-        updateLastAction("Authentication verified. Bootstrapping identity...")
-        return true
+        failClosedAuthentication(blockedMessage)
+        return false
     }
 
     fun beginAuthenticationSuccessFlow(setUiStateLoading: () -> Unit) =
@@ -53,12 +68,10 @@ internal class MainViewModelAuthDelegate(
         }
 
     fun completeAuthenticationBootstrapLocked(message: String) =
-        failClosedWithError(
-            message = message,
-            clearSession = true
-        )
+        failClosedAuthentication(message)
 
-    fun completeAuthenticationBootstrapError(message: String) = failClosedWithError(message)
+    fun completeAuthenticationBootstrapError(message: String) =
+        failClosedAuthentication(message)
 
     fun handleObservedTrustState(trustState: TrustState) =
         handleTrustUpdate(
@@ -75,15 +88,16 @@ internal class MainViewModelAuthDelegate(
             MainViewModelTrustUpdate.NoOp -> Unit
         }
 
-    fun handleAuthenticationError(message: String) = failClosedWithError(message)
+    fun handleAuthenticationError(message: String) =
+        failClosedAuthentication(message)
 
     fun handleSessionPollTick(alreadyNotified: Boolean) {
-        if (!currentSecuritySnapshot().shouldExpireSession(currentUiState())) {
-            clearSessionExpiryNotification()
+        if (shouldExpireSession()) {
+            handleSessionExpiryIfNeeded(alreadyNotified)
             return
         }
 
-        handleSessionExpiryIfNeeded(alreadyNotified)
+        clearSessionExpiryNotification()
     }
 
     fun handleSessionExpiryIfNeeded(alreadyNotified: Boolean) {
@@ -92,7 +106,7 @@ internal class MainViewModelAuthDelegate(
         }
 
         setSessionExpiryNotified(true)
-        failClosedWithError(MAIN_VIEW_MODEL_SESSION_EXPIRED_MESSAGE)
+        failClosedAuthentication(MAIN_VIEW_MODEL_SESSION_EXPIRED_MESSAGE)
     }
 
     fun clearSessionExpiryNotification() = setSessionExpiryNotified(false)
