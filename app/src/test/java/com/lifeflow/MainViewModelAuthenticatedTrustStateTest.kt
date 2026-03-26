@@ -38,6 +38,7 @@ class MainViewModelAuthenticatedTrustStateTest : MainViewModelTestBase() {
             settleMain()
 
             assertNotNull(viewModel.digitalTwinState.value)
+            assertNotNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
 
             forceResetSecurityState(
@@ -49,6 +50,7 @@ class MainViewModelAuthenticatedTrustStateTest : MainViewModelTestBase() {
             assertTrue(viewModel.uiState.value is UiState.Error)
             assertTrue(viewModel.uiState.value !is UiState.Authenticated)
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
@@ -85,6 +87,7 @@ class MainViewModelAuthenticatedTrustStateTest : MainViewModelTestBase() {
             settleMain()
 
             assertNotNull(viewModel.digitalTwinState.value)
+            assertNotNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
 
             forceResetSecurityState(
@@ -98,6 +101,7 @@ class MainViewModelAuthenticatedTrustStateTest : MainViewModelTestBase() {
             assertTrue(error.message.contains("Security compromised"))
             assertTrue(error.message.contains("Reset vault is required"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
             assertTrue(!SecurityAccessSession.isAuthorized())
         } finally {
