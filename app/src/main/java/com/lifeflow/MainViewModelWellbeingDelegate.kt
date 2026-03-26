@@ -25,22 +25,37 @@ internal class MainViewModelWellbeingDelegate(
     private val updateLastAction: (String) -> Unit
 ) {
 
+    private fun canExposeProtectedUiData(): Boolean {
+        return currentSecuritySnapshot().canExposeProtectedUiData(currentUiState())
+    }
+
+    private fun refreshPublicHealthStateWithMessage(message: String) {
+        refreshPublicHealthStateOnly()
+        updateLastAction(message)
+    }
+
     fun refreshRequiredPermissionsDefinition() {
         val (requiredPermissionsValue, initErrorValue, lastActionMessage) =
             when (val res = orchestrator.requiredHealthPermissionsSafe()) {
                 is ActionResult.Success -> Triple(
-                    res.value, null,
+                    res.value,
+                    null,
                     "Health permission contract loaded (${res.value.size} required)."
                 )
+
                 is ActionResult.Error -> Triple(
-                    emptySet(), res.message,
+                    emptySet(),
+                    res.message,
                     "Health permission contract failed to load."
                 )
+
                 is ActionResult.Locked -> Triple(
-                    emptySet(), res.reason,
+                    emptySet(),
+                    res.reason,
                     "Health permission contract locked."
                 )
             }
+
         requiredHealthPermissions.value = requiredPermissionsValue
         healthPermissionsInitError.value = initErrorValue
         updateLastAction(lastActionMessage)
@@ -50,17 +65,20 @@ internal class MainViewModelWellbeingDelegate(
         healthConnectState.value = runCatching {
             orchestrator.healthConnectUiState()
         }.getOrElse { HealthConnectUiState.Unknown }
+
         updateLastAction("Health Connect state checked: ${healthConnectState.value}.")
     }
 
     fun refreshPublicHealthStateOnly() {
         refreshHealthConnectStatusSafe()
         refreshRequiredPermissionsDefinition()
+
         val update = mainViewModelPublicHealthStateOnlyUiUpdate(
             healthConnectState = healthConnectState.value,
             requiredHealthPermissions = requiredHealthPermissions.value,
             healthPermissionsInitError = healthPermissionsInitError.value
         )
+
         applyMainViewModelWellbeingUiUpdate(
             update = update,
             healthConnectStateState = healthConnectState,
@@ -76,6 +94,7 @@ internal class MainViewModelWellbeingDelegate(
     fun handleUnexpectedProtectedRefreshFailure() {
         val wasAuthenticated = currentUiState() is UiState.Authenticated
         refreshPublicHealthStateOnly()
+
         if (wasAuthenticated) {
             failClosedWithError(MAIN_VIEW_MODEL_UNEXPECTED_REFRESH_FAILURE_MESSAGE, true)
         } else {
@@ -84,11 +103,12 @@ internal class MainViewModelWellbeingDelegate(
     }
 
     fun applyWellbeingSnapshot(snapshot: WellbeingRefreshSnapshot) {
-        val update = if (currentSecuritySnapshot().canExposeProtectedUiData(currentUiState())) {
+        val update = if (canExposeProtectedUiData()) {
             mainViewModelProtectedSnapshotUiUpdate(snapshot)
         } else {
             mainViewModelProtectedSnapshotFailClosedUiUpdate(snapshot)
         }
+
         applyMainViewModelWellbeingUiUpdate(
             update = update,
             healthConnectStateState = healthConnectState,
@@ -103,23 +123,26 @@ internal class MainViewModelWellbeingDelegate(
 
     suspend fun refreshWellbeingSnapshotSafe(identityInitialized: Boolean) {
         refreshMutex.withLock {
-            val canExposeProtectedUiData =
-                currentSecuritySnapshot().canExposeProtectedUiData(currentUiState())
-            if (!canExposeProtectedUiData) {
-                refreshPublicHealthStateOnly()
-                updateLastAction(MAIN_VIEW_MODEL_REFRESH_BLOCKED_MESSAGE)
+            if (!canExposeProtectedUiData()) {
+                refreshPublicHealthStateWithMessage(MAIN_VIEW_MODEL_REFRESH_BLOCKED_MESSAGE)
                 return@withLock
             }
+
             updateLastAction("Refreshing protected wellbeing snapshot...")
+
             when (val res = orchestrator.refreshWellbeingSnapshot(identityInitialized)) {
                 is ActionResult.Success -> applyWellbeingSnapshot(res.value)
+
                 is ActionResult.Error -> {
-                    refreshPublicHealthStateOnly()
-                    updateLastAction("Protected refresh failed. Public state kept available.")
+                    refreshPublicHealthStateWithMessage(
+                        "Protected refresh failed. Public state kept available."
+                    )
                 }
+
                 is ActionResult.Locked -> {
                     failClosedWithError(
-                        mainViewModelLockedReasonToUserMessage(res.reason), true
+                        mainViewModelLockedReasonToUserMessage(res.reason),
+                        true
                     )
                 }
             }
