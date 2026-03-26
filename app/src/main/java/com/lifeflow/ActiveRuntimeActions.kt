@@ -6,7 +6,7 @@ import android.provider.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.lifeflow.security.BiometricAuthManager
 
-internal fun requestRefreshWithUiFeedback(
+internal fun requestActiveRuntimeRefreshWithUiFeedback(
     viewModel: MainViewModel,
     requestMessage: String,
     setLastAction: (String) -> Unit
@@ -22,7 +22,7 @@ internal fun requestRefreshWithUiFeedback(
     }
 }
 
-internal fun openHealthConnectSettingsWithFallback(
+internal fun openActiveRuntimeHealthConnectSettingsWithFallback(
     appPackageName: String,
     onStartIntent: (Intent) -> Unit,
     onSettingsOpened: () -> Unit,
@@ -56,7 +56,7 @@ internal fun openHealthConnectSettingsWithFallback(
     }
 }
 
-internal fun requestBiometricAuthentication(
+internal fun requestActiveRuntimeBiometricAuthentication(
     biometricAuthManager: BiometricAuthManager,
     viewModel: MainViewModel,
     setLastAction: (String) -> Unit

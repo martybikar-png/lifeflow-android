@@ -63,11 +63,11 @@ internal fun ActiveRuntimeContent(
         }
     }
 
-    HandlePendingResumeAction(
+    HandleActiveRuntimePendingResumeAction(
         pending = pendingSettingsRefresh,
         onConsumePending = { pendingSettingsRefresh = false },
         onResumeAction = {
-            requestRefreshWithUiFeedback(
+            requestActiveRuntimeRefreshWithUiFeedback(
                 viewModel = viewModel,
                 requestMessage = "Returned from settings; refresh requested",
                 setLastAction = ::setLastAction
@@ -76,7 +76,7 @@ internal fun ActiveRuntimeContent(
     )
 
     LaunchedEffect(Unit) {
-        requestRefreshWithUiFeedback(
+        requestActiveRuntimeRefreshWithUiFeedback(
             viewModel = viewModel,
             requestMessage = "Startup refresh requested",
             setLastAction = ::setLastAction
@@ -102,7 +102,7 @@ internal fun ActiveRuntimeContent(
 
     LaunchedEffect(screen.uiState is UiState.Authenticated) {
         if (screen.uiState is UiState.Authenticated) {
-            requestRefreshWithUiFeedback(
+            requestActiveRuntimeRefreshWithUiFeedback(
                 viewModel = viewModel,
                 requestMessage = "Post-auth refresh requested",
                 setLastAction = ::setLastAction
@@ -126,7 +126,7 @@ internal fun ActiveRuntimeContent(
     }
 
     val onOpenHealthConnectSettings: () -> Unit = {
-        openHealthConnectSettingsWithFallback(
+        openActiveRuntimeHealthConnectSettingsWithFallback(
             appPackageName = appPackageName,
             onStartIntent = onStartIntent,
             onSettingsOpened = { pendingSettingsRefresh = true },
@@ -136,7 +136,7 @@ internal fun ActiveRuntimeContent(
     }
 
     val onAuthenticate: () -> Unit = {
-        requestBiometricAuthentication(
+        requestActiveRuntimeBiometricAuthentication(
             biometricAuthManager = biometricAuthManager,
             viewModel = viewModel,
             setLastAction = ::setLastAction
@@ -158,7 +158,7 @@ internal fun ActiveRuntimeContent(
         onGrantHealthPermissions = onGrantPermissions,
         onOpenHealthConnectSettings = onOpenHealthConnectSettings,
         onRefreshNow = {
-            requestRefreshWithUiFeedback(
+            requestActiveRuntimeRefreshWithUiFeedback(
                 viewModel = viewModel,
                 requestMessage = "Manual refresh requested",
                 setLastAction = ::setLastAction
