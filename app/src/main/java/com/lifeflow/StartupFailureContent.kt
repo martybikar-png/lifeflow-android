@@ -46,7 +46,7 @@ internal fun StartupFailureContent(
         }
     }
 
-    HandleActiveRuntimePendingResumeAction(
+    HandleStartupFailurePendingResumeAction(
         pending = pendingSettingsRetry,
         onConsumePending = { pendingSettingsRetry = false },
         onResumeAction = {
