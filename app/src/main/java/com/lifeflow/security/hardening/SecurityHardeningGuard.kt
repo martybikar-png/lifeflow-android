@@ -9,7 +9,7 @@ import java.io.File
  * SecurityHardeningGuard — protective shell around LifeFlow core.
  *
  * Checks: Root, Debugger, Emulator, Instrumentation/Hooking detection, Installer trust,
- * and lightweight tamper signals.
+ * tamper signals, APK signature verification, and runtime integrity.
  *
  * Fail-closed: CRITICAL finding blocks vault initialization.
  * DEGRADED: emulator and installer trust warnings are surfaced but not blocked.
@@ -51,10 +51,13 @@ object SecurityHardeningGuard {
         val instrumentationDetected: Boolean,
         val installerTrustWarningDetected: Boolean,
         val tamperSignalDetected: Boolean,
+        val signatureInvalid: Boolean,
+        val runtimeIntegrityFailed: Boolean,
         val findings: List<String>
     ) {
         val isCritical: Boolean
-            get() = rootDetected || debuggerDetected || instrumentationDetected || tamperSignalDetected
+            get() = rootDetected || debuggerDetected || instrumentationDetected || 
+                    tamperSignalDetected || signatureInvalid || runtimeIntegrityFailed
 
         val isDegraded: Boolean
             get() = emulatorDetected || installerTrustWarningDetected
@@ -65,12 +68,21 @@ object SecurityHardeningGuard {
 
     fun assess(context: Context): HardeningReport {
         val findings = mutableListOf<String>()
+        
+        // Original checks
         val rootDetected = detectRoot(context, findings)
         val debuggerDetected = detectDebugger(findings)
         val emulatorDetected = detectEmulator(findings)
         val instrumentationDetected = detectInstrumentation(context, findings)
         val installerTrustWarningDetected = detectInstallerTrust(context, findings)
         val tamperSignalDetected = detectTamperSignal(findings)
+        
+        // New checks (Phase 19-21)
+        val signatureResult = ApkSignatureVerifier.verify(context)
+        findings += signatureResult.findings
+        
+        val integrityResult = RuntimeIntegrityCheck.check()
+        findings += integrityResult.findings
 
         return HardeningReport(
             rootDetected = rootDetected,
@@ -79,8 +91,18 @@ object SecurityHardeningGuard {
             instrumentationDetected = instrumentationDetected,
             installerTrustWarningDetected = installerTrustWarningDetected,
             tamperSignalDetected = tamperSignalDetected,
+            signatureInvalid = !signatureResult.isValid,
+            runtimeIntegrityFailed = !integrityResult.isClean,
             findings = findings
         )
+    }
+
+    /**
+     * Quick integrity check for hot paths.
+     * Returns true if immediate compromise is detected.
+     */
+    fun isCompromisedQuick(): Boolean {
+        return RuntimeIntegrityCheck.isCompromised()
     }
 
     private fun detectRoot(context: Context, findings: MutableList<String>): Boolean {
