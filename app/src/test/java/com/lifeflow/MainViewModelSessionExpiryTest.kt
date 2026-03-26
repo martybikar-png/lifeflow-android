@@ -38,6 +38,7 @@ class MainViewModelSessionExpiryTest : MainViewModelTestBase() {
             settleMain()
 
             assertNotNull(viewModel.digitalTwinState.value)
+            assertNotNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
 
             SecurityAccessSession.clear()
@@ -47,6 +48,7 @@ class MainViewModelSessionExpiryTest : MainViewModelTestBase() {
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Session expired"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
@@ -83,6 +85,7 @@ class MainViewModelSessionExpiryTest : MainViewModelTestBase() {
 
             assertTrue(viewModel.uiState.value is UiState.Authenticated)
             assertNotNull(viewModel.digitalTwinState.value)
+            assertNotNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isNotEmpty())
 
             SecurityAccessSession.clear()
@@ -93,6 +96,7 @@ class MainViewModelSessionExpiryTest : MainViewModelTestBase() {
             val error = viewModel.uiState.value as UiState.Error
             assertTrue(error.message.contains("Session expired"))
             assertNull(viewModel.digitalTwinState.value)
+            assertNull(viewModel.wellbeingAssessment.value)
             assertTrue(viewModel.grantedHealthPermissions.value.isEmpty())
         } finally {
             clearViewModel(viewModel)
