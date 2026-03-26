@@ -21,24 +21,65 @@ internal fun AuthenticatedDashboardScreen(
     onReAuthenticate: () -> Unit,
     debugLines: List<String>
 ) {
+    val dashboardState = resolveDashboardState(
+        healthState = healthState,
+        requiredCount = requiredCount,
+        grantedCount = grantedCount,
+        digitalTwinState = digitalTwinState,
+        wellbeingAssessment = wellbeingAssessment
+    )
+
     ScreenContainer(title = "LifeFlow Dashboard") {
-        GuidanceCard(
-            title = "Protected dashboard",
-            leadingIconResId = R.drawable.lf_ic_focus,
-            message = "This dashboard reflects the current protected wellbeing state, Digital Twin readiness, and next safe actions without redefining trust truth or bypassing orchestration."
+        // Welcome card with state-aware messaging
+        DashboardWelcomeCard(
+            state = dashboardState,
+            onPrimaryAction = {
+                when (dashboardState) {
+                    DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
+                    DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
+                    DashboardState.LOADING, DashboardState.NO_DATA -> onRefreshNow()
+                    DashboardState.ATTENTION, DashboardState.READY -> onRefreshNow()
+                }
+            }
         )
 
         ScreenSectionSpacer()
 
-        DashboardStatusCard(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
+        // Priority: Show actions first if user needs to do something
+        if (dashboardState in listOf(
+                DashboardState.HC_UNAVAILABLE,
+                DashboardState.NEEDS_PERMISSIONS
+            )
+        ) {
+            DashboardActionsCard(
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                digitalTwinState = digitalTwinState,
+                onRefreshNow = onRefreshNow,
+                onGrantHealthPermissions = onGrantHealthPermissions,
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
+                onReAuthenticate = onReAuthenticate
+            )
+            ScreenSectionSpacer()
+        }
+
+        // Wellbeing first when we have data
+        if (wellbeingAssessment != null) {
+            WellbeingAssessmentCard(
+                wellbeingAssessment = wellbeingAssessment
+            )
+            ScreenSectionSpacer()
+        }
+
+        // Digital Twin
+        DigitalTwinCard(
             digitalTwinState = digitalTwinState
         )
 
         ScreenSectionSpacer()
 
+        // Health summary
         HealthSummaryCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -49,28 +90,32 @@ internal fun AuthenticatedDashboardScreen(
 
         ScreenSectionSpacer()
 
-        DigitalTwinCard(
-            digitalTwinState = digitalTwinState
-        )
-
-        ScreenSectionSpacer()
-
-        WellbeingAssessmentCard(
-            wellbeingAssessment = wellbeingAssessment
-        )
-
-        ScreenSectionSpacer()
-
-        DashboardActionsCard(
+        // Dashboard status (detailed)
+        DashboardStatusCard(
             healthState = healthState,
             requiredCount = requiredCount,
             grantedCount = grantedCount,
-            digitalTwinState = digitalTwinState,
-            onRefreshNow = onRefreshNow,
-            onGrantHealthPermissions = onGrantHealthPermissions,
-            onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-            onReAuthenticate = onReAuthenticate
+            digitalTwinState = digitalTwinState
         )
+
+        // Actions at bottom if not shown at top
+        if (dashboardState !in listOf(
+                DashboardState.HC_UNAVAILABLE,
+                DashboardState.NEEDS_PERMISSIONS
+            )
+        ) {
+            ScreenSectionSpacer()
+            DashboardActionsCard(
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                digitalTwinState = digitalTwinState,
+                onRefreshNow = onRefreshNow,
+                onGrantHealthPermissions = onGrantHealthPermissions,
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
+                onReAuthenticate = onReAuthenticate
+            )
+        }
 
         ScreenFooter(
             lastAction = lastAction,
