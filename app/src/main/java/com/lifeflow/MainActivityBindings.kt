@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import com.lifeflow.security.BiometricAuthManager
 
 internal fun FragmentActivity.resolveStartupBindings(
-    app: LifeFlowApplication
+    startupRuntimeEntryPoint: StartupRuntimeEntryPoint
 ): StartupBindings {
-    val startupReady = app.ensureStartupInitialized()
+    val startupReady = startupRuntimeEntryPoint.ensureStarted()
 
     if (!startupReady) {
         return StartupBindings(
@@ -21,9 +21,12 @@ internal fun FragmentActivity.resolveStartupBindings(
         startupReady = true,
         viewModel = ViewModelProvider(
             this,
-            app.mainViewModelFactory
+            startupRuntimeEntryPoint.requireMainViewModelFactory()
         )[MainViewModel::class.java],
-        biometricAuthManager = BiometricAuthManager(this)
+        biometricAuthManager = BiometricAuthManager(
+            activity = this,
+            authPerUseCryptoProvider = startupRuntimeEntryPoint.authPerUseCryptoProviderOrNull()
+        )
     )
 }
 

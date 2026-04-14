@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.lifeflow.security.BiometricAuthManager
+import com.lifeflow.security.SecurityVaultResetAuthorization
 
 internal fun requestActiveRuntimeRefreshWithUiFeedback(
     viewModel: MainViewModel,
@@ -70,6 +71,45 @@ internal fun requestActiveRuntimeBiometricAuthentication(
         onError = { msg ->
             val resolvedMessage = msg.ifBlank { "Unknown biometric error" }
             setLastAction("Biometric authentication failed: $resolvedMessage")
+            viewModel.onAuthenticationError(resolvedMessage)
+        }
+    )
+}
+
+internal fun requestActiveRuntimeVaultResetAuthentication(
+    biometricAuthManager: BiometricAuthManager,
+    viewModel: MainViewModel,
+    setLastAction: (String) -> Unit
+) {
+    setLastAction("Vault reset authentication requested")
+
+    if (biometricAuthManager.hasAuthPerUseCrypto()) {
+        biometricAuthManager.authenticateForAuthPerUseCrypto(
+            onSuccess = {
+                SecurityVaultResetAuthorization.grantFreshAuthorization()
+                setLastAction("Vault reset auth-per-use authentication succeeded")
+                viewModel.resetVault()
+            },
+            onError = { msg ->
+                SecurityVaultResetAuthorization.clear()
+                val resolvedMessage = msg.ifBlank { "Unknown biometric error" }
+                setLastAction("Vault reset authentication failed: $resolvedMessage")
+                viewModel.onAuthenticationError(resolvedMessage)
+            }
+        )
+        return
+    }
+
+    biometricAuthManager.authenticate(
+        onSuccess = {
+            SecurityVaultResetAuthorization.grantFreshAuthorization()
+            setLastAction("Vault reset biometric authentication succeeded")
+            viewModel.resetVault()
+        },
+        onError = { msg ->
+            SecurityVaultResetAuthorization.clear()
+            val resolvedMessage = msg.ifBlank { "Unknown biometric error" }
+            setLastAction("Vault reset authentication failed: $resolvedMessage")
             viewModel.onAuthenticationError(resolvedMessage)
         }
     )

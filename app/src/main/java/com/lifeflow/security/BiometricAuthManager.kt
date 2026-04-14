@@ -6,18 +6,63 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.lifeflow.security.audit.SecurityAuditLog
 import com.lifeflow.security.audit.SecurityAuditLog.EventType
-import com.lifeflow.security.audit.SecurityAuditLog.Severity
 
-class BiometricAuthManager(
-    private val activity: FragmentActivity
+internal class BiometricAuthManager(
+    private val activity: FragmentActivity,
+    private val authPerUseCryptoProvider: SecurityAuthPerUseCryptoProvider? = null
 ) {
+
+    fun hasAuthPerUseCrypto(): Boolean = authPerUseCryptoProvider != null
 
     fun authenticate(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        val biometricManager = BiometricManager.from(activity)
+        authenticateInternal(
+            cryptoObject = null,
+            onSuccess = { onSuccess() },
+            onError = onError
+        )
+    }
 
+    fun authenticateForAuthPerUseCrypto(
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val provider = authPerUseCryptoProvider
+        if (provider == null) {
+            failClosed(
+                onError = onError,
+                message = "Auth-per-use crypto is not available on this device."
+            )
+            return
+        }
+
+        authenticateWithCryptoObject(
+            cryptoObject = provider.createEncryptCryptoObject(),
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    fun authenticateWithCryptoObject(
+        cryptoObject: BiometricPrompt.CryptoObject,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        authenticateInternal(
+            cryptoObject = cryptoObject,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    private fun authenticateInternal(
+        cryptoObject: BiometricPrompt.CryptoObject?,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val biometricManager = BiometricManager.from(activity)
         val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
         val canAuthenticate = biometricManager.canAuthenticate(authenticators)
@@ -56,14 +101,78 @@ class BiometricAuthManager(
                         return
                     }
 
-                    SecurityAccessSession.grantDefault()
+                    if (cryptoObject != null && result.cryptoObject == null) {
+                        SecurityAuditLog.critical(
+                            EventType.AUTH_FAILURE,
+                            "CryptoObject missing after biometric success"
+                        )
+                        failClosed(
+                            onError = onError,
+                            message = "Biometric verified, but secure crypto binding was missing."
+                        )
+                        return
+                    }
+
+                    if (cryptoObject != null) {
+                        val provider = authPerUseCryptoProvider
+                        if (provider == null) {
+                            SecurityAuditLog.critical(
+                                EventType.AUTH_FAILURE,
+                                "Auth-per-use crypto provider missing"
+                            )
+                            failClosed(
+                                onError = onError,
+                                message = "Biometric verified, but auth-per-use crypto provider was missing."
+                            )
+                            return
+                        }
+
+                        val proofResult = runCatching {
+                            provider.completeEncryptProof(result)
+                        }
+
+                        val proof = proofResult.getOrElse { throwable ->
+                            SecurityAuditLog.critical(
+                                EventType.AUTH_FAILURE,
+                                "Auth-per-use crypto proof failed",
+                                mapOf(
+                                    "errorType" to throwable::class.java.simpleName,
+                                    "errorMessage" to (throwable.message ?: "unknown")
+                                )
+                            )
+                            failClosed(
+                                onError = onError,
+                                message = "Biometric verified, but auth-per-use crypto proof failed."
+                            )
+                            return
+                        }
+
+                        if (proof.isEmpty()) {
+                            SecurityAuditLog.critical(
+                                EventType.AUTH_FAILURE,
+                                "Auth-per-use crypto proof returned empty payload"
+                            )
+                            failClosed(
+                                onError = onError,
+                                message = "Biometric verified, but auth-per-use crypto proof was empty."
+                            )
+                            return
+                        }
+
+                        SecurityAuditLog.info(
+                            EventType.AUTH_SUCCESS,
+                            "Auth-per-use crypto proof completed"
+                        )
+                    }
+
+                    SecurityAccessSession.grantDefault(activity.applicationContext)
 
                     SecurityRuleEngine.setTrustState(
                         TrustState.VERIFIED,
                         reason = "Biometric verified"
                     )
 
-                    val sessionOk = SecurityAccessSession.isAuthorized()
+                    val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
                     val trustOk = SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
 
                     if (sessionOk && trustOk) {
@@ -73,18 +182,21 @@ class BiometricAuthManager(
                         )
                         SecurityAuditLog.info(
                             EventType.SESSION_CREATED,
-                            "Security session established"
+                            "Security session established with device binding"
                         )
                         SecurityAuditLog.info(
                             EventType.TRUST_VERIFIED,
                             "Trust state set to VERIFIED"
                         )
-                        onSuccess()
+                        onSuccess(result)
                     } else {
                         SecurityAuditLog.critical(
                             EventType.AUTH_FAILURE,
                             "Session establishment failed post-auth",
-                            mapOf("sessionOk" to sessionOk.toString(), "trustOk" to trustOk.toString())
+                            mapOf(
+                                "sessionOk" to sessionOk.toString(),
+                                "trustOk" to trustOk.toString()
+                            )
                         )
                         failClosed(
                             onError = onError,
@@ -124,7 +236,11 @@ class BiometricAuthManager(
             .setNegativeButtonText("Cancel")
             .build()
 
-        biometricPrompt.authenticate(promptInfo)
+        if (cryptoObject == null) {
+            biometricPrompt.authenticate(promptInfo)
+        } else {
+            biometricPrompt.authenticate(promptInfo, cryptoObject)
+        }
     }
 
     private fun failClosed(

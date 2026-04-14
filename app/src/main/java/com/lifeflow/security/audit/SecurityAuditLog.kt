@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * SecurityAuditLog — tamper-evident log of security events.
- * 
+ *
  * Rules:
  * - Never log sensitive data (passwords, keys, PII)
  * - Log only security-relevant events
@@ -41,9 +41,18 @@ object SecurityAuditLog {
         VAULT_ACCESSED,
         VAULT_WRITE,
         VAULT_RESET,
+        VAULT_RESET_AUTH_GRANTED,
+        VAULT_RESET_AUTH_CONSUMED,
+        VAULT_RESET_AUTH_EXPIRED,
+        VAULT_RESET_AUTH_DENIED,
+        VAULT_RESET_AUTH_CLEARED,
         RECOVERY_INITIATED,
         RECOVERY_COMPLETED,
         RECOVERY_FAILED,
+        BREAK_GLASS_APPROVED,
+        BREAK_GLASS_EXPIRED,
+        BREAK_GLASS_CLEARED,
+        BREAK_GLASS_REJECTED,
         POLICY_VIOLATION,
         INVARIANT_VIOLATION
     }
@@ -64,7 +73,7 @@ object SecurityAuditLog {
     ) {
         val sanitizedMetadata = metadata.mapValues { sanitize(it.value) }
         val sanitizedMessage = sanitize(message)
-        
+
         val entry = AuditEntry(
             timestamp = Instant.now(),
             eventType = eventType,
@@ -72,23 +81,35 @@ object SecurityAuditLog {
             message = sanitizedMessage,
             metadata = sanitizedMetadata
         )
-        
+
         entries.add(entry)
-        
+
         while (entries.size > MAX_ENTRIES) {
             entries.poll()
         }
     }
 
-    fun info(eventType: EventType, message: String, metadata: Map<String, String> = emptyMap()) {
+    fun info(
+        eventType: EventType,
+        message: String,
+        metadata: Map<String, String> = emptyMap()
+    ) {
         log(eventType, Severity.INFO, message, metadata)
     }
 
-    fun warning(eventType: EventType, message: String, metadata: Map<String, String> = emptyMap()) {
+    fun warning(
+        eventType: EventType,
+        message: String,
+        metadata: Map<String, String> = emptyMap()
+    ) {
         log(eventType, Severity.WARNING, message, metadata)
     }
 
-    fun critical(eventType: EventType, message: String, metadata: Map<String, String> = emptyMap()) {
+    fun critical(
+        eventType: EventType,
+        message: String,
+        metadata: Map<String, String> = emptyMap()
+    ) {
         log(eventType, Severity.CRITICAL, message, metadata)
     }
 
@@ -109,19 +130,19 @@ object SecurityAuditLog {
 
     private fun sanitize(value: String): String {
         if (value.isBlank()) return value
-        
+
         val sensitivePatterns = listOf(
             Regex("(?i)(password|passwd|pwd)\\s*[:=]\\s*\\S+"),
             Regex("(?i)(token|key|secret|auth)\\s*[:=]\\s*\\S+"),
             Regex("[A-Za-z0-9+/]{32,}={0,2}"),
             Regex("[0-9a-fA-F]{32,}")
         )
-        
+
         var sanitized = value
         sensitivePatterns.forEach { pattern ->
             sanitized = sanitized.replace(pattern, "[REDACTED]")
         }
-        
+
         return sanitized
     }
 }

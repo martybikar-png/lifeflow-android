@@ -165,8 +165,11 @@ internal fun ActiveRuntimeContent(
             )
         },
         onResetVault = {
-            setLastAction("Vault reset requested")
-            viewModel.resetVault()
+            requestActiveRuntimeVaultResetAuthentication(
+                biometricAuthManager = biometricAuthManager,
+                viewModel = viewModel,
+                setLastAction = ::setLastAction
+            )
         },
         onUpgradeToCore = onUpgradeToCore
     )

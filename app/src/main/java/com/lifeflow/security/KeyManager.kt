@@ -9,37 +9,56 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 class KeyManager(
-    private val alias: String = "LifeFlow_Master_Key",
-    private val requireUserAuth: Boolean = true
+    private val alias: String = DEFAULT_ALIAS,
+    private val authenticationPolicy: AuthenticationPolicy =
+        AuthenticationPolicy.BIOMETRIC_TIME_BOUND
 ) {
+
+    enum class AuthenticationPolicy {
+        NONE,
+        BIOMETRIC_TIME_BOUND,
+        BIOMETRIC_AUTH_PER_USE
+    }
 
     init {
         require(alias.isNotBlank()) { "Key alias must not be blank" }
     }
 
-    private companion object {
+    companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+        private const val DEFAULT_ALIAS = "LifeFlow_Master_Key"
         private const val KEY_SIZE_BITS = 256
         private const val AUTH_VALIDITY_SECONDS = 30
+
+        fun supportsAuthPerUseBiometric(): Boolean {
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        }
     }
+
+    @Synchronized
+    fun ensureKey() {
+        generateKey()
+    }
+
+    fun isAuthPerUse(): Boolean =
+        authenticationPolicy == AuthenticationPolicy.BIOMETRIC_AUTH_PER_USE
+
+    fun isTimeBoundBiometric(): Boolean =
+        authenticationPolicy == AuthenticationPolicy.BIOMETRIC_TIME_BOUND
 
     @Synchronized
     fun generateKey() {
         if (keyExists()) return
 
-        // 1) Prefer StrongBox (if supported) with safe fallback
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
                 generateKeyInternal(useStrongBox = true)
                 return
             } catch (_: StrongBoxUnavailableException) {
-                // Fallback below
             } catch (_: Exception) {
-                // Any unexpected keystore/provider issue -> fallback below
             }
         }
 
-        // 2) Fallback: normal TEE-backed / software-backed depending on device
         generateKeyInternal(useStrongBox = false)
     }
 
@@ -58,31 +77,8 @@ class KeyManager(
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setRandomizedEncryptionRequired(true)
 
-        // --- User auth requirement (prod default = true; androidTest can disable) ---
-        if (requireUserAuth) {
-            builder.setUserAuthenticationRequired(true)
+        configureAuthentication(builder)
 
-            // Invalidate key when new biometric is enrolled (API 24+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                builder.setInvalidatedByBiometricEnrollment(true)
-            }
-
-            // Auth rules differ by API level:
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // API 30+: biometric strong only, 30s window after auth
-                builder.setUserAuthenticationParameters(
-                    AUTH_VALIDITY_SECONDS,
-                    KeyProperties.AUTH_BIOMETRIC_STRONG
-                )
-            } else {
-                // API 23–29: cannot strictly force "biometric strong" at keystore level.
-                // We enforce biometric in UI (BiometricPrompt), and use a short validity window here.
-                @Suppress("DEPRECATION")
-                builder.setUserAuthenticationValidityDurationSeconds(AUTH_VALIDITY_SECONDS)
-            }
-        }
-
-        // StrongBox preference (API 28+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && useStrongBox) {
             builder.setIsStrongBoxBacked(true)
         }
@@ -91,13 +87,57 @@ class KeyManager(
         keyGenerator.generateKey()
     }
 
+    private fun configureAuthentication(
+        builder: KeyGenParameterSpec.Builder
+    ) {
+        when (authenticationPolicy) {
+            AuthenticationPolicy.NONE -> Unit
+
+            AuthenticationPolicy.BIOMETRIC_TIME_BOUND -> {
+                builder.setUserAuthenticationRequired(true)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    builder.setInvalidatedByBiometricEnrollment(true)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    builder.setUserAuthenticationParameters(
+                        AUTH_VALIDITY_SECONDS,
+                        KeyProperties.AUTH_BIOMETRIC_STRONG
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    builder.setUserAuthenticationValidityDurationSeconds(
+                        AUTH_VALIDITY_SECONDS
+                    )
+                }
+            }
+
+            AuthenticationPolicy.BIOMETRIC_AUTH_PER_USE -> {
+                require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    "Biometric auth-per-use requires Android 11+ (API 30)."
+                }
+
+                builder.setUserAuthenticationRequired(true)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    builder.setInvalidatedByBiometricEnrollment(true)
+                }
+
+                builder.setUserAuthenticationParameters(
+                    0,
+                    KeyProperties.AUTH_BIOMETRIC_STRONG
+                )
+            }
+        }
+    }
+
     @Synchronized
     fun getKey(): SecretKey {
         val keyStore = loadKeyStore()
         val key = keyStore.getKey(alias, null)
 
         if (key == null) {
-            // Self-heal: create key if missing (first install / cleared keystore)
             generateKey()
             val keyAfter = loadKeyStore().getKey(alias, null)
                 ?: throw IllegalStateException("Master key not found after generation")
