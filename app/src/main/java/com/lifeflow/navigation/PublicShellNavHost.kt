@@ -10,8 +10,15 @@ import androidx.compose.ui.Modifier
 import com.lifeflow.CaptureEntryScreen
 import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
+import com.lifeflow.OnboardingHomeScreen
 import com.lifeflow.OnboardingPermissionsScreen
 import com.lifeflow.OnboardingPrivacyScreen
+import com.lifeflow.OnboardingSelfScreen
+import com.lifeflow.OnboardingTrustScreen
+import com.lifeflow.OnboardingTuneScreen
+import com.lifeflow.OnboardingTwinScreen
+import com.lifeflow.OnboardingVoiceScreen
+import com.lifeflow.OnboardingWellScreen
 import com.lifeflow.OnboardingWelcomeScreen
 import com.lifeflow.PrivacyScreen
 import com.lifeflow.QuickCaptureScreen
@@ -20,7 +27,8 @@ import com.lifeflow.TrustScreen
 
 @Composable
 internal fun PublicShellNavHost(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOnboardingCompleted: () -> Unit = {}
 ) {
     var shellLastAction by rememberSaveable {
         mutableStateOf("Public shell flow ready.")
@@ -34,6 +42,13 @@ internal fun PublicShellNavHost(
         LifeFlowScreenMap.onboardingWelcome.route,
         LifeFlowScreenMap.onboardingPermissions.route,
         LifeFlowScreenMap.onboardingPrivacy.route,
+        LifeFlowScreenMap.onboardingTrust.route,
+        LifeFlowScreenMap.onboardingWell.route,
+        LifeFlowScreenMap.onboardingTwin.route,
+        LifeFlowScreenMap.onboardingHome.route,
+        LifeFlowScreenMap.onboardingSelf.route,
+        LifeFlowScreenMap.onboardingTune.route,
+        LifeFlowScreenMap.onboardingVoice.route,
         LifeFlowScreenMap.home.route,
         LifeFlowScreenMap.quickCapture.route,
         LifeFlowScreenMap.captureEntry.route,
@@ -55,8 +70,8 @@ internal fun PublicShellNavHost(
                         currentRoute = LifeFlowScreenMap.onboardingPermissions.route
                     },
                     onSkipToHome = {
-                        shellLastAction = "Public onboarding skipped to Home shell."
-                        currentRoute = LifeFlowScreenMap.home.route
+                        shellLastAction = "Public onboarding skipped. Runtime entry opened."
+                        onOnboardingCompleted()
                     },
                     debugLines = listOf(
                         "Public shell mode active",
@@ -89,8 +104,8 @@ internal fun PublicShellNavHost(
                 OnboardingPrivacyScreen(
                     lastAction = shellLastAction,
                     onFinish = {
-                        shellLastAction = "Public onboarding finished. Home shell opened."
-                        currentRoute = LifeFlowScreenMap.home.route
+                        shellLastAction = "Onboarding privacy continued to trust."
+                        currentRoute = LifeFlowScreenMap.onboardingTrust.route
                     },
                     onBack = {
                         shellLastAction = "Returned to onboarding permissions shell."
@@ -100,6 +115,139 @@ internal fun PublicShellNavHost(
                         "Public shell mode active",
                         "Protected dashboard flow is separate",
                         "Active shell route: ${LifeFlowScreenMap.onboardingPrivacy.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingTrust.route -> {
+                OnboardingTrustScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Onboarding trust continued to well."
+                        currentRoute = LifeFlowScreenMap.onboardingWell.route
+                    },
+                    onHowPrivacyWorks = {
+                        shellLastAction = "Onboarding trust reopened privacy."
+                        currentRoute = LifeFlowScreenMap.onboardingPrivacy.route
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingTrust.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingWell.route -> {
+                OnboardingWellScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Onboarding well continued to twin."
+                        currentRoute = LifeFlowScreenMap.onboardingTwin.route
+                    },
+                    onAnotherTime = {
+                        shellLastAction = "Onboarding well skipped to twin."
+                        currentRoute = LifeFlowScreenMap.onboardingTwin.route
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingWell.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingTwin.route -> {
+                OnboardingTwinScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Onboarding twin continued to onboarding home."
+                        currentRoute = LifeFlowScreenMap.onboardingHome.route
+                    },
+                    onViewSummary = {
+                        shellLastAction = "Onboarding twin summary viewed. Continued to onboarding home."
+                        currentRoute = LifeFlowScreenMap.onboardingHome.route
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingTwin.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingHome.route -> {
+                OnboardingHomeScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Onboarding home continued to self."
+                        currentRoute = LifeFlowScreenMap.onboardingSelf.route
+                    },
+                    onPause = {
+                        shellLastAction = "Onboarding paused. Public shell home opened for this session."
+                        currentRoute = LifeFlowScreenMap.home.route
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingHome.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingSelf.route -> {
+                OnboardingSelfScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Onboarding self continued to tune."
+                        currentRoute = LifeFlowScreenMap.onboardingTune.route
+                    },
+                    onAnotherTime = {
+                        shellLastAction = "Onboarding self skipped to tune."
+                        currentRoute = LifeFlowScreenMap.onboardingTune.route
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingSelf.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingTune.route -> {
+                OnboardingTuneScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Onboarding tune continued to voice."
+                        currentRoute = LifeFlowScreenMap.onboardingVoice.route
+                    },
+                    onLeaveAsIs = {
+                        shellLastAction = "Onboarding tune left as is and continued to voice."
+                        currentRoute = LifeFlowScreenMap.onboardingVoice.route
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingTune.route}"
+                    )
+                )
+            }
+
+            LifeFlowScreenMap.onboardingVoice.route -> {
+                OnboardingVoiceScreen(
+                    lastAction = shellLastAction,
+                    onContinue = {
+                        shellLastAction = "Public onboarding finished. Runtime entry opened."
+                        onOnboardingCompleted()
+                    },
+                    onStayQuiet = {
+                        shellLastAction = "Voice remained quiet. Runtime entry opened."
+                        onOnboardingCompleted()
+                    },
+                    debugLines = listOf(
+                        "Public shell mode active",
+                        "Protected dashboard flow is separate",
+                        "Active shell route: ${LifeFlowScreenMap.onboardingVoice.route}"
                     )
                 )
             }

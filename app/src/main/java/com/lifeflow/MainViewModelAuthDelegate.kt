@@ -3,22 +3,13 @@ package com.lifeflow
 import com.lifeflow.domain.security.TrustState
 
 internal class MainViewModelAuthDelegate(
-    private val currentSecuritySnapshot: () -> MainViewModelSecuritySnapshot,
+    private val authRuntime: MainViewModelAuthRuntime,
     private val clearSession: () -> Unit,
     private val wipeUiCachesFailClosed: () -> Unit,
     private val setSessionExpiryNotified: (Boolean) -> Unit,
     private val setUiStateError: (String) -> Unit,
-    private val updateLastAction: (String) -> Unit,
-    private val currentUiState: () -> UiState = { UiState.Loading }
+    private val updateLastAction: (String) -> Unit
 ) {
-
-    private fun runtimeEntryBlockMessage(): String? {
-        return currentSecuritySnapshot().runtimeEntryBlockMessage()
-    }
-
-    private fun shouldExpireSession(): Boolean {
-        return currentSecuritySnapshot().shouldExpireSession(currentUiState())
-    }
 
     private fun applyFailClosedState(clearSession: Boolean) {
         if (clearSession) {
@@ -45,17 +36,18 @@ internal class MainViewModelAuthDelegate(
         updateLastAction("Fail-closed: $message")
     }
 
-    fun ensureRuntimeEntryAllowed(): Boolean {
-        val blockedMessage = runtimeEntryBlockMessage()
+    fun ensureRuntimeEntryAllowed(): Boolean =
+        when (val decision = authRuntime.runtimeEntryDecision()) {
+            is MainViewModelRuntimeEntryDecision.Allowed -> {
+                updateLastAction(decision.lastActionMessage)
+                true
+            }
 
-        if (blockedMessage == null) {
-            updateLastAction("Authentication verified. Bootstrapping identity...")
-            return true
+            is MainViewModelRuntimeEntryDecision.Blocked -> {
+                failClosedAuthentication(decision.message)
+                false
+            }
         }
-
-        failClosedAuthentication(blockedMessage)
-        return false
-    }
 
     fun beginAuthenticationSuccessFlow(setUiStateLoading: () -> Unit) =
         setUiStateLoading().also {
@@ -74,12 +66,7 @@ internal class MainViewModelAuthDelegate(
         failClosedAuthentication(message)
 
     fun handleObservedTrustState(trustState: TrustState) =
-        handleTrustUpdate(
-            resolveMainViewModelTrustUpdate(
-                trustState = trustState,
-                uiState = currentUiState()
-            )
-        )
+        handleTrustUpdate(authRuntime.resolveTrustUpdate(trustState))
 
     fun handleTrustUpdate(update: MainViewModelTrustUpdate) =
         when (update) {
@@ -92,7 +79,7 @@ internal class MainViewModelAuthDelegate(
         failClosedAuthentication(message)
 
     fun handleSessionPollTick(alreadyNotified: Boolean) {
-        if (shouldExpireSession()) {
+        if (authRuntime.shouldExpireSession()) {
             handleSessionExpiryIfNeeded(alreadyNotified)
             return
         }

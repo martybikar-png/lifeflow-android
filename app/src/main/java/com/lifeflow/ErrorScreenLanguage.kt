@@ -13,36 +13,36 @@ internal fun resolveErrorScreenContent(
 ): ErrorScreenContent {
     return when {
         resetRequired || isRecoveryRequiredMessage(message) -> ErrorScreenContent(
-            guidanceTitle = "Recovery is required",
-            guidanceMessage = "LifeFlow detected a security state that requires recovery before protected access can continue.",
-            nextStepMessage = "Reset the vault to establish a fresh protected baseline before returning to sensitive features.",
+            guidanceTitle = "A calmer recovery step is needed",
+            guidanceMessage = "LifeFlow paused protected access because this state needs a recovery step before sensitive features can continue.",
+            nextStepMessage = "Reset the vault to create a fresh protected baseline, then return to protected features.",
             buttonLabel = "Reset vault"
         )
 
         isSecurityDegradedMessage(message) -> ErrorScreenContent(
-            guidanceTitle = "Security state is degraded",
-            guidanceMessage = "Protected access is intentionally limited because the current trust state is degraded.",
-            nextStepMessage = "Authenticate again before returning to sensitive actions or protected data.",
+            guidanceTitle = "A safer state check is needed",
+            guidanceMessage = "LifeFlow is keeping protected access limited until the current state is refreshed.",
+            nextStepMessage = "Authenticate again to restore a fresh protected state before continuing.",
             buttonLabel = "Authenticate again"
         )
 
         isSessionExpiredMessage(message) -> ErrorScreenContent(
-            guidanceTitle = "Protected session expired",
-            guidanceMessage = "Your previous protected session is no longer active, so LifeFlow keeps sensitive surfaces closed.",
-            nextStepMessage = "Authenticate again to restore a fresh protected session before continuing.",
+            guidanceTitle = "Protected access needs a fresh session",
+            guidanceMessage = "Your earlier protected session is no longer active, so sensitive surfaces stay paused for now.",
+            nextStepMessage = "Authenticate again to continue with a fresh protected session.",
             buttonLabel = "Authenticate again"
         )
 
         isAuthenticationRequiredMessage(message) -> ErrorScreenContent(
-            guidanceTitle = "Authentication is required",
-            guidanceMessage = "LifeFlow cannot continue into protected access until authentication is verified again.",
-            nextStepMessage = "Authenticate again to continue safely.",
+            guidanceTitle = "Authentication is needed to continue",
+            guidanceMessage = "LifeFlow needs a fresh authentication step before protected access can continue.",
+            nextStepMessage = "Authenticate again when you are ready to continue safely.",
             buttonLabel = "Authenticate again"
         )
 
         else -> ErrorScreenContent(
-            guidanceTitle = "Protected access is blocked",
-            guidanceMessage = "LifeFlow is keeping sensitive surfaces closed until the current state is safely resolved.",
+            guidanceTitle = "Protected access is paused for now",
+            guidanceMessage = "LifeFlow is keeping sensitive surfaces paused until the current state is safely resolved.",
             nextStepMessage = "Review the current state and authenticate again when you are ready to continue.",
             buttonLabel = "Authenticate again"
         )

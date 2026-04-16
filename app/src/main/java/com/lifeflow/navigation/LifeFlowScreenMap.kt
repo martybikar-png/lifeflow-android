@@ -43,6 +43,55 @@ object LifeFlowScreenMap {
         supportsBack = true
     )
 
+    val onboardingTrust = LifeFlowDestination(
+        route = "onboarding/trust",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Trust",
+        supportsBack = true
+    )
+
+    val onboardingWell = LifeFlowDestination(
+        route = "onboarding/well",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Well",
+        supportsBack = true
+    )
+
+    val onboardingTwin = LifeFlowDestination(
+        route = "onboarding/twin",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Twin",
+        supportsBack = true
+    )
+
+    val onboardingHome = LifeFlowDestination(
+        route = "onboarding/home",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Home",
+        supportsBack = true
+    )
+
+    val onboardingSelf = LifeFlowDestination(
+        route = "onboarding/self",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Self",
+        supportsBack = true
+    )
+
+    val onboardingTune = LifeFlowDestination(
+        route = "onboarding/tune",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Tune",
+        supportsBack = true
+    )
+
+    val onboardingVoice = LifeFlowDestination(
+        route = "onboarding/voice",
+        section = LifeFlowNavSection.ONBOARDING,
+        title = "Voice",
+        supportsBack = true
+    )
+
     val home = LifeFlowDestination(
         route = "home",
         section = LifeFlowNavSection.HOME,
@@ -95,7 +144,14 @@ object LifeFlowScreenMap {
     val onboardingDestinations = listOf(
         onboardingWelcome,
         onboardingPermissions,
-        onboardingPrivacy
+        onboardingPrivacy,
+        onboardingTrust,
+        onboardingWell,
+        onboardingTwin,
+        onboardingHome,
+        onboardingSelf,
+        onboardingTune,
+        onboardingVoice
     )
 
     val primaryDestinations = listOf(

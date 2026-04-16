@@ -1,12 +1,15 @@
 package com.lifeflow
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun StartupFailureScreen(
@@ -15,87 +18,92 @@ internal fun StartupFailureScreen(
     onRetryStartup: () -> Unit,
     onOpenAppSettings: () -> Unit
 ) {
-    ScreenContainer(title = "LifeFlow Startup") {
-        GuidanceCard(
-            title = "Startup needs a calmer recovery step",
-            leadingIconResId = R.drawable.lf_ic_focus,
-            message = "This screen explains why startup could not complete and keeps the next action clear, safe, and proportional."
-        )
+    ScreenContainer(title = "") {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            LifeFlowSignalPill(text = "Permissions")
+        }
 
-        ScreenSectionSpacer()
+        Spacer(modifier = Modifier.height(12.dp))
 
-        StartupFailureMessageCard(message = message)
+        LifeFlowSectionPanel(title = "Startup needs a calmer recovery step") {
+            Text(
+                text = "Startup is paused at a visible recovery boundary. The safest next action is kept first.",
+                style = lifeFlowCardSummaryStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-        ScreenSectionSpacer()
+        Spacer(modifier = Modifier.height(12.dp))
 
-        GuidanceCard(
-            title = "What to do next",
-            leadingIconResId = R.drawable.lf_ic_focus,
-            message = startupRecoveryGuidance(message)
-        )
-
-        ScreenSectionSpacer()
-
-        ActionCard(title = "Recovery actions") {
+        LifeFlowSectionPanel(title = "Recovery actions") {
             Text(
                 text = startupRecoveryActionHint(message),
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            ScreenSectionSpacer()
+            Spacer(modifier = Modifier.height(6.dp))
 
-            Button(
-                onClick = onRetryStartup,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Retry startup")
-            }
+            LifeFlowPrimaryActionButton(
+                label = "Retry startup",
+                onClick = onRetryStartup
+            )
 
-            OutlinedButton(
-                onClick = onOpenAppSettings,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Open App settings")
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LifeFlowSecondaryActionButton(
+                label = "Open App settings",
+                onClick = onOpenAppSettings
+            )
         }
 
-        ScreenSectionSpacer()
+        Spacer(modifier = Modifier.height(12.dp))
 
-        ActionCard(title = "Current boundary") {
+        LifeFlowSectionPanel(title = "Startup snapshot") {
+            StartupFailureDetail(
+                label = "Status",
+                value = startupStatusLabel(message)
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            StartupFailureDetail(
+                label = "Next step",
+                value = startupRecoveryGuidance(message)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Last action") {
             Text(
-                text = "This startup screen surfaces the current state and the next safe action. It does not redefine trust-state truth or protected execution rules in UI.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = lastAction.ifBlank { "No recorded startup action yet." },
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
-        ScreenSectionSpacer()
-
-        LastActionCard(lastAction = lastAction)
     }
 }
 
 @Composable
-private fun StartupFailureMessageCard(message: String) {
-    ActionCard(title = "Current startup state") {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun StartupFailureDetail(
+    label: String,
+    value: String
+) {
+    Text(
+        text = label,
+        style = lifeFlowCardRowLabelStyle(),
+        color = MaterialTheme.colorScheme.onSurface
+    )
 
-        ScreenSectionSpacer()
+    Spacer(modifier = Modifier.height(2.dp))
 
-        Text(
-            text = "Startup status",
-            style = MaterialTheme.typography.titleSmall
-        )
-
-        Text(
-            text = startupStatusLabel(message),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+    Text(
+        text = value,
+        style = lifeFlowCardRowValueStyle(),
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }

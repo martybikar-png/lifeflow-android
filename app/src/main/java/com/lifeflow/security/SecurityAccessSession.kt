@@ -1,28 +1,31 @@
 package com.lifeflow.security
 
 import android.content.Context
+import com.lifeflow.domain.security.EmergencyAccessRequest
 import com.lifeflow.security.audit.SecurityAuditLog
 import com.lifeflow.security.audit.SecurityAuditLog.EventType
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Single in-memory authority for "recent biometric auth" session.
- * 
+ * Single in-memory authority for recent authentication session state.
+ *
  * Session is bound to:
  * - Time (TTL)
  * - Device (fingerprint)
- * - Trust state
  *
  * Fail-closed:
  * - No session => no access
- * - COMPROMISED => immediate deny
- * - Device mismatch => deny
+ * - Expired session => no access
+ * - Device mismatch => no access
+ *
+ * Trust posture is enforced outside this class by the runtime access/rule layers.
+ * Emergency access approval is resolved separately by SecurityEmergencyAccessAuthority.
  */
 object SecurityAccessSession {
 
-    private const val DEFAULT_SESSION_MS: Long = 30_000L   // 30s
-    private const val MAX_SESSION_MS: Long = 5 * 60_000L   // 5min hard cap
+    private const val DEFAULT_SESSION_MS: Long = 30_000L
+    private const val MAX_SESSION_MS: Long = 5 * 60_000L
 
     private val validUntilElapsedMs = AtomicLong(0L)
     private val boundDeviceFingerprint = AtomicReference<String?>(null)
@@ -89,8 +92,6 @@ object SecurityAccessSession {
     }
 
     fun isAuthorized(): Boolean {
-        if (SecurityRuleEngine.getTrustState() == TrustState.COMPROMISED) return false
-
         val now = nowElapsedMs()
         val validUntil = validUntilElapsedMs.get()
 
@@ -129,6 +130,12 @@ object SecurityAccessSession {
         }
 
         return true
+    }
+
+    internal fun resolveEmergencyAccess(
+        request: EmergencyAccessRequest?
+    ): SecurityEmergencyAccessAuthority.AccessResolution {
+        return SecurityEmergencyAccessAuthority.resolve(request)
     }
 
     @Suppress("unused")

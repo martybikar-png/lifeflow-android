@@ -9,6 +9,7 @@ import com.lifeflow.security.hardening.SecurityHardeningGuard
 
 internal class LifeFlowSecurityBootstrapResult internal constructor(
     val hardeningReport: SecurityHardeningGuard.HardeningReport?,
+    val integrityTrustRuntime: IntegrityTrustRuntime,
     val androidVault: AndroidDataSovereigntyVault,
     val identityBlobStore: EncryptedIdentityBlobStore,
     val encryptedIdentityRepository: EncryptedIdentityRepository,
@@ -85,8 +86,14 @@ internal object LifeFlowSecurityBootstrap {
             isInstrumentation = isInstrumentation
         )
 
+        val integrityTrustRuntime = IntegrityTrustBoundaryBootstrap.start(
+            applicationContext = applicationContext,
+            isInstrumentation = isInstrumentation
+        )
+
         return LifeFlowSecurityBootstrapResult(
             hardeningReport = hardeningReport,
+            integrityTrustRuntime = integrityTrustRuntime,
             androidVault = androidVault,
             identityBlobStore = identityBlobStore,
             encryptedIdentityRepository = encryptedIdentityRepository,
@@ -95,7 +102,10 @@ internal object LifeFlowSecurityBootstrap {
             resetVaultUseCase = resetVaultUseCase,
             encryptionPort = encryptionPort,
             cryptoBindings = cryptoBindings,
-            closeables = listOf(emergencyAuthorityBoundaryHandle)
+            closeables = listOf(
+                emergencyAuthorityBoundaryHandle,
+                integrityTrustRuntime
+            )
         )
     }
 

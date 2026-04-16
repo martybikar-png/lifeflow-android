@@ -11,23 +11,23 @@ internal fun loadingGuidanceMessage(
 ): String {
     return when {
         isAuthenticating ->
-            "A protected session is already available. As soon as the current checks finish, the protected dashboard can continue."
+            "Protected session is active. Waiting for checks to finish."
 
         healthState == HealthConnectUiState.NotInstalled ->
-            "Install Health Connect first, then return here and authenticate again."
+            "Install Health Connect, then come back and authenticate."
 
         healthState == HealthConnectUiState.UpdateRequired ->
-            "Update Health Connect first, then come back and continue with authentication."
+            "Update Health Connect, then continue."
 
         canGrantHealthPermissions(
             healthState = healthState,
             requiredCount = requiredCount,
             grantedCount = grantedCount
         ) ->
-            "You can authenticate now, but reviewing Health access will unlock a fuller wellbeing snapshot."
+            "Authenticate now, or review Health access for a fuller snapshot."
 
         else ->
-            "Authenticate to unlock the protected dashboard and load the first Digital Twin snapshot."
+            "Authenticate to open the first dashboard snapshot."
     }
 }
 
@@ -112,3 +112,4 @@ private fun guidanceIsSessionExpiredMessage(message: String): Boolean {
 private fun guidanceIsSecurityDegradedMessage(message: String): Boolean {
     return message.contains("security degraded", ignoreCase = true)
 }
+

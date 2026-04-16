@@ -23,16 +23,10 @@ class LifeFlowOrchestratorTierTest {
             stepsValue = 1000L,
             avgHeartRateValue = 70.0
         )
-        return LifeFlowOrchestrator(
+
+        return newTestLifeFlowOrchestrator(
+            wellbeingRepo = repo,
             identityRepository = FakeIdentityRepository(),
-            digitalTwinOrchestrator = com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator(
-                com.lifeflow.domain.core.digitaltwin.DigitalTwinEngine()
-            ),
-            getHealthConnectStatus = com.lifeflow.domain.wellbeing.usecase.GetHealthConnectStatusUseCase(repo),
-            getHealthPermissions = com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase(repo),
-            getGrantedHealthPermissions = com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase(repo),
-            getStepsLast24h = com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase(repo),
-            getAvgHeartRateLast24h = com.lifeflow.domain.wellbeing.usecase.GetAvgHeartRateLast24hUseCase(repo),
             tierManager = TierManager { TierState.FREE }
         )
     }

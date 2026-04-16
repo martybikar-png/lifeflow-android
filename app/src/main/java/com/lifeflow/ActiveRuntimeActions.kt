@@ -8,7 +8,7 @@ import com.lifeflow.security.BiometricAuthManager
 import com.lifeflow.security.SecurityVaultResetAuthorization
 
 internal fun requestActiveRuntimeRefreshWithUiFeedback(
-    viewModel: MainViewModel,
+    viewModel: ActiveRuntimeViewModelContract,
     requestMessage: String,
     setLastAction: (String) -> Unit
 ) {
@@ -59,7 +59,7 @@ internal fun openActiveRuntimeHealthConnectSettingsWithFallback(
 
 internal fun requestActiveRuntimeBiometricAuthentication(
     biometricAuthManager: BiometricAuthManager,
-    viewModel: MainViewModel,
+    viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
     setLastAction("Biometric authentication requested")
@@ -78,7 +78,7 @@ internal fun requestActiveRuntimeBiometricAuthentication(
 
 internal fun requestActiveRuntimeVaultResetAuthentication(
     biometricAuthManager: BiometricAuthManager,
-    viewModel: MainViewModel,
+    viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
     setLastAction("Vault reset authentication requested")

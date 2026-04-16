@@ -48,6 +48,15 @@ android {
             "\"$DEBUG_SIGNATURE_PLACEHOLDER\""
         )
 
+        buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "0L")
+
+        buildConfigField("String", "INTEGRITY_TRUST_VERDICT_HOST", "\"integrity-trust.invalid\"")
+        buildConfigField("int", "INTEGRITY_TRUST_VERDICT_PORT", "443")
+        buildConfigField("boolean", "INTEGRITY_TRUST_VERDICT_KEEPALIVE_ENABLED", "false")
+        buildConfigField("long", "INTEGRITY_TRUST_VERDICT_KEEPALIVE_TIME_MS", "60000L")
+        buildConfigField("long", "INTEGRITY_TRUST_VERDICT_KEEPALIVE_TIMEOUT_MS", "20000L")
+        buildConfigField("boolean", "INTEGRITY_TRUST_VERDICT_KEEPALIVE_WITHOUT_CALLS", "false")
+
         buildConfigField("String", "EMERGENCY_AUTHORITY_CONTROL_HOST", "\"authority-control.invalid\"")
         buildConfigField("int", "EMERGENCY_AUTHORITY_CONTROL_PORT", "443")
         buildConfigField("boolean", "EMERGENCY_AUTHORITY_CONTROL_KEEPALIVE_ENABLED", "false")
@@ -179,3 +188,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+

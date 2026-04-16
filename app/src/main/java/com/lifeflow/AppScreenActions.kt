@@ -1,27 +1,20 @@
 package com.lifeflow
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.lifeflow.BuildConfig
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
+
+private val ScreenSurfaceGap = 12.dp
+private val ActionVerticalGap = 8.dp
 
 @Composable
 internal fun LoadingActionsCard(
@@ -49,25 +42,23 @@ internal fun LoadingActionsCard(
 
         ActionSectionSpacer()
 
-        AuthenticateButton(
-            isAuthenticating = isAuthenticating,
-            onAuthenticate = onAuthenticate
-        )
+        ActionButtonsColumn {
+            AuthenticateButton(
+                isAuthenticating = isAuthenticating,
+                onAuthenticate = onAuthenticate
+            )
 
-        ActionButtonSpacer()
+            HealthPermissionsButton(
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                onGrantHealthPermissions = onGrantHealthPermissions
+            )
 
-        HealthPermissionsButton(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            onGrantHealthPermissions = onGrantHealthPermissions
-        )
-
-        ActionButtonSpacer()
-
-        OpenHealthConnectSettingsButton(
-            onOpenHealthConnectSettings = onOpenHealthConnectSettings
-        )
+            OpenHealthConnectSettingsButton(
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings
+            )
+        }
     }
 }
 
@@ -95,32 +86,28 @@ internal fun DashboardActionsCard(
 
         ActionSectionSpacer()
 
-        RefreshDashboardButton(
-            healthState = healthState,
-            digitalTwinState = digitalTwinState,
-            onRefreshNow = onRefreshNow
-        )
+        ActionButtonsColumn {
+            RefreshDashboardButton(
+                healthState = healthState,
+                digitalTwinState = digitalTwinState,
+                onRefreshNow = onRefreshNow
+            )
 
-        ActionButtonSpacer()
+            HealthPermissionsButton(
+                healthState = healthState,
+                requiredCount = requiredCount,
+                grantedCount = grantedCount,
+                onGrantHealthPermissions = onGrantHealthPermissions
+            )
 
-        HealthPermissionsButton(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            onGrantHealthPermissions = onGrantHealthPermissions
-        )
+            OpenHealthConnectSettingsButton(
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings
+            )
 
-        ActionButtonSpacer()
-
-        OpenHealthConnectSettingsButton(
-            onOpenHealthConnectSettings = onOpenHealthConnectSettings
-        )
-
-        ActionButtonSpacer()
-
-        ReAuthenticateButton(
-            onReAuthenticate = onReAuthenticate
-        )
+            ReAuthenticateButton(
+                onReAuthenticate = onReAuthenticate
+            )
+        }
     }
 }
 
@@ -140,17 +127,23 @@ internal fun ScreenFooter(
 
 @Composable
 internal fun ScreenSectionSpacer() {
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(ScreenSurfaceGap))
 }
 
 @Composable
 private fun ActionSectionSpacer() {
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(ActionVerticalGap))
 }
 
 @Composable
-private fun ActionButtonSpacer() {
-    Spacer(modifier = Modifier.height(8.dp))
+private fun ActionButtonsColumn(
+    content: @Composable () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(ActionVerticalGap)
+    ) {
+        content()
+    }
 }
 
 @Composable
@@ -158,26 +151,16 @@ private fun AuthenticateButton(
     isAuthenticating: Boolean,
     onAuthenticate: () -> Unit
 ) {
-    Button(
+    LifeFlowPrimaryActionButton(
+        label = if (isAuthenticating) {
+            "Protected session active"
+        } else {
+            "Authenticate"
+        },
         onClick = onAuthenticate,
         enabled = !isAuthenticating,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.lf_ic_authenticate),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                colorFilter = ColorFilter.tint(LocalContentColor.current)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(if (isAuthenticating) "Protected session active" else "Authenticate")
-        }
-    }
+        iconResId = R.drawable.lf_ic_authenticate
+    )
 }
 
 @Composable
@@ -186,32 +169,16 @@ private fun RefreshDashboardButton(
     digitalTwinState: DigitalTwinState?,
     onRefreshNow: () -> Unit
 ) {
-    Button(
+    LifeFlowPrimaryActionButton(
+        label = if (digitalTwinState == null) {
+            "Load first snapshot"
+        } else {
+            "Refresh now"
+        },
         onClick = onRefreshNow,
         enabled = canRefreshDashboard(healthState),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.lf_ic_refresh),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                colorFilter = ColorFilter.tint(LocalContentColor.current)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                if (digitalTwinState == null) {
-                    "Load first snapshot"
-                } else {
-                    "Refresh now"
-                }
-            )
-        }
-    }
+        iconResId = R.drawable.lf_ic_refresh
+    )
 }
 
 @Composable
@@ -221,71 +188,39 @@ private fun HealthPermissionsButton(
     grantedCount: Int,
     onGrantHealthPermissions: () -> Unit
 ) {
-    OutlinedButton(
+    LifeFlowSecondaryActionButton(
+        label = if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
+            "Review health access"
+        } else {
+            "Health access ready"
+        },
         onClick = onGrantHealthPermissions,
         enabled = canGrantHealthPermissions(
             healthState = healthState,
             requiredCount = requiredCount,
             grantedCount = grantedCount
         ),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.lf_ic_permissions),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                colorFilter = ColorFilter.tint(LocalContentColor.current)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                if (hasMissingHealthPermissions(requiredCount, grantedCount)) {
-                    "Review health access"
-                } else {
-                    "Health access ready"
-                }
-            )
-        }
-    }
+        iconResId = R.drawable.lf_ic_permissions
+    )
 }
 
 @Composable
 private fun OpenHealthConnectSettingsButton(
     onOpenHealthConnectSettings: () -> Unit
 ) {
-    OutlinedButton(
+    LifeFlowSecondaryActionButton(
+        label = "Open Health Connect settings",
         onClick = onOpenHealthConnectSettings,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.lf_ic_settings),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                colorFilter = ColorFilter.tint(LocalContentColor.current)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Open Health Connect settings")
-        }
-    }
+        iconResId = R.drawable.lf_ic_settings
+    )
 }
 
 @Composable
 private fun ReAuthenticateButton(
     onReAuthenticate: () -> Unit
 ) {
-    OutlinedButton(
-        onClick = onReAuthenticate,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Authenticate again")
-    }
+    LifeFlowSecondaryActionButton(
+        label = "Authenticate again",
+        onClick = onReAuthenticate
+    )
 }

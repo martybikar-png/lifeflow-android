@@ -17,6 +17,8 @@ internal fun FragmentActivity.resolveStartupBindings(
         )
     }
 
+    startupRuntimeEntryPoint.scheduleIntegrityTrustStartupCheck()
+
     return StartupBindings(
         startupReady = true,
         viewModel = ViewModelProvider(

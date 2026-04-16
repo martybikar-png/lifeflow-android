@@ -1,5 +1,8 @@
 package com.lifeflow.security.audit
 
+import com.lifeflow.security.SecurityRuntimeContainmentPolicy
+import com.lifeflow.security.SecurityRuntimeContainmentSnapshot
+import com.lifeflow.security.TrustState
 import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -123,6 +126,49 @@ object SecurityAuditLog {
 
     fun getCriticalEntries(): List<AuditEntry> =
         getEntriesBySeverity(Severity.CRITICAL)
+
+    internal fun incidentSignalSnapshot(): SecurityIncidentSignalSnapshot =
+        SecurityAuditIncidentSignalAnalyzer.snapshot(getEntries())
+
+    internal fun incidentSignalSnapshotSince(
+        since: Instant
+    ): SecurityIncidentSignalSnapshot =
+        SecurityAuditIncidentSignalAnalyzer.snapshot(getEntriesSince(since))
+
+    internal fun incidentResponseSnapshot(
+        currentTrustState: TrustState
+    ): SecurityIncidentResponseSnapshot =
+        SecurityIncidentResponseBridge.snapshot(
+            incident = incidentSignalSnapshot(),
+            currentTrustState = currentTrustState
+        )
+
+    internal fun incidentResponseSnapshotSince(
+        since: Instant,
+        currentTrustState: TrustState
+    ): SecurityIncidentResponseSnapshot =
+        SecurityIncidentResponseBridge.snapshot(
+            incident = incidentSignalSnapshotSince(since),
+            currentTrustState = currentTrustState
+        )
+
+    internal fun runtimeContainmentSnapshot(
+        currentTrustState: TrustState
+    ): SecurityRuntimeContainmentSnapshot =
+        SecurityRuntimeContainmentPolicy.snapshot(
+            incidentResponse = incidentResponseSnapshot(currentTrustState)
+        )
+
+    internal fun runtimeContainmentSnapshotSince(
+        since: Instant,
+        currentTrustState: TrustState
+    ): SecurityRuntimeContainmentSnapshot =
+        SecurityRuntimeContainmentPolicy.snapshot(
+            incidentResponse = incidentResponseSnapshotSince(
+                since = since,
+                currentTrustState = currentTrustState
+            )
+        )
 
     fun clear() {
         entries.clear()

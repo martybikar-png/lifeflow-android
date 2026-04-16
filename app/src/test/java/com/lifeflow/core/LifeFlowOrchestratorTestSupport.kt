@@ -4,9 +4,11 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
 import com.lifeflow.domain.core.IdentityRepository
+import com.lifeflow.domain.core.TierManager
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinEngine
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.model.LifeFlowIdentity
+import com.lifeflow.domain.wellbeing.HolisticWellbeingNode
 import com.lifeflow.domain.wellbeing.WellbeingRepository
 import com.lifeflow.domain.wellbeing.usecase.GetAvgHeartRateLast24hUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
@@ -39,16 +41,33 @@ internal fun resetSecurityBaselineForLifeFlowOrchestratorTests() {
 
 internal fun newTestLifeFlowOrchestrator(
     wellbeingRepo: WellbeingRepository = defaultTestWellbeingRepository(),
-    identityRepository: IdentityRepository = FakeIdentityRepository()
+    identityRepository: IdentityRepository = FakeIdentityRepository(),
+    tierManager: TierManager = TierManager()
 ): LifeFlowOrchestrator {
-    return LifeFlowOrchestrator(
+    val protectedOperations = LifeFlowOrchestratorProtectedOperations(
         identityRepository = identityRepository,
-        digitalTwinOrchestrator = DigitalTwinOrchestrator(DigitalTwinEngine()),
-        getHealthConnectStatus = GetHealthConnectStatusUseCase(wellbeingRepo),
         getHealthPermissions = GetHealthPermissionsUseCase(wellbeingRepo),
         getGrantedHealthPermissions = GetGrantedHealthPermissionsUseCase(wellbeingRepo),
+        getHealthConnectStatus = GetHealthConnectStatusUseCase(wellbeingRepo),
         getStepsLast24h = GetStepsLast24hUseCase(wellbeingRepo),
-        getAvgHeartRateLast24h = GetAvgHeartRateLast24hUseCase(wellbeingRepo)
+        getAvgHeartRateLast24h = GetAvgHeartRateLast24hUseCase(wellbeingRepo),
+        digitalTwinOrchestrator = DigitalTwinOrchestrator(DigitalTwinEngine()),
+        wellbeingNode = HolisticWellbeingNode(),
+        tierManager = tierManager
+    )
+
+    val moduleOperations = LifeFlowOrchestratorModuleOperations(
+        tierManager = tierManager,
+        diaryRepository = null,
+        memoryRepository = null,
+        connectionRepository = null,
+        shoppingRepository = null
+    )
+
+    return LifeFlowOrchestrator(
+        protectedOperations = protectedOperations,
+        moduleOperations = moduleOperations,
+        derivationOperations = LifeFlowOrchestratorDerivationOperations()
     )
 }
 

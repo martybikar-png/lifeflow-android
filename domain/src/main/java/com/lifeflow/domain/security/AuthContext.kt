@@ -8,5 +8,7 @@ package com.lifeflow.domain.security
  */
 data class AuthContext(
     val hasRecentAuthentication: Boolean,
-    val requiresStrictAuth: Boolean = false
+    val requiresStrictAuth: Boolean = false,
+    val emergencyRequest: EmergencyAccessRequest? = null,
+    val trustedBaseOnly: Boolean = false
 )

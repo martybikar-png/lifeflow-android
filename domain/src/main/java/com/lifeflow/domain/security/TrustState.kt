@@ -9,8 +9,15 @@ package com.lifeflow.domain.security
 enum class TrustState {
     VERIFIED,
     DEGRADED,
+    EMERGENCY_LIMITED,
     COMPROMISED;
 
     val isFailClosed: Boolean
         get() = this == COMPROMISED
+
+    val permitsWrites: Boolean
+        get() = this == VERIFIED
+
+    val isEmergency: Boolean
+        get() = this == EMERGENCY_LIMITED
 }

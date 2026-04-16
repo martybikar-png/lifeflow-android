@@ -27,14 +27,18 @@ class MainViewModelAuthDelegateTest {
         currentUiState = UiState.Loading
         mockSecuritySnapshot = createCleanSnapshot()
 
-        delegate = MainViewModelAuthDelegate(
+        val authRuntime = MainViewModelAuthRuntime(
             currentSecuritySnapshot = { mockSecuritySnapshot },
+            currentUiState = { currentUiState }
+        )
+
+        delegate = MainViewModelAuthDelegate(
+            authRuntime = authRuntime,
             clearSession = { sessionCleared = true },
             wipeUiCachesFailClosed = { uiCachesWiped = true },
             setSessionExpiryNotified = { sessionExpiryNotified = it },
             setUiStateError = { lastUiStateError = it },
-            updateLastAction = { lastAction = it },
-            currentUiState = { currentUiState }
+            updateLastAction = { lastAction = it }
         )
     }
 
@@ -47,8 +51,6 @@ class MainViewModelAuthDelegateTest {
             trustState = trustState
         )
     }
-
-    // ── ensureRuntimeEntryAllowed ──
 
     @Test
     fun `ensureRuntimeEntryAllowed returns true when authorized and verified`() {
@@ -92,8 +94,6 @@ class MainViewModelAuthDelegateTest {
         assertNotNull(lastUiStateError)
     }
 
-    // ── failClosedWithError ──
-
     @Test
     fun `failClosedWithError clears session and wipes caches`() {
         delegate.failClosedWithError("Test error")
@@ -113,8 +113,6 @@ class MainViewModelAuthDelegateTest {
         assertTrue(uiCachesWiped)
     }
 
-    // ── handleAuthenticationError ──
-
     @Test
     fun `handleAuthenticationError triggers fail-closed`() {
         delegate.handleAuthenticationError("Auth failed")
@@ -123,8 +121,6 @@ class MainViewModelAuthDelegateTest {
         assertTrue(uiCachesWiped)
         assertEquals("Auth failed", lastUiStateError)
     }
-
-    // ── handleObservedTrustState ──
 
     @Test
     fun `handleObservedTrustState with COMPROMISED triggers fail-closed`() {
@@ -146,8 +142,6 @@ class MainViewModelAuthDelegateTest {
         assertFalse(sessionCleared)
     }
 
-    // ── Session expiry ──
-
     @Test
     fun `handleSessionExpiryIfNeeded does nothing when already notified`() {
         delegate.handleSessionExpiryIfNeeded(alreadyNotified = true)
@@ -160,12 +154,10 @@ class MainViewModelAuthDelegateTest {
     fun `handleSessionExpiryIfNeeded triggers fail-closed when not notified`() {
         delegate.handleSessionExpiryIfNeeded(alreadyNotified = false)
 
-        assertEquals(false, sessionExpiryNotified) // applyFailClosedState resets it
+        assertEquals(false, sessionExpiryNotified)
         assertNotNull(lastUiStateError)
         assertTrue(sessionCleared)
     }
-
-    // ── Bootstrap flows ──
 
     @Test
     fun `completeAuthenticationBootstrapSuccess calls markAuthenticated`() {
@@ -192,8 +184,6 @@ class MainViewModelAuthDelegateTest {
         assertTrue(sessionCleared)
         assertEquals("Bootstrap failed", lastUiStateError)
     }
-
-    // ── Vault reset ──
 
     @Test
     fun `completeVaultReset success clears session and updates state`() {

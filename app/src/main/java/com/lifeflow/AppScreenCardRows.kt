@@ -17,11 +17,12 @@ internal fun KeyValueStatusLine(
     Row(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "$label: ",
-            style = MaterialTheme.typography.bodyMedium
+            style = lifeFlowCardRowLabelStyle(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyLarge,
+            style = lifeFlowCardRowValueStyle(),
             color = valueColor
         )
     }

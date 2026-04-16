@@ -3,17 +3,10 @@ package com.lifeflow
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lifeflow.core.ActionResult
-import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.core.LifeFlowOrchestrator
 import com.lifeflow.domain.core.TierState
-import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.security.TrustStatePort
-import com.lifeflow.domain.wellbeing.WellbeingAssessment
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 
 class MainViewModel(
     private val orchestrator: LifeFlowOrchestrator,
@@ -21,57 +14,50 @@ class MainViewModel(
     private val trustStatePort: TrustStatePort,
     private val isSessionAuthorized: () -> Boolean,
     private val clearSession: () -> Unit
-) : ViewModel() {
+) : ViewModel(), ActiveRuntimeViewModelContract {
 
-    val uiState = mutableStateOf<UiState>(UiState.Loading)
-    val lastAction = mutableStateOf("Initializing secure LifeFlow session...")
-    val healthConnectState = mutableStateOf<HealthConnectUiState>(HealthConnectUiState.Unknown)
-    val requiredHealthPermissions = mutableStateOf<Set<String>>(emptySet())
-    val grantedHealthPermissions = mutableStateOf<Set<String>>(emptySet())
-    val healthPermissionsInitError = mutableStateOf<String?>(null)
-    val digitalTwinState = mutableStateOf<DigitalTwinState?>(null)
-    val wellbeingAssessment = mutableStateOf<WellbeingAssessment?>(null)
-    val currentTier = mutableStateOf<TierState>(TierState.CORE)
+    override val uiState = mutableStateOf<UiState>(UiState.Loading)
+    override val lastAction = mutableStateOf("Initializing secure LifeFlow session...")
+    override val currentTier = mutableStateOf<TierState>(TierState.CORE)
 
-    private var sessionExpiryNotified = false
-    private var pendingForegroundRefresh = false
-    private val sessionPollMs = 1000L
-    private val refreshMutex = Mutex()
-
-    private val authDelegate = MainViewModelAuthDelegate(
-        currentSecuritySnapshot = ::currentSecuritySnapshot,
-        clearSession = clearSession,
-        wipeUiCachesFailClosed = ::wipeUiCachesFailClosed,
-        setSessionExpiryNotified = { sessionExpiryNotified = it },
-        setUiStateError = { message -> uiState.value = UiState.Error(message) },
-        updateLastAction = ::updateLastAction,
-        currentUiState = { uiState.value }
-    )
-
-    private val wellbeingDelegate = MainViewModelWellbeingDelegate(
+    private val runtimeBundle = MainViewModelRuntimeBundle(
         orchestrator = orchestrator,
-        healthConnectState = healthConnectState,
-        requiredHealthPermissions = requiredHealthPermissions,
-        grantedHealthPermissions = grantedHealthPermissions,
-        healthPermissionsInitError = healthPermissionsInitError,
-        digitalTwinState = digitalTwinState,
-        wellbeingAssessment = wellbeingAssessment,
-        refreshMutex = refreshMutex,
+        trustStatePort = trustStatePort,
+        clearSession = clearSession,
+        performVaultReset = performVaultReset,
         currentUiState = { uiState.value },
         currentSecuritySnapshot = ::currentSecuritySnapshot,
-        failClosedWithError = authDelegate::failClosedWithError,
-        updateLastAction = ::updateLastAction
+        setUiStateError = { message -> uiState.value = UiState.Error(message) },
+        updateLastAction = ::updateLastAction,
+        isFreeTier = ::isFreeTier,
+        wipeUiCachesFailClosed = ::wipeUiCachesFailClosed,
+        activateFreeTierUi = ::activateFreeTierUi,
+        markAuthenticated = { uiState.value = UiState.Authenticated }
     )
 
+    private val wellbeingState = runtimeBundle.wellbeingState
+    override val healthConnectState = wellbeingState.healthConnectState
+    override val requiredHealthPermissions = wellbeingState.requiredHealthPermissions
+    override val grantedHealthPermissions = wellbeingState.grantedHealthPermissions
+    override val healthPermissionsInitError = wellbeingState.healthPermissionsInitError
+    override val digitalTwinState = wellbeingState.digitalTwinState
+    override val wellbeingAssessment = wellbeingState.wellbeingAssessment
+
     init {
-        observeTrustState()
-        observeSessionExpiry()
+        runtimeBundle.lifecycleRuntime.observeTrustState(
+            scope = viewModelScope,
+            authDelegate = runtimeBundle.authDelegate
+        )
+        runtimeBundle.lifecycleRuntime.observeSessionExpiry(
+            scope = viewModelScope,
+            authDelegate = runtimeBundle.authDelegate
+        )
         currentTier.value = orchestrator.currentTier()
 
         if (isFreeTier()) {
             activateFreeTierUi()
         } else {
-            wellbeingDelegate.refreshRequiredPermissionsDefinition()
+            runtimeBundle.wellbeingDelegate.refreshRequiredPermissionsDefinition()
         }
     }
 
@@ -86,11 +72,7 @@ class MainViewModel(
         return currentSecuritySnapshot().canExposeProtectedUiData(uiState.value)
     }
 
-    private fun shouldQueueForegroundRefresh(): Boolean {
-        return !isFreeTier() && uiState.value is UiState.Authenticated
-    }
-
-    internal fun isSessionAuthorizedForUi(): Boolean = isSessionAuthorized()
+    override fun isSessionAuthorizedForUi(): Boolean = isSessionAuthorized()
 
     private fun updateLastAction(message: String) {
         lastAction.value = message
@@ -98,145 +80,77 @@ class MainViewModel(
 
     private fun activateFreeTierUi() {
         uiState.value = UiState.FreeTier()
-        wellbeingDelegate.refreshPublicHealthStateOnly()
+        runtimeBundle.wellbeingDelegate.refreshPublicHealthStateOnly()
         updateLastAction("LifeFlow Free active. Public state ready.")
-    }
-
-    private fun triggerRuntimeRefresh(lastActionMessage: String) {
-        updateLastAction(lastActionMessage)
-
-        if (isFreeTier()) {
-            wellbeingDelegate.refreshPublicHealthStateOnly()
-            return
-        }
-
-        requestProtectedRefresh(
-            identityInitialized = uiState.value is UiState.Authenticated
-        )
     }
 
     private fun wipeUiCachesFailClosed() {
         applyMainViewModelWellbeingUiUpdate(
             update = mainViewModelFailClosedUiUpdate(),
-            healthConnectStateState = healthConnectState,
-            requiredHealthPermissionsState = requiredHealthPermissions,
-            grantedHealthPermissionsState = grantedHealthPermissions,
-            healthPermissionsInitErrorState = healthPermissionsInitError,
-            digitalTwinStateState = digitalTwinState,
-            wellbeingAssessmentState = wellbeingAssessment,
+            healthConnectStateState = wellbeingState.healthConnectState,
+            requiredHealthPermissionsState = wellbeingState.requiredHealthPermissions,
+            grantedHealthPermissionsState = wellbeingState.grantedHealthPermissions,
+            healthPermissionsInitErrorState = wellbeingState.healthPermissionsInitError,
+            digitalTwinStateState = wellbeingState.digitalTwinState,
+            wellbeingAssessmentState = wellbeingState.wellbeingAssessment,
             updateLastAction = ::updateLastAction
         )
     }
 
-    private fun observeTrustState() {
+    override fun refreshMetricsAndTwinNow() {
         viewModelScope.launch {
-            trustStatePort.observeTrustState().collect { state ->
-                authDelegate.handleObservedTrustState(state)
-            }
+            runtimeBundle.actionRuntime.triggerRuntimeRefresh("Manual dashboard refresh requested.")
         }
     }
 
-    private fun observeSessionExpiry() {
+    override fun onHealthPermissionsResult(granted: Set<String>) {
         viewModelScope.launch {
-            while (isActive) {
-                delay(sessionPollMs)
-                authDelegate.handleSessionPollTick(sessionExpiryNotified)
-            }
+            runtimeBundle.actionRuntime.triggerRuntimeRefresh(
+                "Health permission result received (${granted.size} granted)."
+            )
         }
     }
 
-    private fun requestProtectedRefresh(identityInitialized: Boolean) {
-        viewModelScope.launch {
-            runCatching {
-                wellbeingDelegate.refreshWellbeingSnapshotSafe(
-                    identityInitialized = identityInitialized
-                )
-            }.onFailure {
-                wellbeingDelegate.handleUnexpectedProtectedRefreshFailure()
-            }
-        }
-    }
-
-    private suspend fun runAuthenticationBootstrap() {
-        if (isFreeTier()) {
-            authDelegate.clearSessionExpiryNotification()
-            activateFreeTierUi()
-            return
-        }
-
-        if (!authDelegate.ensureRuntimeEntryAllowed()) return
-        authDelegate.clearSessionExpiryNotification()
-
-        when (val boot = orchestrator.bootstrapIdentityIfNeeded()) {
-            is ActionResult.Success -> {
-                authDelegate.completeAuthenticationBootstrapSuccess(
-                    markAuthenticated = { uiState.value = UiState.Authenticated }
-                )
-            }
-
-            is ActionResult.Locked -> {
-                authDelegate.completeAuthenticationBootstrapLocked(
-                    message = mainViewModelLockedReasonToUserMessage(boot.reason)
-                )
-            }
-
-            is ActionResult.Error -> {
-                authDelegate.completeAuthenticationBootstrapError(boot.message)
-            }
-        }
-    }
-
-    private suspend fun runVaultReset() {
-        val result = runCatching { performVaultReset() }
-        authDelegate.completeVaultReset(
-            isSuccess = result.isSuccess,
-            failureMessage = result.exceptionOrNull()?.message
-        )
-    }
-
-    fun refreshMetricsAndTwinNow() =
-        triggerRuntimeRefresh("Manual dashboard refresh requested.")
-
-    fun onHealthPermissionsResult(granted: Set<String>) =
-        triggerRuntimeRefresh("Health permission result received (${granted.size} granted).")
-
-    fun onAuthenticationSuccess() {
-        authDelegate.beginAuthenticationSuccessFlow(
+    override fun onAuthenticationSuccess() {
+        runtimeBundle.authDelegate.beginAuthenticationSuccessFlow(
             setUiStateLoading = {}
         )
         viewModelScope.launch {
-            runAuthenticationBootstrap()
+            runtimeBundle.actionRuntime.runAuthenticationBootstrap()
         }
     }
 
-    fun onAuthenticationError(message: String) =
-        authDelegate.handleAuthenticationError(message)
+    override fun onAuthenticationError(message: String) =
+        runtimeBundle.authDelegate.handleAuthenticationError(message)
 
-    fun onAppBackgrounded() {
-        pendingForegroundRefresh = shouldQueueForegroundRefresh()
+    override fun onAppBackgrounded() {
+        runtimeBundle.lifecycleRuntime.onAppBackgrounded()
     }
 
-    fun onAppForegrounded() {
-        val shouldRefreshAfterRecheck = pendingForegroundRefresh
-        pendingForegroundRefresh = false
+    override fun onAppForegrounded() {
+        val shouldRefreshAfterRecheck = runtimeBundle.lifecycleRuntime.consumePendingForegroundRefresh()
 
-        authDelegate.handleSessionPollTick(sessionExpiryNotified)
+        runtimeBundle.lifecycleRuntime.handleSessionPollTick(runtimeBundle.authDelegate)
 
         if (!shouldRefreshAfterRecheck) {
             return
         }
 
         if (canExposeProtectedUiDataNow()) {
-            triggerRuntimeRefresh("Returned to foreground; secure refresh requested.")
+            viewModelScope.launch {
+                runtimeBundle.actionRuntime.triggerRuntimeRefresh(
+                    "Returned to foreground; secure refresh requested."
+                )
+            }
         }
     }
 
-    fun resetVault() {
-        authDelegate.beginVaultResetFlow(
+    override fun resetVault() {
+        runtimeBundle.authDelegate.beginVaultResetFlow(
             setUiStateLoading = {}
         )
         viewModelScope.launch {
-            runVaultReset()
+            runtimeBundle.actionRuntime.runVaultReset()
         }
     }
 }

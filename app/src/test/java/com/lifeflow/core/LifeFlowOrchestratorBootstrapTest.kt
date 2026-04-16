@@ -46,9 +46,9 @@ class LifeFlowOrchestratorBootstrapTest {
     }
 
     @Test
-    fun `bootstrap creates new active identity when session is authorized`() {
+    fun `bootstrap creates new active identity when session is authorized and trust is verified`() {
         forceResetSecurityStateForLifeFlowOrchestratorTests(
-            state = TrustState.DEGRADED,
+            state = TrustState.VERIFIED,
             reason = "Authorized bootstrap creation test"
         )
         SecurityAccessSession.grantDefault()
@@ -65,9 +65,9 @@ class LifeFlowOrchestratorBootstrapTest {
     }
 
     @Test
-    fun `bootstrap keeps existing identity and does not save duplicate`() {
+    fun `bootstrap keeps existing identity and does not save duplicate when trust is verified`() {
         forceResetSecurityStateForLifeFlowOrchestratorTests(
-            state = TrustState.DEGRADED,
+            state = TrustState.VERIFIED,
             reason = "Existing identity bootstrap test"
         )
         SecurityAccessSession.grantDefault()
@@ -121,9 +121,9 @@ class LifeFlowOrchestratorBootstrapTest {
     }
 
     @Test
-    fun `bootstrap returns Error when repository save fails`() {
+    fun `bootstrap returns Error when repository save fails under verified trust`() {
         forceResetSecurityStateForLifeFlowOrchestratorTests(
-            state = TrustState.DEGRADED,
+            state = TrustState.VERIFIED,
             reason = "Bootstrap error path test"
         )
         SecurityAccessSession.grantDefault()

@@ -14,7 +14,7 @@ class ErrorScreenLanguageTest {
             resetRequired = false
         )
 
-        assertEquals("Protected session expired", content.guidanceTitle)
+        assertEquals("Protected access needs a fresh session", content.guidanceTitle)
         assertEquals("Authenticate again", content.buttonLabel)
         assertTrue(content.guidanceMessage.contains("protected session", ignoreCase = true))
         assertTrue(content.nextStepMessage.contains("Authenticate again", ignoreCase = true))
@@ -27,7 +27,7 @@ class ErrorScreenLanguageTest {
             resetRequired = false
         )
 
-        assertEquals("Authentication is required", content.guidanceTitle)
+        assertEquals("Authentication is needed to continue", content.guidanceTitle)
         assertEquals("Authenticate again", content.buttonLabel)
         assertTrue(content.guidanceMessage.contains("authentication", ignoreCase = true))
     }
@@ -39,9 +39,9 @@ class ErrorScreenLanguageTest {
             resetRequired = false
         )
 
-        assertEquals("Security state is degraded", content.guidanceTitle)
+        assertEquals("A safer state check is needed", content.guidanceTitle)
         assertEquals("Authenticate again", content.buttonLabel)
-        assertTrue(content.nextStepMessage.contains("sensitive", ignoreCase = true))
+        assertTrue(content.nextStepMessage.contains("fresh protected state", ignoreCase = true))
     }
 
     @Test
@@ -51,7 +51,7 @@ class ErrorScreenLanguageTest {
             resetRequired = false
         )
 
-        assertEquals("Recovery is required", content.guidanceTitle)
+        assertEquals("A calmer recovery step is needed", content.guidanceTitle)
         assertEquals("Reset vault", content.buttonLabel)
         assertTrue(content.nextStepMessage.contains("Reset the vault", ignoreCase = true))
     }
@@ -63,7 +63,7 @@ class ErrorScreenLanguageTest {
             resetRequired = true
         )
 
-        assertEquals("Recovery is required", content.guidanceTitle)
+        assertEquals("A calmer recovery step is needed", content.guidanceTitle)
         assertEquals("Reset vault", content.buttonLabel)
     }
 

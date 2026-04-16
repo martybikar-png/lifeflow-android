@@ -26,7 +26,7 @@ internal data class ActiveRuntimeScreenSnapshot(
 )
 
 internal fun collectActiveRuntimeScreenSnapshot(
-    viewModel: MainViewModel,
+    viewModel: ActiveRuntimeViewModelContract,
     uiLastAction: String
 ): ActiveRuntimeScreenSnapshot {
     val uiState = viewModel.uiState.value

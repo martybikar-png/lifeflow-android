@@ -6,16 +6,10 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.lifecycle.ViewModel
-import com.lifeflow.core.LifeFlowOrchestrator
+import com.lifeflow.core.FakeIdentityRepository
+import com.lifeflow.core.newTestLifeFlowOrchestrator
 import com.lifeflow.domain.core.IdentityRepository
-import com.lifeflow.domain.core.digitaltwin.DigitalTwinEngine
-import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.wellbeing.WellbeingRepository
-import com.lifeflow.domain.wellbeing.usecase.GetAvgHeartRateLast24hUseCase
-import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
-import com.lifeflow.domain.wellbeing.usecase.GetHealthConnectStatusUseCase
-import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
-import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.SecurityTrustStatePortAdapter
@@ -83,14 +77,9 @@ abstract class MainViewModelTestBase {
         identityRepository: IdentityRepository = FakeIdentityRepository(),
         performVaultReset: suspend () -> Unit = {}
     ): MainViewModel {
-        val orchestrator = LifeFlowOrchestrator(
-            identityRepository = identityRepository,
-            digitalTwinOrchestrator = DigitalTwinOrchestrator(DigitalTwinEngine()),
-            getHealthConnectStatus = GetHealthConnectStatusUseCase(wellbeingRepo),
-            getHealthPermissions = GetHealthPermissionsUseCase(wellbeingRepo),
-            getGrantedHealthPermissions = GetGrantedHealthPermissionsUseCase(wellbeingRepo),
-            getStepsLast24h = GetStepsLast24hUseCase(wellbeingRepo),
-            getAvgHeartRateLast24h = GetAvgHeartRateLast24hUseCase(wellbeingRepo)
+        val orchestrator = newTestLifeFlowOrchestrator(
+            wellbeingRepo = wellbeingRepo,
+            identityRepository = identityRepository
         )
 
         return MainViewModel(

@@ -9,6 +9,8 @@ package com.lifeflow.domain.security
 enum class RecoveryOption {
     RETRY_AUTHENTICATION,
     RESTART_SECURE_SESSION,
+    ENTER_BREAK_GLASS,
+    EXIT_BREAK_GLASS,
     RESET_VAULT,
     CONTACT_SUPPORT
 }

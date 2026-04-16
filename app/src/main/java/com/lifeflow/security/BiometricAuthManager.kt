@@ -167,15 +167,12 @@ internal class BiometricAuthManager(
 
                     SecurityAccessSession.grantDefault(activity.applicationContext)
 
-                    SecurityRuleEngine.setTrustState(
-                        TrustState.VERIFIED,
-                        reason = "Biometric verified"
+                    val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
+                    val runtimeAccessDecision = SecurityRuntimeAccessPolicy.decide(
+                        accessMode = SecurityRuntimeAccessMode.STANDARD_PROTECTED
                     )
 
-                    val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
-                    val trustOk = SecurityRuleEngine.getTrustState() == TrustState.VERIFIED
-
-                    if (sessionOk && trustOk) {
+                    if (sessionOk && runtimeAccessDecision.allowed) {
                         SecurityAuditLog.info(
                             EventType.AUTH_SUCCESS,
                             "Biometric authentication succeeded"
@@ -185,22 +182,27 @@ internal class BiometricAuthManager(
                             "Security session established with device binding"
                         )
                         SecurityAuditLog.info(
-                            EventType.TRUST_VERIFIED,
-                            "Trust state set to VERIFIED"
+                            EventType.HARDENING_CHECK_PASSED,
+                            "Post-auth runtime access allowed",
+                            mapOf(
+                                "effectiveTrustState" to runtimeAccessDecision.effectiveTrustState.name
+                            )
                         )
                         onSuccess(result)
                     } else {
                         SecurityAuditLog.critical(
                             EventType.AUTH_FAILURE,
-                            "Session establishment failed post-auth",
+                            "Session establishment or runtime authorization failed post-auth",
                             mapOf(
                                 "sessionOk" to sessionOk.toString(),
-                                "trustOk" to trustOk.toString()
+                                "runtimeAllowed" to runtimeAccessDecision.allowed.toString(),
+                                "effectiveTrustState" to runtimeAccessDecision.effectiveTrustState.name,
+                                "denialCode" to (runtimeAccessDecision.denialCode ?: "none")
                             )
                         )
                         failClosed(
                             onError = onError,
-                            message = "Biometric verified, but secure session could not be established. Reset vault may be required."
+                            message = postAuthFailureMessage(runtimeAccessDecision)
                         )
                     }
                 }
@@ -242,6 +244,29 @@ internal class BiometricAuthManager(
             biometricPrompt.authenticate(promptInfo, cryptoObject)
         }
     }
+
+    private fun postAuthFailureMessage(
+        runtimeAccessDecision: SecurityRuntimeAccessDecision
+    ): String =
+        when (runtimeAccessDecision.denialCode) {
+            "COMPROMISED" ->
+                "Security compromised. Reset vault is required before continuing."
+
+            "RECOVERY_REQUIRED" ->
+                "Recovery is required before protected access can continue."
+
+            "EMERGENCY_LIMITED" ->
+                "Emergency limited mode is active. Standard protected runtime remains blocked."
+
+            "PROTECTED_RUNTIME_BLOCKED" ->
+                "Protected runtime is blocked by current security policy."
+
+            "AUTH_REQUIRED" ->
+                "Biometric verified, but secure session could not be established."
+
+            else ->
+                "Biometric verified, but protected runtime access is not allowed under the current security posture."
+        }
 
     private fun failClosed(
         onError: (String) -> Unit,

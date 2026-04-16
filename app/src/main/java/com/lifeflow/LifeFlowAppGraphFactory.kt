@@ -55,7 +55,8 @@ internal object LifeFlowAppGraphFactory {
             authPerUseCryptoProvider =
                 securityBootstrap.cryptoBindings.authPerUseEncryptionService?.let {
                     SecurityAuthPerUseCryptoProvider(it)
-                }
+                },
+            integrityTrustRuntime = securityBootstrap.integrityTrustRuntime
         )
     }
 

@@ -11,24 +11,116 @@ import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
 import kotlin.math.roundToLong
 
-internal suspend fun lifeflowOrchestratorResolveMetricPermissionSnapshotSafe(
+internal data class LifeFlowOrchestratorRefreshPermissionBundle(
+    val requiredPermissions: Set<String>,
+    val grantedPermissions: Set<String>,
+    val permissionSnapshot: MetricPermissionSnapshot
+)
+
+internal data class LifeFlowOrchestratorRefreshPipelineSnapshot(
+    val healthConnectState: HealthConnectUiState,
+    val requiredPermissions: Set<String>,
+    val grantedPermissions: Set<String>,
+    val permissionSnapshot: MetricPermissionSnapshot,
+    val metricReadSnapshot: MetricReadSnapshot,
+    val digitalTwinState: DigitalTwinState
+)
+
+internal suspend fun lifeflowOrchestratorResolveRefreshPermissionBundleSafe(
+    healthConnectState: HealthConnectUiState,
     getHealthPermissions: GetHealthPermissionsUseCase,
     getGrantedHealthPermissions: GetGrantedHealthPermissionsUseCase
-): MetricPermissionSnapshot {
-    return try {
-        val requiredPermissions = getHealthPermissions()
-        if (requiredPermissions.isEmpty()) {
-            return lifeflowOrchestratorEmptyMetricPermissionSnapshot()
-        }
+): LifeFlowOrchestratorRefreshPermissionBundle {
+    val requiredPermissions = when (
+        val result = lifeflowOrchestratorLookupRequiredHealthPermissions(getHealthPermissions)
+    ) {
+        is ActionResult.Success -> result.value
+        is ActionResult.Locked -> return lifeflowOrchestratorEmptyRefreshPermissionBundle()
+        is ActionResult.Error -> return lifeflowOrchestratorEmptyRefreshPermissionBundle()
+    }
 
-        val grantedPermissions = getGrantedHealthPermissions()
+    if (requiredPermissions.isEmpty()) {
+        return lifeflowOrchestratorEmptyRefreshPermissionBundle()
+    }
+
+    val grantedPermissions = when (
+        val result = lifeflowOrchestratorLookupGrantedHealthPermissions(getGrantedHealthPermissions)
+    ) {
+        is ActionResult.Success -> result.value
+        is ActionResult.Locked -> emptySet()
+        is ActionResult.Error -> emptySet()
+    }
+
+    return lifeflowOrchestratorResolveRefreshPermissionBundle(
+        healthConnectState = healthConnectState,
+        requiredPermissions = requiredPermissions,
+        grantedPermissions = grantedPermissions
+    )
+}
+
+internal fun lifeflowOrchestratorResolveRefreshPermissionBundle(
+    healthConnectState: HealthConnectUiState,
+    requiredPermissions: Set<String>,
+    grantedPermissions: Set<String>
+): LifeFlowOrchestratorRefreshPermissionBundle {
+    if (requiredPermissions.isEmpty()) {
+        return lifeflowOrchestratorEmptyRefreshPermissionBundle()
+    }
+
+    val permissionSnapshot = if (healthConnectState is HealthConnectUiState.Available) {
         lifeflowOrchestratorResolveMetricPermissionSnapshot(
             requiredPermissions = requiredPermissions,
             grantedPermissions = grantedPermissions
         )
-    } catch (_: Throwable) {
+    } else {
         lifeflowOrchestratorEmptyMetricPermissionSnapshot()
     }
+
+    return LifeFlowOrchestratorRefreshPermissionBundle(
+        requiredPermissions = requiredPermissions,
+        grantedPermissions = grantedPermissions,
+        permissionSnapshot = permissionSnapshot
+    )
+}
+
+internal fun lifeflowOrchestratorEmptyRefreshPermissionBundle(): LifeFlowOrchestratorRefreshPermissionBundle {
+    return LifeFlowOrchestratorRefreshPermissionBundle(
+        requiredPermissions = emptySet(),
+        grantedPermissions = emptySet(),
+        permissionSnapshot = lifeflowOrchestratorEmptyMetricPermissionSnapshot()
+    )
+}
+
+internal suspend fun lifeflowOrchestratorBuildRefreshPipelineSnapshot(
+    identityInitialized: Boolean,
+    healthConnectState: HealthConnectUiState,
+    permissionBundle: LifeFlowOrchestratorRefreshPermissionBundle,
+    getStepsLast24h: GetStepsLast24hUseCase,
+    getAvgHeartRateLast24h: GetAvgHeartRateLast24hUseCase,
+    digitalTwinOrchestrator: DigitalTwinOrchestrator
+): LifeFlowOrchestratorRefreshPipelineSnapshot {
+    val metricReadSnapshot = lifeflowOrchestratorReadMetricsBestEffort(
+        healthConnectState = healthConnectState,
+        permissionSnapshot = permissionBundle.permissionSnapshot,
+        getStepsLast24h = getStepsLast24h,
+        getAvgHeartRateLast24h = getAvgHeartRateLast24h
+    )
+
+    val digitalTwinState = lifeflowOrchestratorRefreshDigitalTwin(
+        identityInitialized = identityInitialized,
+        metricReadSnapshot = metricReadSnapshot,
+        permissionSnapshot = permissionBundle.permissionSnapshot,
+        digitalTwinOrchestrator = digitalTwinOrchestrator
+    )
+
+    return LifeFlowOrchestratorRefreshPipelineSnapshot(
+        healthConnectState = healthConnectState,
+        requiredPermissions = permissionBundle.requiredPermissions,
+        grantedPermissions = permissionBundle.grantedPermissions,
+        permissionSnapshot = permissionBundle.permissionSnapshot,
+        metricReadSnapshot = metricReadSnapshot,
+        digitalTwinState = digitalTwinState
+    )
 }
 
 /**

@@ -1,16 +1,21 @@
 package com.lifeflow
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,15 +23,104 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lifeflow.core.HealthConnectUiState
 
 private val LoadingCardShape = RoundedCornerShape(28.dp)
 private val LoadingInnerShape = RoundedCornerShape(22.dp)
 private val LoadingPillShape = RoundedCornerShape(18.dp)
-private val LoadingCardPadding = 24.dp
-private val LoadingCardSpacing = 18.dp
+
+private val LoadingCardPadding = 22.dp
+private val LoadingCardSpacing = 16.dp
+private val LoadingCardOuterPadding = 14.dp
+private val LoadingInnerPanelPadding = 16.dp
+
+private val LoadingCardHighlightOffsetUltra = (-4).dp
+private val LoadingCardHighlightOffsetFar = (-2).dp
+private val LoadingCardHighlightOffsetNear = (-1).dp
+private val LoadingCardDarkOffsetNear = 1.dp
+private val LoadingCardDarkOffsetFar = 3.dp
+private val LoadingCardDarkOffsetUltra = 5.dp
+
+private val LoadingPillHighlightOffsetStrong = (-2).dp
+private val LoadingPillHighlightOffset = (-1).dp
+private val LoadingPillDarkOffset = 1.dp
+private val LoadingPillDarkOffsetStrong = 3.dp
+
+private val LoadingCardSurface = Color(0xFFF1F3F6)
+private val LoadingCardSurfaceSoft = Color(0xFFF1F3F6)
+private val LoadingCardInnerSurface = Color(0xFFF1F3F6)
+
+private val LoadingLightShadowFar = Color(0xFFFFFFFF)
+private val LoadingLightShadowNear = Color(0xFFFFFFFF)
+private val LoadingDarkShadowFar = Color(0xFFADB7C4)
+private val LoadingDarkShadowNear = Color(0xFFC8D1DC)
+private val LoadingCardBorder = Color(0xFFFFFFFF)
+
+private fun loadingCardBrush(surfaceColor: Color): Brush {
+    return Brush.linearGradient(
+        colors = listOf(
+            surfaceColor,
+            surfaceColor,
+            surfaceColor
+        )
+    )
+}
+
+@Composable
+private fun loadingEyebrowTextStyle(): TextStyle {
+    return MaterialTheme.typography.labelLarge.copy(
+        fontSize = 11.sp,
+        lineHeight = 14.sp
+    )
+}
+
+@Composable
+private fun loadingHeadlineTextStyle(): TextStyle {
+    return MaterialTheme.typography.headlineSmall.copy(
+        fontSize = 15.sp,
+        lineHeight = 19.sp
+    )
+}
+
+@Composable
+private fun loadingSectionTitleTextStyle(): TextStyle {
+    return MaterialTheme.typography.titleLarge.copy(
+        fontSize = 14.sp,
+        lineHeight = 18.sp
+    )
+}
+
+@Composable
+private fun loadingBodyTextStyle(): TextStyle {
+    return MaterialTheme.typography.bodyMedium.copy(
+        fontSize = 12.sp,
+        lineHeight = 18.sp
+    )
+}
+
+@Composable
+private fun loadingPillTextStyle(): TextStyle {
+    return MaterialTheme.typography.labelMedium.copy(
+        fontSize = 10.sp,
+        lineHeight = 12.sp
+    )
+}
+
+@Composable
+private fun loadingInnerTitleTextStyle(): TextStyle {
+    return MaterialTheme.typography.titleSmall.copy(
+        fontSize = 12.sp,
+        lineHeight = 16.sp
+    )
+}
 
 @Composable
 fun LoadingScreen(
@@ -55,7 +149,16 @@ fun LoadingScreen(
         grantedCount = grantedCount
     )
 
-    ScreenContainer(title = "LifeFlow") {
+    ScreenContainer(title = "") {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            LifeFlowSignalPill(text = "Loading")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         LoadingHeroCard()
         ScreenSectionSpacer()
         LoadingStateCard(currentStateMessage = currentStateMessage)
@@ -90,45 +193,61 @@ fun FreeTierScreen(
     onUpgradeToCore: () -> Unit,
     debugLines: List<String>
 ) {
-    ScreenContainer(title = "LifeFlow Free") {
-        LoadingHeader()
-        ScreenSectionSpacer()
-        GuidanceCard(
-            title = "Free mode, explained clearly",
-            leadingIconResId = R.drawable.lf_ic_focus,
-            message = "This screen explains the current product tier in a calm way. It should feel informative and low-pressure, not like a hard sales wall."
-        )
-        ScreenSectionSpacer()
-        ActionCard(title = "Current tier state") {
+    ScreenContainer(title = "") {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            LifeFlowSignalPill(text = "Free mode")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Free mode is active for now") {
+            Text(
+                text = "This screen explains the current product tier in a calm way. It should feel informative and low-pressure, not like a hard sales wall.",
+                style = lifeFlowCardSummaryStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Current tier state") {
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        ScreenSectionSpacer()
-        ActionCard(title = "What Core opens") {
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "What Core opens") {
             Text(
                 text = "Core opens the Digital Twin, biometric vault, broader module access, and deeper cross-module intelligence.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ScreenSectionSpacer()
-            Button(
-                onClick = onUpgradeToCore,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Upgrade to Core")
-            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LifeFlowPrimaryActionButton(
+                label = "Upgrade to Core",
+                onClick = onUpgradeToCore
+            )
         }
-        ScreenSectionSpacer()
-        ActionCard(title = "Current boundary") {
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Current boundary") {
             Text(
                 text = "This is a tier-state screen only. It does not define trust-state truth, biometric authority, or protected execution behavior.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
         ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
@@ -146,107 +265,97 @@ fun ErrorScreen(
         resetRequired = resetRequired
     )
 
-    ScreenContainer(title = "LifeFlow") {
-        LoadingHeader()
-        ScreenSectionSpacer()
-        GuidanceCard(
-            title = content.guidanceTitle,
-            leadingIconResId = R.drawable.lf_ic_focus,
-            message = content.guidanceMessage
-        )
-        ScreenSectionSpacer()
-        ActionCard(title = "Current security state") {
+    ScreenContainer(title = "") {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            LifeFlowSignalPill(
+                text = if (resetRequired) "Reset" else "Recovery"
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = content.guidanceTitle) {
+            Text(
+                text = content.guidanceMessage,
+                style = lifeFlowCardSummaryStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Current security state") {
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        ScreenSectionSpacer()
-        ActionCard(title = "Required next step") {
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Required next step") {
             Text(
                 text = content.nextStepMessage,
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ScreenSectionSpacer()
-            Button(
-                onClick = onRetry,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(content.buttonLabel)
-            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LifeFlowPrimaryActionButton(
+                label = content.buttonLabel,
+                onClick = onRetry
+            )
         }
-        ScreenSectionSpacer()
-        ActionCard(title = "Current boundary") {
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LifeFlowSectionPanel(title = "Current boundary") {
             Text(
                 text = "This screen reflects the active security state and the next safe action. It does not redefine trust truth, recovery authority, or protected access rules in UI.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
         ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
 
 @Composable
 private fun LoadingHeroCard() {
-    Card(
-        shape = LoadingCardShape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    LoadingRaisedCardShell(
+        surfaceColor = LoadingCardSurfaceSoft
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(LoadingCardPadding),
-            verticalArrangement = Arrangement.spacedBy(LoadingCardSpacing)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Surface(
-                    shape = LoadingInnerShape,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.lf_ic_focus),
-                        contentDescription = "Loading focus",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .padding(10.dp)
-                    )
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Quiet loading",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Preparing the shell calmly",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-            }
-
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                text = "This loading layer keeps the next step clear and proportional while LifeFlow checks access, session state, and health surfaces.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Quiet loading",
+                style = loadingEyebrowTextStyle(),
+                color = MaterialTheme.colorScheme.primary
             )
+            Text(
+                text = "Preparing the shell calmly",
+                style = loadingHeadlineTextStyle()
+            )
+        }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LoadingPill(text = "Access check")
-                LoadingPill(text = "Health state")
-                LoadingPill(text = "Soft pacing")
-            }
+        Text(
+            text = "LifeFlow is checking access, session state, and health signals.",
+            style = loadingBodyTextStyle(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+        ) {
+            LoadingPill(text = "Access check")
+            LoadingPill(text = "Health state")
+            LoadingPill(text = "Soft pacing")
         }
     }
 }
@@ -255,30 +364,19 @@ private fun LoadingHeroCard() {
 private fun LoadingStateCard(
     currentStateMessage: String
 ) {
-    Card(
-        shape = LoadingCardShape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    LoadingRaisedCardShell(
+        surfaceColor = LoadingCardSurface
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(LoadingCardPadding),
-            verticalArrangement = Arrangement.spacedBy(LoadingCardSpacing)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Current state",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = currentStateMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Current state",
+                style = loadingSectionTitleTextStyle()
+            )
+            Text(
+                text = currentStateMessage,
+                style = loadingBodyTextStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -287,68 +385,291 @@ private fun LoadingStateCard(
 private fun LoadingFocusCard(
     currentFocusMessage: String
 ) {
-    Card(
-        shape = LoadingCardShape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    LoadingRaisedCardShell(
+        surfaceColor = LoadingCardSurfaceSoft
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(LoadingCardPadding),
-            verticalArrangement = Arrangement.spacedBy(LoadingCardSpacing)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Current focus",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = currentFocusMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Surface(
-                shape = LoadingInnerShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "Recommended next move",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = "Authenticate now or review Health access to unlock a fuller first wellbeing snapshot without turning this step into a harsh system wall.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Current focus",
+                style = loadingSectionTitleTextStyle()
+            )
+            Text(
+                text = currentFocusMessage,
+                style = loadingBodyTextStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
-private fun LoadingPill(text: String) {
-    Surface(
-        shape = LoadingPillShape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+private fun LoadingRaisedCardShell(
+    surfaceColor: Color,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(LoadingCardOuterPadding)
     ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingCardHighlightOffsetUltra,
+                    y = LoadingCardHighlightOffsetUltra
+                )
+                .shadow(
+                    elevation = 8.dp,
+                    shape = LoadingCardShape,
+                    clip = false,
+                    ambientColor = LoadingLightShadowFar,
+                    spotColor = LoadingLightShadowFar
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingCardShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingCardHighlightOffsetFar,
+                    y = LoadingCardHighlightOffsetFar
+                )
+                .shadow(
+                    elevation = 4.dp,
+                    shape = LoadingCardShape,
+                    clip = false,
+                    ambientColor = LoadingLightShadowFar,
+                    spotColor = LoadingLightShadowFar
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingCardShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingCardHighlightOffsetNear,
+                    y = LoadingCardHighlightOffsetNear
+                )
+                .shadow(
+                    elevation = 2.dp,
+                    shape = LoadingCardShape,
+                    clip = false,
+                    ambientColor = LoadingLightShadowNear,
+                    spotColor = LoadingLightShadowNear
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingCardShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingCardDarkOffsetUltra,
+                    y = LoadingCardDarkOffsetUltra
+                )
+                .shadow(
+                    elevation = 8.dp,
+                    shape = LoadingCardShape,
+                    clip = false,
+                    ambientColor = LoadingDarkShadowFar,
+                    spotColor = LoadingDarkShadowFar
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingCardShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingCardDarkOffsetFar,
+                    y = LoadingCardDarkOffsetFar
+                )
+                .shadow(
+                    elevation = 4.dp,
+                    shape = LoadingCardShape,
+                    clip = false,
+                    ambientColor = LoadingDarkShadowFar,
+                    spotColor = LoadingDarkShadowFar
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingCardShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingCardDarkOffsetNear,
+                    y = LoadingCardDarkOffsetNear
+                )
+                .shadow(
+                    elevation = 2.dp,
+                    shape = LoadingCardShape,
+                    clip = false,
+                    ambientColor = LoadingDarkShadowNear,
+                    spotColor = LoadingDarkShadowNear
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingCardShape
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = loadingCardBrush(surfaceColor),
+                    shape = LoadingCardShape
+                )
+                .border(
+                    width = 1.25.dp,
+                    color = LoadingCardBorder,
+                    shape = LoadingCardShape
+                )
+                .padding(LoadingCardPadding),
+            verticalArrangement = Arrangement.spacedBy(LoadingCardSpacing),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun LoadingInsetPanelShell(
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                brush = loadingCardBrush(LoadingCardInnerSurface),
+                shape = LoadingInnerShape
+            )
+            .padding(LoadingInnerPanelPadding),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun LoadingPill(text: String) {
+    Box(
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingPillHighlightOffsetStrong,
+                    y = LoadingPillHighlightOffsetStrong
+                )
+                .shadow(
+                    elevation = 4.dp,
+                    shape = LoadingPillShape,
+                    clip = false,
+                    ambientColor = LoadingLightShadowFar,
+                    spotColor = LoadingLightShadowFar
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingPillShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingPillHighlightOffset,
+                    y = LoadingPillHighlightOffset
+                )
+                .shadow(
+                    elevation = 2.dp,
+                    shape = LoadingPillShape,
+                    clip = false,
+                    ambientColor = LoadingLightShadowNear,
+                    spotColor = LoadingLightShadowNear
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingPillShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingPillDarkOffsetStrong,
+                    y = LoadingPillDarkOffsetStrong
+                )
+                .shadow(
+                    elevation = 4.dp,
+                    shape = LoadingPillShape,
+                    clip = false,
+                    ambientColor = LoadingDarkShadowFar,
+                    spotColor = LoadingDarkShadowFar
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingPillShape
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = LoadingPillDarkOffset,
+                    y = LoadingPillDarkOffset
+                )
+                .shadow(
+                    elevation = 2.dp,
+                    shape = LoadingPillShape,
+                    clip = false,
+                    ambientColor = LoadingDarkShadowNear,
+                    spotColor = LoadingDarkShadowNear
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = LoadingPillShape
+                )
+        )
+
         Text(
             text = text,
-            style = MaterialTheme.typography.labelMedium,
+            style = loadingPillTextStyle(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier
+                .background(
+                    brush = loadingCardBrush(LoadingCardSurfaceSoft),
+                    shape = LoadingPillShape
+                )
+                .border(
+                    width = 1.25.dp,
+                    color = LoadingCardBorder,
+                    shape = LoadingPillShape
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp)
         )
     }
 }
@@ -366,3 +687,27 @@ private fun LoadingHeader() {
         )
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

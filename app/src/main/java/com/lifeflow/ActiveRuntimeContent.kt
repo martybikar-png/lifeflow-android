@@ -28,7 +28,7 @@ private const val INTRO_SPLASH_DURATION_MS = 3000L
 
 @Composable
 internal fun ActiveRuntimeContent(
-    viewModel: MainViewModel,
+    viewModel: ActiveRuntimeViewModelContract,
     biometricAuthManager: BiometricAuthManager,
     appPackageName: String,
     onStartIntent: (Intent) -> Unit

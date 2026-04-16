@@ -9,27 +9,29 @@ import androidx.compose.runtime.setValue
 
 @Composable
 internal fun StartupFailureContent(
-    app: LifeFlowApplication,
+    initialStartupFailureMessage: String,
+    retryStartup: () -> Boolean,
+    readStartupFailureMessage: () -> String,
     appPackageName: String,
     onStartIntent: (Intent) -> Unit,
     onRecreateActivity: () -> Unit
 ) {
     var startupFailureMessage by remember {
-        mutableStateOf(readStartupFailureMessage(app))
+        mutableStateOf(initialStartupFailureMessage)
     }
     var lastAction by remember { mutableStateOf("Startup initialization failed") }
     var pendingSettingsRetry by remember { mutableStateOf(false) }
 
-    fun retryStartup(requestMessage: String) {
+    fun retryStartupWithMessage(requestMessage: String) {
         lastAction = requestMessage
 
-        val initialized = tryEnsureStartupInitialized(app)
+        val initialized = retryStartup()
 
         if (initialized) {
             lastAction = "$requestMessage; startup recovered, recreating activity"
             onRecreateActivity()
         } else {
-            startupFailureMessage = readStartupFailureMessage(app)
+            startupFailureMessage = readStartupFailureMessage()
             lastAction = "$requestMessage; startup still failing"
         }
     }
@@ -50,7 +52,7 @@ internal fun StartupFailureContent(
         pending = pendingSettingsRetry,
         onConsumePending = { pendingSettingsRetry = false },
         onResumeAction = {
-            retryStartup("Returned from settings; startup retry requested")
+            retryStartupWithMessage("Returned from settings; startup retry requested")
         }
     )
 
@@ -58,7 +60,7 @@ internal fun StartupFailureContent(
         message = startupFailureMessage,
         lastAction = lastAction,
         onRetryStartup = {
-            retryStartup("Manual startup retry requested")
+            retryStartupWithMessage("Manual startup retry requested")
         },
         onOpenAppSettings = {
             openAppSettings()

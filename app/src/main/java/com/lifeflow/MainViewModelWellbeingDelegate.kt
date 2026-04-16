@@ -1,23 +1,13 @@
 package com.lifeflow
 
-import androidx.compose.runtime.MutableState
 import com.lifeflow.core.ActionResult
-import com.lifeflow.core.HealthConnectUiState
-import com.lifeflow.core.LifeFlowOrchestrator
 import com.lifeflow.core.WellbeingRefreshSnapshot
-import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
-import com.lifeflow.domain.wellbeing.WellbeingAssessment
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 internal class MainViewModelWellbeingDelegate(
-    private val orchestrator: LifeFlowOrchestrator,
-    private val healthConnectState: MutableState<HealthConnectUiState>,
-    private val requiredHealthPermissions: MutableState<Set<String>>,
-    private val grantedHealthPermissions: MutableState<Set<String>>,
-    private val healthPermissionsInitError: MutableState<String?>,
-    private val digitalTwinState: MutableState<DigitalTwinState?>,
-    private val wellbeingAssessment: MutableState<WellbeingAssessment?>,
+    private val wellbeingRuntime: MainViewModelWellbeingRuntime,
+    private val wellbeingState: MainViewModelWellbeingState,
     private val refreshMutex: Mutex,
     private val currentUiState: () -> UiState,
     private val currentSecuritySnapshot: () -> MainViewModelSecuritySnapshot,
@@ -35,38 +25,18 @@ internal class MainViewModelWellbeingDelegate(
     }
 
     fun refreshRequiredPermissionsDefinition() {
-        val (requiredPermissionsValue, initErrorValue, lastActionMessage) =
-            when (val res = orchestrator.requiredHealthPermissionsSafe()) {
-                is ActionResult.Success -> Triple(
-                    res.value,
-                    null,
-                    "Health permission contract loaded (${res.value.size} required)."
-                )
+        val refresh = wellbeingRuntime.refreshRequiredPermissionsDefinition()
 
-                is ActionResult.Error -> Triple(
-                    emptySet(),
-                    res.message,
-                    "Health permission contract failed to load."
-                )
-
-                is ActionResult.Locked -> Triple(
-                    emptySet(),
-                    res.reason,
-                    "Health permission contract locked."
-                )
-            }
-
-        requiredHealthPermissions.value = requiredPermissionsValue
-        healthPermissionsInitError.value = initErrorValue
-        updateLastAction(lastActionMessage)
+        wellbeingState.requiredHealthPermissions.value = refresh.requiredPermissions
+        wellbeingState.healthPermissionsInitError.value = refresh.initError
+        updateLastAction(refresh.lastActionMessage)
     }
 
     fun refreshHealthConnectStatusSafe() {
-        healthConnectState.value = runCatching {
-            orchestrator.healthConnectUiState()
-        }.getOrElse { HealthConnectUiState.Unknown }
+        val refresh = wellbeingRuntime.refreshHealthConnectStatusSafe()
 
-        updateLastAction("Health Connect state checked: ${healthConnectState.value}.")
+        wellbeingState.healthConnectState.value = refresh.healthConnectState
+        updateLastAction(refresh.lastActionMessage)
     }
 
     fun refreshPublicHealthStateOnly() {
@@ -74,19 +44,19 @@ internal class MainViewModelWellbeingDelegate(
         refreshRequiredPermissionsDefinition()
 
         val update = mainViewModelPublicHealthStateOnlyUiUpdate(
-            healthConnectState = healthConnectState.value,
-            requiredHealthPermissions = requiredHealthPermissions.value,
-            healthPermissionsInitError = healthPermissionsInitError.value
+            healthConnectState = wellbeingState.healthConnectState.value,
+            requiredHealthPermissions = wellbeingState.requiredHealthPermissions.value,
+            healthPermissionsInitError = wellbeingState.healthPermissionsInitError.value
         )
 
         applyMainViewModelWellbeingUiUpdate(
             update = update,
-            healthConnectStateState = healthConnectState,
-            requiredHealthPermissionsState = requiredHealthPermissions,
-            grantedHealthPermissionsState = grantedHealthPermissions,
-            healthPermissionsInitErrorState = healthPermissionsInitError,
-            digitalTwinStateState = digitalTwinState,
-            wellbeingAssessmentState = wellbeingAssessment,
+            healthConnectStateState = wellbeingState.healthConnectState,
+            requiredHealthPermissionsState = wellbeingState.requiredHealthPermissions,
+            grantedHealthPermissionsState = wellbeingState.grantedHealthPermissions,
+            healthPermissionsInitErrorState = wellbeingState.healthPermissionsInitError,
+            digitalTwinStateState = wellbeingState.digitalTwinState,
+            wellbeingAssessmentState = wellbeingState.wellbeingAssessment,
             updateLastAction = updateLastAction
         )
     }
@@ -111,12 +81,12 @@ internal class MainViewModelWellbeingDelegate(
 
         applyMainViewModelWellbeingUiUpdate(
             update = update,
-            healthConnectStateState = healthConnectState,
-            requiredHealthPermissionsState = requiredHealthPermissions,
-            grantedHealthPermissionsState = grantedHealthPermissions,
-            healthPermissionsInitErrorState = healthPermissionsInitError,
-            digitalTwinStateState = digitalTwinState,
-            wellbeingAssessmentState = wellbeingAssessment,
+            healthConnectStateState = wellbeingState.healthConnectState,
+            requiredHealthPermissionsState = wellbeingState.requiredHealthPermissions,
+            grantedHealthPermissionsState = wellbeingState.grantedHealthPermissions,
+            healthPermissionsInitErrorState = wellbeingState.healthPermissionsInitError,
+            digitalTwinStateState = wellbeingState.digitalTwinState,
+            wellbeingAssessmentState = wellbeingState.wellbeingAssessment,
             updateLastAction = updateLastAction
         )
     }
@@ -130,8 +100,8 @@ internal class MainViewModelWellbeingDelegate(
 
             updateLastAction("Refreshing protected wellbeing snapshot...")
 
-            when (val res = orchestrator.refreshWellbeingSnapshot(identityInitialized)) {
-                is ActionResult.Success -> applyWellbeingSnapshot(res.value)
+            when (val result = wellbeingRuntime.refreshWellbeingSnapshot(identityInitialized)) {
+                is ActionResult.Success -> applyWellbeingSnapshot(result.value)
 
                 is ActionResult.Error -> {
                     refreshPublicHealthStateWithMessage(
@@ -141,7 +111,7 @@ internal class MainViewModelWellbeingDelegate(
 
                 is ActionResult.Locked -> {
                     failClosedWithError(
-                        mainViewModelLockedReasonToUserMessage(res.reason),
+                        mainViewModelLockedReasonToUserMessage(result.reason),
                         true
                     )
                 }

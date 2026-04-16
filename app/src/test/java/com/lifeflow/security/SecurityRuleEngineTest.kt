@@ -213,6 +213,204 @@ class SecurityRuleEngineTest {
         assertTrue(lastEvent.reason.contains("DENY_TRUST_OVERRIDE"))
     }
 
+    @Test
+    fun `integrity verified verdict promotes trust to verified without restoring session`() {
+        setBaseline(TrustState.DEGRADED)
+        SecurityAccessSession.clear()
+
+        SecurityRuleEngine.reportIntegrityTrustVerdict(
+            verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+            reason = "Server verified integrity"
+        )
+
+        assertEquals(TrustState.VERIFIED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertEquals(SecurityRuleEngine.Decision.ALLOW, lastEvent.decision)
+        assertEquals(TrustState.VERIFIED, lastEvent.trustState)
+        assertTrue(lastEvent.reason.contains("INTEGRITY_TRUST_VERIFIED"))
+    }
+
+    @Test
+    fun `integrity degraded verdict downgrades trust and clears active session`() {
+        setBaseline(TrustState.VERIFIED)
+        SecurityAccessSession.grantDefault()
+        assertTrue(SecurityAccessSession.isAuthorized())
+
+        SecurityRuleEngine.reportIntegrityTrustVerdict(
+            verdict = SecurityIntegrityTrustVerdict.DEGRADED,
+            reason = "Server returned degraded integrity"
+        )
+
+        assertEquals(TrustState.DEGRADED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertEquals(SecurityRuleEngine.Decision.DENY, lastEvent.decision)
+        assertEquals(TrustState.DEGRADED, lastEvent.trustState)
+        assertTrue(lastEvent.reason.contains("INTEGRITY_TRUST_DEGRADED"))
+    }
+
+    @Test
+    fun `integrity compromised verdict compromises trust and clears active session`() {
+        setBaseline(TrustState.VERIFIED)
+        SecurityAccessSession.grantDefault()
+        assertTrue(SecurityAccessSession.isAuthorized())
+
+        SecurityRuleEngine.reportIntegrityTrustVerdict(
+            verdict = SecurityIntegrityTrustVerdict.COMPROMISED,
+            reason = "Server returned compromised integrity"
+        )
+
+        assertEquals(TrustState.COMPROMISED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertEquals(SecurityRuleEngine.Decision.DENY, lastEvent.decision)
+        assertEquals(TrustState.COMPROMISED, lastEvent.trustState)
+        assertTrue(lastEvent.reason.contains("INTEGRITY_TRUST_COMPROMISED"))
+    }
+
+    @Test
+    fun `integrity verdict cannot override compromised state`() {
+        setBaseline(TrustState.COMPROMISED)
+
+        SecurityRuleEngine.reportIntegrityTrustVerdict(
+            verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+            reason = "Server verified integrity but state is already compromised"
+        )
+
+        assertEquals(TrustState.COMPROMISED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertEquals(SecurityRuleEngine.Decision.DENY, lastEvent.decision)
+        assertEquals(TrustState.COMPROMISED, lastEvent.trustState)
+        assertTrue(lastEvent.reason.contains("DENY_INTEGRITY_OVERRIDE"))
+    }
+
+    @Test
+    fun `metadata aware integrity response accepts fresh server verdict`() {
+        setBaseline(TrustState.DEGRADED)
+
+        SecurityIntegrityTrustAuthority.reportVerdictResponse(
+            response = IntegrityTrustVerdictResponse(
+                verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+                reason = "VERIFIED: SERVER_OK",
+                requestHashEcho = "hash-123",
+                serverTimestampEpochMs = 1_000L,
+                policyVersion = "policy-v1",
+                verdictSource = IntegrityTrustVerdictSource.PLAY_INTEGRITY_STANDARD_SERVER,
+                claims = SecurityIntegrityVerdictClaims(
+                    appRecognitionVerdict = SecurityIntegrityAppRecognitionVerdict.PLAY_RECOGNIZED,
+                    deviceRecognitionVerdicts = linkedSetOf(
+                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_DEVICE_INTEGRITY,
+                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_STRONG_INTEGRITY
+                    ),
+                    appLicensingVerdict = SecurityIntegrityAppLicensingVerdict.LICENSED,
+                    playProtectVerdict = SecurityIntegrityPlayProtectVerdict.NO_ISSUES
+                )
+            ),
+            nowEpochMs = 60_000L
+        )
+
+        assertEquals(TrustState.VERIFIED, SecurityRuleEngine.getTrustState())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertTrue(lastEvent.reason.contains("policy-v1"))
+        assertTrue(lastEvent.reason.contains("PLAY_INTEGRITY_STANDARD_SERVER"))
+        assertTrue(lastEvent.reason.contains("requestHashEcho=hash-123"))
+    }
+
+    @Test
+    fun `metadata aware integrity response compromises stale server verdict`() {
+        setBaseline(TrustState.VERIFIED)
+        SecurityAccessSession.grantDefault()
+
+        SecurityIntegrityTrustAuthority.reportVerdictResponse(
+            response = IntegrityTrustVerdictResponse(
+                verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+                reason = "VERIFIED: SERVER_OK",
+                requestHashEcho = "hash-123",
+                serverTimestampEpochMs = 1_000L,
+                policyVersion = "policy-v1",
+                verdictSource = IntegrityTrustVerdictSource.PLAY_INTEGRITY_STANDARD_SERVER,
+                claims = SecurityIntegrityVerdictClaims(
+                    appRecognitionVerdict = SecurityIntegrityAppRecognitionVerdict.PLAY_RECOGNIZED,
+                    deviceRecognitionVerdicts = linkedSetOf(
+                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_DEVICE_INTEGRITY,
+                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_STRONG_INTEGRITY
+                    ),
+                    appLicensingVerdict = SecurityIntegrityAppLicensingVerdict.LICENSED,
+                    playProtectVerdict = SecurityIntegrityPlayProtectVerdict.NO_ISSUES
+                )
+            ),
+            nowEpochMs = 1_000L + 301_000L
+        )
+
+        assertEquals(TrustState.COMPROMISED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertTrue(lastEvent.reason.contains("SERVER_VERDICT_METADATA_INVALID"))
+        assertTrue(lastEvent.reason.contains("stale server verdict metadata"))
+    }
+
+    @Test
+    fun `metadata aware integrity response compromises invalid policy version`() {
+        setBaseline(TrustState.DEGRADED)
+
+        SecurityIntegrityTrustAuthority.reportVerdictResponse(
+            response = IntegrityTrustVerdictResponse(
+                verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+                reason = "VERIFIED: SERVER_OK",
+                requestHashEcho = "hash-123",
+                serverTimestampEpochMs = 1_000L,
+                policyVersion = "v1",
+                verdictSource = IntegrityTrustVerdictSource.PLAY_INTEGRITY_STANDARD_SERVER,
+                claims = SecurityIntegrityVerdictClaims(
+                    appRecognitionVerdict = SecurityIntegrityAppRecognitionVerdict.PLAY_RECOGNIZED,
+                    deviceRecognitionVerdicts = linkedSetOf(
+                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_DEVICE_INTEGRITY,
+                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_STRONG_INTEGRITY
+                    ),
+                    appLicensingVerdict = SecurityIntegrityAppLicensingVerdict.LICENSED,
+                    playProtectVerdict = SecurityIntegrityPlayProtectVerdict.NO_ISSUES
+                )
+            ),
+            nowEpochMs = 60_000L
+        )
+
+        assertEquals(TrustState.COMPROMISED, SecurityRuleEngine.getTrustState())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertTrue(lastEvent.reason.contains("SERVER_VERDICT_METADATA_INVALID"))
+        assertTrue(lastEvent.reason.contains("invalid policyVersion format"))
+    }
+
+    @Test
+    fun `metadata aware integrity response accepts client failsafe degraded without server metadata`() {
+        setBaseline(TrustState.VERIFIED)
+        SecurityAccessSession.grantDefault()
+
+        SecurityIntegrityTrustAuthority.reportVerdictResponse(
+            response = IntegrityTrustVerdictResponse(
+                verdict = SecurityIntegrityTrustVerdict.DEGRADED,
+                reason = "PLAY_INTEGRITY_REQUEST_FAILED: network down",
+                verdictSource = IntegrityTrustVerdictSource.CLIENT_FAILSAFE
+            ),
+            nowEpochMs = 60_000L
+        )
+
+        assertEquals(TrustState.DEGRADED, SecurityRuleEngine.getTrustState())
+        assertFalse(SecurityAccessSession.isAuthorized())
+
+        val lastEvent = SecurityRuleEngine.getRecentEvents().last()
+        assertTrue(lastEvent.reason.contains("PLAY_INTEGRITY_REQUEST_FAILED"))
+        assertTrue(lastEvent.reason.contains("CLIENT_FAILSAFE"))
+    }
+
     private fun setBaseline(state: TrustState) {
         SecurityRuleEngine.forceResetForAdversarialSuite(
             state = state,
@@ -234,3 +432,4 @@ class SecurityRuleEngineTest {
         }
     }
 }
+

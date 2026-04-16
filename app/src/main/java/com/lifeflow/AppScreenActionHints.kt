@@ -11,19 +11,19 @@ internal fun loadingActionHint(
 ): String {
     return when {
         isAuthenticating ->
-            "A protected session is already available. Wait for the current protected check to complete."
+            "Protected session is already active."
         healthState == HealthConnectUiState.NotInstalled ->
-            "Open settings first and finish the Health Connect installation path."
+            "Open settings and finish Health Connect setup."
         healthState == HealthConnectUiState.UpdateRequired ->
-            "Open settings first and update Health Connect before continuing."
+            "Update Health Connect in settings first."
         canGrantHealthPermissions(
             healthState = healthState,
             requiredCount = requiredCount,
             grantedCount = grantedCount
         ) ->
-            "Authenticate now or review Health access to improve the first dashboard snapshot."
+            "Authenticate now, or review Health access."
         else ->
-            "Everything is lined up for the first protected dashboard unlock."
+            "Everything is ready for the first dashboard unlock."
     }
 }
 
@@ -44,3 +44,4 @@ internal fun dashboardActionHint(
             "The dashboard is live. Refresh whenever you want a newer snapshot."
     }
 }
+
