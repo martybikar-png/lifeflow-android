@@ -10,6 +10,10 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 
+internal class SecurityKeystorePostureException(
+    message: String
+) : SecurityException(message)
+
 class KeyManager(
     private val alias: String = DEFAULT_ALIAS,
     private val authenticationPolicy: AuthenticationPolicy =
@@ -202,8 +206,10 @@ class KeyManager(
     fun requireOperationalKeyPosture(): KeyPostureSnapshot {
         val snapshot = readKeyPosture()
 
-        require(snapshot.keyExists) {
-            "Keystore key missing for alias=$alias"
+        if (!snapshot.keyExists) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: keystore key is missing."
+            )
         }
 
         when (authenticationPolicy) {
@@ -218,36 +224,48 @@ class KeyManager(
     private fun requireNoAuthenticationPosture(
         snapshot: KeyPostureSnapshot
     ) {
-        require(!snapshot.userAuthenticationRequired) {
-            "Key posture mismatch for alias=${snapshot.alias}: authentication must not be required."
+        if (snapshot.userAuthenticationRequired) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: authentication must not be required."
+            )
         }
     }
 
     private fun requireBiometricTimeBoundPosture(
         snapshot: KeyPostureSnapshot
     ) {
-        require(snapshot.secureHardwareBacked) {
-            "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must be hardware-backed."
+        if (!snapshot.secureHardwareBacked) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must be hardware-backed."
+            )
         }
-        require(snapshot.userAuthenticationRequired) {
-            "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must require authentication."
+        if (!snapshot.userAuthenticationRequired) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must require authentication."
+            )
         }
-        require(snapshot.userAuthenticationEnforcedBySecureHardware) {
-            "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound auth must be enforced by secure hardware."
+        if (!snapshot.userAuthenticationEnforcedBySecureHardware) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound auth must be enforced by secure hardware."
+            )
         }
-        require(snapshot.invalidatedByBiometricEnrollment) {
-            "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must invalidate on biometric enrollment change."
+        if (!snapshot.invalidatedByBiometricEnrollment) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must invalidate on biometric enrollment change."
+            )
         }
-        require(
-            (snapshot.userAuthenticationValiditySeconds ?: 0) > 0
-        ) {
-            "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must have a positive auth window."
+        if ((snapshot.userAuthenticationValiditySeconds ?: 0) <= 0) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must have a positive auth window."
+            )
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val authType = snapshot.userAuthenticationType ?: 0
-            require(authType and KeyProperties.AUTH_BIOMETRIC_STRONG != 0) {
-                "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must require BIOMETRIC_STRONG."
+            if (authType and KeyProperties.AUTH_BIOMETRIC_STRONG == 0) {
+                failKeyPosture(
+                    "Key posture mismatch for alias=${snapshot.alias}: biometric time-bound key must require BIOMETRIC_STRONG."
+                )
             }
         }
     }
@@ -255,30 +273,42 @@ class KeyManager(
     private fun requireBiometricAuthPerUsePosture(
         snapshot: KeyPostureSnapshot
     ) {
-        require(supportsAuthPerUseBiometric()) {
-            "Biometric auth-per-use requires Android 11+ (API 30)."
+        if (!supportsAuthPerUseBiometric()) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: biometric auth-per-use requires Android 11+."
+            )
         }
-        require(snapshot.secureHardwareBacked) {
-            "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must be hardware-backed."
+        if (!snapshot.secureHardwareBacked) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must be hardware-backed."
+            )
         }
-        require(snapshot.userAuthenticationRequired) {
-            "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must require authentication."
+        if (!snapshot.userAuthenticationRequired) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must require authentication."
+            )
         }
-        require(snapshot.userAuthenticationEnforcedBySecureHardware) {
-            "Key posture mismatch for alias=${snapshot.alias}: auth-per-use auth must be enforced by secure hardware."
+        if (!snapshot.userAuthenticationEnforcedBySecureHardware) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: auth-per-use auth must be enforced by secure hardware."
+            )
         }
-        require(snapshot.invalidatedByBiometricEnrollment) {
-            "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must invalidate on biometric enrollment change."
+        if (!snapshot.invalidatedByBiometricEnrollment) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must invalidate on biometric enrollment change."
+            )
         }
 
         val authType = snapshot.userAuthenticationType ?: 0
-        require(authType and KeyProperties.AUTH_BIOMETRIC_STRONG != 0) {
-            "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must require BIOMETRIC_STRONG."
+        if (authType and KeyProperties.AUTH_BIOMETRIC_STRONG == 0) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must require BIOMETRIC_STRONG."
+            )
         }
-        require(
-            snapshot.userAuthenticationValiditySeconds == AUTH_PER_USE_VALIDITY_SECONDS
-        ) {
-            "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must require authentication for every use."
+        if (snapshot.userAuthenticationValiditySeconds != AUTH_PER_USE_VALIDITY_SECONDS) {
+            failKeyPosture(
+                "Key posture mismatch for alias=${snapshot.alias}: auth-per-use key must require authentication for every use."
+            )
         }
     }
 
@@ -344,11 +374,18 @@ class KeyManager(
     ): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && securityLevel != null) {
             securityLevel == KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT ||
-                securityLevel == KeyProperties.SECURITY_LEVEL_STRONGBOX
+                securityLevel == KeyProperties.SECURITY_LEVEL_STRONGBOX ||
+                securityLevel == KeyProperties.SECURITY_LEVEL_UNKNOWN_SECURE
         } else {
             @Suppress("DEPRECATION")
             keyInfo.isInsideSecureHardware
         }
+    }
+
+    private fun failKeyPosture(
+        message: String
+    ): Nothing {
+        throw SecurityKeystorePostureException(message)
     }
 
     private fun loadKeyStore(): KeyStore {
