@@ -15,13 +15,18 @@ class AndroidDataSovereigntyVault(
 
     override fun isInitialized(): Boolean {
         val flag = prefs.getBoolean(KEY_VAULT_INITIALIZED, false)
-        return flag && keyManager.keyExists()
+        if (!flag) return false
+
+        return runCatching {
+            keyManager.requireOperationalKeyPosture()
+        }.isSuccess
     }
 
     override fun ensureInitialized() {
         if (isInitialized()) return
 
         keyManager.generateKey()
+        keyManager.requireOperationalKeyPosture()
 
         val ok = prefs.edit()
             .putBoolean(KEY_VAULT_INITIALIZED, true)

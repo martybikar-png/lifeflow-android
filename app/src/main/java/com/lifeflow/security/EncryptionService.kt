@@ -67,6 +67,8 @@ class EncryptionService(
      * Prepares ENCRYPT_MODE cipher for future CryptoObject flow.
      */
     fun createEncryptCipher(): Cipher {
+        keyManager.requireOperationalKeyPosture()
+
         val secretKey: SecretKey = keyManager.getKey()
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
@@ -117,6 +119,7 @@ class EncryptionService(
 
     private fun createDecryptCipher(iv: ByteArray): Cipher {
         validateIv(iv)
+        keyManager.requireOperationalKeyPosture()
 
         val secretKey: SecretKey = keyManager.getKey()
         val cipher = Cipher.getInstance(TRANSFORMATION)
