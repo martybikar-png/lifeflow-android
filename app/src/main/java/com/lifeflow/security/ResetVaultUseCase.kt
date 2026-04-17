@@ -9,7 +9,7 @@ class ResetVaultUseCase(
     private val vault: AndroidDataSovereigntyVault
 ) {
     suspend operator fun invoke() = withContext(Dispatchers.IO) {
-        requireVaultResetAccess()
+        requireVaultResetPosture()
         SecurityVaultResetAuthorization.consumeFreshAuthorization(
             reason = "Vault reset requires fresh elevated authentication"
         )
@@ -25,59 +25,15 @@ class ResetVaultUseCase(
         )
     }
 
-    private fun requireVaultResetAccess() {
-        val sessionAuthorized = SecurityAccessSession.isAuthorized()
+    private fun requireVaultResetPosture() {
+        when (SecurityRuleEngine.getTrustState()) {
+            TrustState.VERIFIED,
+            TrustState.DEGRADED,
+            TrustState.COMPROMISED -> return
 
-        val decision = SecurityRuntimeAccessPolicy.decideAuthorization(
-            request = SecurityRuntimeAuthorizationRequest(
-                isReadOperation = false,
-                requiresStrictAuth = true,
-                trustedBaseOnly = false,
-                hasRecentAuthentication = sessionAuthorized
-            )
-        )
-
-        when (decision.outcome) {
-            SecurityRuntimeAuthorizationOutcome.ALLOWED -> return
-
-            SecurityRuntimeAuthorizationOutcome.LOCKED -> {
+            TrustState.EMERGENCY_LIMITED -> {
                 throw SecurityException(
-                    when (decision.code) {
-                        "COMPROMISED" ->
-                            "Vault reset denied: security is compromised."
-
-                        "RECOVERY_REQUIRED" ->
-                            "Vault reset denied: recovery is required before vault reset can proceed."
-
-                        else ->
-                            "Vault reset denied: protected runtime is locked."
-                    }
-                )
-            }
-
-            SecurityRuntimeAuthorizationOutcome.DENIED,
-            SecurityRuntimeAuthorizationOutcome.REQUIRES_ELEVATION -> {
-                throw SecurityException(
-                    when (decision.code) {
-                        "RECENT_AUTH_REQUIRED",
-                        "AUTH_CONTEXT_INVALID" ->
-                            "Vault reset denied: active auth session is required."
-
-                        "STRONGER_AUTH_REQUIRED",
-                        "TRUST_NOT_SUFFICIENT",
-                        "TRUSTED_BASE_ONLY_REQUIRED",
-                        "EMERGENCY_APPROVAL_REQUIRED" ->
-                            "Vault reset denied: trust state must be VERIFIED."
-
-                        else ->
-                            "Vault reset denied: current security posture does not allow vault reset."
-                    }
-                )
-            }
-
-            SecurityRuntimeAuthorizationOutcome.REQUIRES_EMERGENCY_RESOLUTION -> {
-                throw SecurityException(
-                    "Vault reset denied: current security posture does not allow vault reset."
+                    "Vault reset denied: emergency limited mode must be cleared before vault reset."
                 )
             }
         }

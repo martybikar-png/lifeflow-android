@@ -65,10 +65,8 @@ internal class MainViewModelActionRuntime(
     }
 
     suspend fun runVaultReset() {
-        val result = runCatching { performVaultReset() }
         authDelegate.completeVaultReset(
-            isSuccess = result.isSuccess,
-            failureMessage = result.exceptionOrNull()?.message
+            result = runCatching { performVaultReset() }
         )
     }
 }

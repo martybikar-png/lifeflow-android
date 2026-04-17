@@ -86,9 +86,14 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
     if (biometricAuthManager.hasAuthPerUseCrypto()) {
         biometricAuthManager.authenticateForAuthPerUseCrypto(
             onSuccess = {
-                SecurityVaultResetAuthorization.grantFreshAuthorization()
-                setLastAction("Vault reset auth-per-use authentication succeeded")
-                viewModel.resetVault()
+                completeActiveRuntimeVaultResetAuthorization(
+                    grantAuthorization = {
+                        SecurityVaultResetAuthorization.grantFromVaultResetAuthPerUseSuccess()
+                    },
+                    successMessage = "Vault reset auth-per-use authentication succeeded",
+                    viewModel = viewModel,
+                    setLastAction = setLastAction
+                )
             },
             onError = { msg ->
                 SecurityVaultResetAuthorization.clear()
@@ -102,9 +107,14 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
 
     biometricAuthManager.authenticate(
         onSuccess = {
-            SecurityVaultResetAuthorization.grantFreshAuthorization()
-            setLastAction("Vault reset biometric authentication succeeded")
-            viewModel.resetVault()
+            completeActiveRuntimeVaultResetAuthorization(
+                grantAuthorization = {
+                    SecurityVaultResetAuthorization.grantFromVaultResetBiometricSuccess()
+                },
+                successMessage = "Vault reset biometric authentication succeeded",
+                viewModel = viewModel,
+                setLastAction = setLastAction
+            )
         },
         onError = { msg ->
             SecurityVaultResetAuthorization.clear()
@@ -113,4 +123,23 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
             viewModel.onAuthenticationError(resolvedMessage)
         }
     )
+}
+
+private fun completeActiveRuntimeVaultResetAuthorization(
+    grantAuthorization: () -> Unit,
+    successMessage: String,
+    viewModel: ActiveRuntimeViewModelContract,
+    setLastAction: (String) -> Unit
+) {
+    runCatching {
+        grantAuthorization()
+        setLastAction(successMessage)
+        viewModel.resetVault()
+    }.onFailure { throwable ->
+        SecurityVaultResetAuthorization.clear()
+        val resolvedMessage = throwable.message?.takeIf { it.isNotBlank() }
+            ?: "Vault reset authorization failed"
+        setLastAction("Vault reset authentication failed: $resolvedMessage")
+        viewModel.onAuthenticationError(resolvedMessage)
+    }
 }

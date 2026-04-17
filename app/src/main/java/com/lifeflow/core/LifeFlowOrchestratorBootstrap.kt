@@ -52,7 +52,11 @@ internal suspend fun lifeflowOrchestratorBootstrapIdentityIfNeeded(
         ActionResult.Success(Unit)
     } catch (e: SecurityException) {
         SecurityAccessSession.clear()
-        ActionResult.Locked(e.message ?: "Security denied")
+        ActionResult.Locked(
+            bootstrapSecurityExceptionToLockedReason(
+                message = e.message ?: "Security denied"
+            )
+        )
     } catch (t: Throwable) {
         SecurityAccessSession.clear()
         ActionResult.Error(t.message ?: "Bootstrap failed")
@@ -148,7 +152,52 @@ private fun bootstrapLockReasonToLockedReason(
         LockReason.EMERGENCY_REJECTED ->
             "EMERGENCY_LIMITED: $reason"
 
-        LockReason.LOCKED_OUT,
-        LockReason.RECOVERY_REQUIRED ->
+        LockReason.LOCKED_OUT ->
             "AUTH_REQUIRED: $reason"
+
+        LockReason.RECOVERY_REQUIRED ->
+            "RECOVERY_REQUIRED: $reason"
     }
+
+private fun bootstrapSecurityExceptionToLockedReason(
+    message: String
+): String {
+    val normalized = message.trim()
+
+    if (normalized.hasCanonicalBootstrapPrefix()) {
+        return normalized
+    }
+
+    return when {
+        normalized.contains("reset vault is required", ignoreCase = true) ->
+            "RECOVERY_REQUIRED: $normalized"
+
+        normalized.contains("recovery is required", ignoreCase = true) ->
+            "RECOVERY_REQUIRED: $normalized"
+
+        normalized.contains("recent biometric authentication is required", ignoreCase = true) ->
+            "AUTH_REQUIRED: $normalized"
+
+        normalized.contains("active auth session is required", ignoreCase = true) ->
+            "AUTH_REQUIRED: $normalized"
+
+        normalized.contains("auth session is required", ignoreCase = true) ->
+            "AUTH_REQUIRED: $normalized"
+
+        normalized.contains("emergency", ignoreCase = true) ->
+            "EMERGENCY_LIMITED: $normalized"
+
+        normalized.contains("compromised", ignoreCase = true) ->
+            "COMPROMISED: $normalized"
+
+        else ->
+            "AUTH_REQUIRED: $normalized"
+    }
+}
+
+private fun String.hasCanonicalBootstrapPrefix(): Boolean {
+    return startsWith("AUTH_REQUIRED:") ||
+        startsWith("EMERGENCY_LIMITED:") ||
+        startsWith("COMPROMISED:") ||
+        startsWith("RECOVERY_REQUIRED:")
+}

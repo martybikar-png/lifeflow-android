@@ -187,7 +187,9 @@ class MainViewModelAuthDelegateTest {
 
     @Test
     fun `completeVaultReset success clears session and updates state`() {
-        delegate.completeVaultReset(isSuccess = true, failureMessage = null)
+        delegate.completeVaultReset(
+            result = Result.success(Unit)
+        )
 
         assertTrue(sessionCleared)
         assertTrue(uiCachesWiped)
@@ -196,7 +198,9 @@ class MainViewModelAuthDelegateTest {
 
     @Test
     fun `completeVaultReset failure shows error message`() {
-        delegate.completeVaultReset(isSuccess = false, failureMessage = "Disk error")
+        delegate.completeVaultReset(
+            result = Result.failure(IllegalStateException("Disk error"))
+        )
 
         assertTrue(sessionCleared)
         assertTrue(lastUiStateError?.contains("Disk error") == true)

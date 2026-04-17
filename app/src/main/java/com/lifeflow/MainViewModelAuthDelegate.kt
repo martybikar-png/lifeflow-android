@@ -104,18 +104,39 @@ internal class MainViewModelAuthDelegate(
         }
 
     fun completeVaultReset(
-        isSuccess: Boolean,
-        failureMessage: String?
+        result: Result<Unit>
     ) {
         applyFailClosedState(clearSession = true)
 
-        if (isSuccess) {
+        if (result.isSuccess) {
             updateLastAction("Vault reset complete. Fresh authentication required.")
             setUiStateError("Vault reset complete. Please authenticate again.")
             return
         }
 
-        updateLastAction("Vault reset failed.")
-        setUiStateError("Vault reset failed: ${failureMessage ?: "unknown"}")
+        val resolvedMessage = resolveVaultResetFailureMessage(
+            result.exceptionOrNull()?.message
+        )
+        updateLastAction(resolvedMessage)
+        setUiStateError(resolvedMessage)
+    }
+
+    private fun resolveVaultResetFailureMessage(
+        failureMessage: String?
+    ): String {
+        val normalized = failureMessage?.trim().orEmpty()
+
+        if (normalized.isBlank()) {
+            return "Vault reset failed: unknown error."
+        }
+
+        return when {
+            normalized.startsWith("Vault reset denied:", ignoreCase = true) -> normalized
+            normalized.startsWith("Recovery is required", ignoreCase = true) -> normalized
+            normalized.startsWith("Security compromised", ignoreCase = true) -> normalized
+            normalized.startsWith("Protected runtime is blocked", ignoreCase = true) -> normalized
+            normalized.startsWith("Emergency limited mode", ignoreCase = true) -> normalized
+            else -> "Vault reset failed: $normalized"
+        }
     }
 }
