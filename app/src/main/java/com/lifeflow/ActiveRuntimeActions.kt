@@ -125,7 +125,7 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
     )
 }
 
-private fun completeActiveRuntimeVaultResetAuthorization(
+internal fun completeActiveRuntimeVaultResetAuthorization(
     grantAuthorization: () -> Unit,
     successMessage: String,
     viewModel: ActiveRuntimeViewModelContract,
