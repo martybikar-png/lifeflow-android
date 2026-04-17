@@ -9,9 +9,18 @@ internal class SecurityAuthPerUseCryptoProvider(
     private val secureRandom = SecureRandom()
 
     fun createEncryptCryptoObject(): BiometricPrompt.CryptoObject {
-        return BiometricPrompt.CryptoObject(
-            authPerUseEncryptionService.createEncryptCipher()
-        )
+        return try {
+            BiometricPrompt.CryptoObject(
+                authPerUseEncryptionService.createEncryptCipher()
+            )
+        } catch (t: Throwable) {
+            SecurityKeystoreFailureHandler.throwForFailure(
+                action = null,
+                failureReason = "auth-per-use encrypt cipher creation failed",
+                genericMessage = "Auth-per-use crypto is not available.",
+                throwable = t
+            )
+        }
     }
 
     fun completeEncryptProof(
@@ -22,11 +31,20 @@ internal class SecurityAuthPerUseCryptoProvider(
 
         val challenge = ByteArray(PROOF_CHALLENGE_BYTES).also(secureRandom::nextBytes)
 
-        return authPerUseEncryptionService.encryptWithCipher(
-            cipher = cipher,
-            plainText = challenge,
-            aad = PROOF_AAD
-        )
+        return try {
+            authPerUseEncryptionService.encryptWithCipher(
+                cipher = cipher,
+                plainText = challenge,
+                aad = PROOF_AAD
+            )
+        } catch (t: Throwable) {
+            SecurityKeystoreFailureHandler.throwForFailure(
+                action = null,
+                failureReason = "auth-per-use proof encryption failed",
+                genericMessage = "Auth-per-use crypto proof failed.",
+                throwable = t
+            )
+        }
     }
 
     private companion object {

@@ -5,14 +5,38 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
+import java.io.IOException
+import java.security.GeneralSecurityException
 import java.security.KeyStore
+import java.security.ProviderException
+import java.security.UnrecoverableKeyException
+import java.security.cert.CertificateException
+import java.security.spec.InvalidKeySpecException
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 
+internal enum class SecurityKeystoreFailureCode {
+    POSTURE_MISMATCH,
+    AUTHENTICATION_REQUIRED,
+    KEY_PERMANENTLY_INVALIDATED,
+    KEY_UNRECOVERABLE,
+    KEY_INVALID_OR_UNAVAILABLE,
+    KEYSTORE_ACCESS_FAILED
+}
+
+internal open class SecurityKeystoreOperationException(
+    val code: SecurityKeystoreFailureCode,
+    message: String,
+    cause: Throwable? = null
+) : SecurityException(message, cause)
+
 internal class SecurityKeystorePostureException(
     message: String
-) : SecurityException(message)
+) : SecurityKeystoreOperationException(
+    code = SecurityKeystoreFailureCode.POSTURE_MISMATCH,
+    message = message
+)
 
 class KeyManager(
     private val alias: String = DEFAULT_ALIAS,
@@ -169,13 +193,15 @@ class KeyManager(
             )
         }
 
-        val key = keyStore.getKey(alias, null)
-            ?: throw IllegalStateException("Keystore alias exists but key is missing for alias=$alias")
-        if (key !is SecretKey) {
-            throw IllegalStateException("Invalid key type for alias=$alias")
-        }
+        val secretKey = loadSecretKeyOrNull(
+            keyStore = keyStore,
+            operation = "read-key-posture"
+        ) ?: failKeystoreOperation(
+            code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
+            message = "Keystore alias exists but key is missing for alias=$alias during read-key-posture."
+        )
 
-        val keyInfo = readKeyInfo(key)
+        val keyInfo = readKeyInfo(secretKey)
         val securityLevel = resolveSecurityLevel(keyInfo)
 
         return KeyPostureSnapshot(
@@ -315,19 +341,24 @@ class KeyManager(
     @Synchronized
     fun getKey(): SecretKey {
         val keyStore = loadKeyStore()
-        val key = keyStore.getKey(alias, null)
+        val key = loadSecretKeyOrNull(
+            keyStore = keyStore,
+            operation = "get-key"
+        )
 
         if (key == null) {
             generateKey()
-            val keyAfter = loadKeyStore().getKey(alias, null)
-                ?: throw IllegalStateException("Master key not found after generation")
-            if (keyAfter !is SecretKey) throw IllegalStateException("Invalid key type")
+
+            val keyAfter = loadSecretKeyOrNull(
+                keyStore = loadKeyStore(),
+                operation = "get-key-after-generate"
+            ) ?: failKeystoreOperation(
+                code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
+                message = "Master key not found after generation for alias=$alias."
+            )
+
             requireOperationalKeyPosture()
             return keyAfter
-        }
-
-        if (key !is SecretKey) {
-            throw IllegalStateException("Invalid key type")
         }
 
         requireOperationalKeyPosture()
@@ -351,11 +382,33 @@ class KeyManager(
     private fun readKeyInfo(
         secretKey: SecretKey
     ): KeyInfo {
-        val secretKeyFactory = SecretKeyFactory.getInstance(
-            secretKey.algorithm,
-            ANDROID_KEYSTORE
-        )
-        return secretKeyFactory.getKeySpec(secretKey, KeyInfo::class.java) as KeyInfo
+        return try {
+            val secretKeyFactory = SecretKeyFactory.getInstance(
+                secretKey.algorithm,
+                ANDROID_KEYSTORE
+            )
+            secretKeyFactory.getKeySpec(secretKey, KeyInfo::class.java) as KeyInfo
+        } catch (t: Throwable) {
+            throw (keystoreOperationFailure("read-key-info", t) ?: t)
+        }
+    }
+
+    private fun loadSecretKeyOrNull(
+        keyStore: KeyStore,
+        operation: String
+    ): SecretKey? {
+        return try {
+            val key = keyStore.getKey(alias, null) ?: return null
+            if (key !is SecretKey) {
+                failKeystoreOperation(
+                    code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
+                    message = "Invalid key type for alias=$alias during $operation."
+                )
+            }
+            key
+        } catch (t: Throwable) {
+            throw (keystoreOperationFailure(operation, t) ?: t)
+        }
     }
 
     private fun resolveSecurityLevel(
@@ -382,15 +435,65 @@ class KeyManager(
         }
     }
 
+    private fun keystoreOperationFailure(
+        operation: String,
+        throwable: Throwable
+    ): SecurityKeystoreOperationException? =
+        when (throwable) {
+            is SecurityKeystoreOperationException -> throwable
+
+            is UnrecoverableKeyException -> SecurityKeystoreOperationException(
+                code = SecurityKeystoreFailureCode.KEY_UNRECOVERABLE,
+                message = "Keystore key is unrecoverable during $operation for alias=$alias.",
+                cause = throwable
+            )
+
+            is InvalidKeySpecException -> SecurityKeystoreOperationException(
+                code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
+                message = "Keystore key material could not be inspected during $operation for alias=$alias.",
+                cause = throwable
+            )
+
+            is IOException,
+            is CertificateException,
+            is ProviderException -> SecurityKeystoreOperationException(
+                code = SecurityKeystoreFailureCode.KEYSTORE_ACCESS_FAILED,
+                message = "Keystore access failed during $operation for alias=$alias: ${throwable::class.java.simpleName}.",
+                cause = throwable
+            )
+
+            is GeneralSecurityException -> SecurityKeystoreOperationException(
+                code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
+                message = "Keystore operation failed during $operation for alias=$alias: ${throwable::class.java.simpleName}.",
+                cause = throwable
+            )
+
+            else -> null
+        }
+
     private fun failKeyPosture(
         message: String
     ): Nothing {
         throw SecurityKeystorePostureException(message)
     }
 
+    private fun failKeystoreOperation(
+        code: SecurityKeystoreFailureCode,
+        message: String
+    ): Nothing {
+        throw SecurityKeystoreOperationException(
+            code = code,
+            message = message
+        )
+    }
+
     private fun loadKeyStore(): KeyStore {
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
-        keyStore.load(null)
-        return keyStore
+        return try {
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
+            keyStore
+        } catch (t: Throwable) {
+            throw (keystoreOperationFailure("load-keystore", t) ?: t)
+        }
     }
 }

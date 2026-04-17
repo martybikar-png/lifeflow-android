@@ -38,8 +38,30 @@ internal class BiometricAuthManager(
             return
         }
 
+        val cryptoObject = runCatching {
+            provider.createEncryptCryptoObject()
+        }.getOrElse { throwable ->
+            val resolvedMessage = resolveThrowableMessage(
+                throwable = throwable,
+                fallbackMessage = "Auth-per-use crypto is not available."
+            )
+            SecurityAuditLog.critical(
+                EventType.AUTH_FAILURE,
+                "Auth-per-use crypto object creation failed",
+                mapOf(
+                    "errorType" to throwable::class.java.simpleName,
+                    "errorMessage" to (throwable.message ?: "unknown")
+                )
+            )
+            failClosed(
+                onError = onError,
+                message = resolvedMessage
+            )
+            return
+        }
+
         authenticateWithCryptoObject(
-            cryptoObject = provider.createEncryptCryptoObject(),
+            cryptoObject = cryptoObject,
             onSuccess = onSuccess,
             onError = onError
         )
@@ -132,6 +154,10 @@ internal class BiometricAuthManager(
                         }
 
                         val proof = proofResult.getOrElse { throwable ->
+                            val resolvedMessage = resolveThrowableMessage(
+                                throwable = throwable,
+                                fallbackMessage = "Biometric verified, but auth-per-use crypto proof failed."
+                            )
                             SecurityAuditLog.critical(
                                 EventType.AUTH_FAILURE,
                                 "Auth-per-use crypto proof failed",
@@ -142,7 +168,7 @@ internal class BiometricAuthManager(
                             )
                             failClosed(
                                 onError = onError,
-                                message = "Biometric verified, but auth-per-use crypto proof failed."
+                                message = resolvedMessage
                             )
                             return
                         }
@@ -267,6 +293,18 @@ internal class BiometricAuthManager(
             else ->
                 "Biometric verified, but protected runtime access is not allowed under the current security posture."
         }
+
+    private fun resolveThrowableMessage(
+        throwable: Throwable,
+        fallbackMessage: String
+    ): String {
+        val normalized = throwable.message?.trim().orEmpty()
+        return if (normalized.isBlank()) {
+            fallbackMessage
+        } else {
+            normalized
+        }
+    }
 
     private fun failClosed(
         onError: (String) -> Unit,

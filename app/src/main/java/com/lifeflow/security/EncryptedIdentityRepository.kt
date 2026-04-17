@@ -1,14 +1,10 @@
 package com.lifeflow.security
 
-import android.security.keystore.KeyPermanentlyInvalidatedException
-import android.security.keystore.UserNotAuthenticatedException
 import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.security.InvalidKeyException
-import java.security.UnrecoverableKeyException
 import java.util.UUID
 
 /**
@@ -64,7 +60,7 @@ class EncryptedIdentityRepository(
                     operation = "save()"
                 )
             } catch (t: Throwable) {
-                handleProtectedStorageFailure(
+                SecurityKeystoreFailureHandler.throwForFailure(
                     action = RuleAction.WRITE_SAVE,
                     failureReason = "save failed for id=${identity.id}",
                     genericMessage = "EncryptedIdentityRepository: save() crypto failure",
@@ -90,7 +86,7 @@ class EncryptedIdentityRepository(
                 require(identity.id == id) { "Identity id mismatch for requested id=$id" }
                 identity
             } catch (t: Throwable) {
-                handleProtectedStorageFailure(
+                SecurityKeystoreFailureHandler.throwForFailure(
                     action = RuleAction.READ_BY_ID,
                     failureReason = "decrypt/deserialize failed for id=$id",
                     genericMessage = "EncryptedIdentityRepository: getById() integrity failure",
@@ -121,7 +117,7 @@ class EncryptedIdentityRepository(
                 }
                 null
             } catch (t: Throwable) {
-                handleProtectedStorageFailure(
+                SecurityKeystoreFailureHandler.throwForFailure(
                     action = RuleAction.READ_ACTIVE,
                     failureReason = "decrypt/deserialize failed during scan",
                     genericMessage = "EncryptedIdentityRepository: getActiveIdentity() integrity failure",
@@ -151,7 +147,7 @@ class EncryptedIdentityRepository(
                 blobStore.delete(identity.id)
                 vault.clearIdentityVersion(identity.id)
             } catch (t: Throwable) {
-                handleProtectedStorageFailure(
+                SecurityKeystoreFailureHandler.throwForFailure(
                     action = RuleAction.WRITE_DELETE,
                     failureReason = "delete failed for id=${identity.id}",
                     genericMessage = "EncryptedIdentityRepository: delete() failure",
@@ -228,80 +224,6 @@ class EncryptedIdentityRepository(
         }.onFailure { rollbackFailure ->
             original.addSuppressed(rollbackFailure)
         }
-    }
-
-    private fun handleProtectedStorageFailure(
-        action: RuleAction,
-        failureReason: String,
-        genericMessage: String,
-        throwable: Throwable
-    ): Nothing {
-        when {
-            hasCause<UserNotAuthenticatedException>(throwable) -> {
-                SecurityAccessSession.clear()
-                throw SecurityException(
-                    "$genericMessage. Recent biometric authentication is required.",
-                    throwable
-                )
-            }
-
-            hasCause<KeyPermanentlyInvalidatedException>(throwable) ||
-                hasCause<UnrecoverableKeyException>(throwable) -> {
-                SecurityAccessSession.clear()
-                SecurityRuleEngine.setTrustState(
-                    TrustState.COMPROMISED,
-                    reason = "KEYSTORE_RECOVERY_REQUIRED: $failureReason"
-                )
-                throw SecurityException(
-                    "$genericMessage. Keystore key was invalidated. Reset vault is required.",
-                    throwable
-                )
-            }
-
-            hasCause<SecurityKeystorePostureException>(throwable) -> {
-                SecurityAccessSession.clear()
-                SecurityRuleEngine.setTrustState(
-                    TrustState.COMPROMISED,
-                    reason = "KEYSTORE_POSTURE_VIOLATION: $failureReason"
-                )
-                throw SecurityException(
-                    "$genericMessage. Keystore security posture is not valid. Reset vault is required.",
-                    throwable
-                )
-            }
-
-            hasCause<InvalidKeyException>(throwable) -> {
-                SecurityAccessSession.clear()
-                SecurityRuleEngine.setTrustState(
-                    TrustState.COMPROMISED,
-                    reason = "KEYSTORE_INVALID_KEY: $failureReason"
-                )
-                throw SecurityException(
-                    "$genericMessage. Keystore key is not operational. Reset vault is required.",
-                    throwable
-                )
-            }
-
-            else -> {
-                SecurityRuleEngine.reportCryptoFailure(
-                    action = action,
-                    reason = failureReason,
-                    throwable = throwable
-                )
-                throw SecurityException(genericMessage, throwable)
-            }
-        }
-    }
-
-    private inline fun <reified T : Throwable> hasCause(
-        throwable: Throwable
-    ): Boolean {
-        var current: Throwable? = throwable
-        while (current != null) {
-            if (current is T) return true
-            current = current.cause
-        }
-        return false
     }
 
     // Compatibility bridge for existing reflection-based unit tests.
