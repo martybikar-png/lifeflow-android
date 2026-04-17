@@ -24,7 +24,7 @@ class AndroidDataSovereigntyVaultInstrumentedTest {
         context = ApplicationProvider.getApplicationContext()
         keyManager = KeyManager(
             alias = "LifeFlow_Vault_Test_Key_${UUID.randomUUID()}",
-            requireUserAuth = false
+            authenticationPolicy = KeyManager.AuthenticationPolicy.NONE
         )
         vault = AndroidDataSovereigntyVault(
             context = context,

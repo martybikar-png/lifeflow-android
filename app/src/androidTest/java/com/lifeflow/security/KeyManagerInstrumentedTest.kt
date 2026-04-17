@@ -72,10 +72,25 @@ class KeyManagerInstrumentedTest {
         assertEquals(firstKey.algorithm, secondKey.algorithm)
     }
 
+    @Test
+    fun readKeyPosture_reportsNoAuthPolicy_afterKeyGeneration() {
+        val keyManager = newTestKeyManager()
+
+        keyManager.deleteKey()
+        keyManager.generateKey()
+
+        val posture = keyManager.readKeyPosture()
+
+        assertTrue(posture.alias.startsWith("LifeFlow_Test_Key_"))
+        assertTrue(posture.keyExists)
+        assertFalse(posture.userAuthenticationRequired)
+        assertFalse(posture.invalidatedByBiometricEnrollment)
+    }
+
     private fun newTestKeyManager(): KeyManager {
         return KeyManager(
             alias = "LifeFlow_Test_Key_${UUID.randomUUID()}",
-            requireUserAuth = false
+            authenticationPolicy = KeyManager.AuthenticationPolicy.NONE
         )
     }
 }

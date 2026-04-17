@@ -29,7 +29,7 @@ class ResetVaultUseCaseInstrumentedTest {
         context = ApplicationProvider.getApplicationContext()
         keyManager = KeyManager(
             alias = "LifeFlow_ResetVault_Test_Key_${UUID.randomUUID()}",
-            requireUserAuth = false
+            authenticationPolicy = KeyManager.AuthenticationPolicy.NONE
         )
         vault = AndroidDataSovereigntyVault(
             context = context,
@@ -43,6 +43,7 @@ class ResetVaultUseCaseInstrumentedTest {
 
         runCatching { vault.resetVault() }
         runCatching { blobStore.clearAll() }
+        SecurityVaultResetAuthorization.clear()
         SecurityAccessSession.clear()
         SecurityRuleEngine.clearAudit()
         forceResetSecurityState(
@@ -55,6 +56,7 @@ class ResetVaultUseCaseInstrumentedTest {
     fun tearDown() {
         runCatching { vault.resetVault() }
         runCatching { blobStore.clearAll() }
+        SecurityVaultResetAuthorization.clear()
         SecurityAccessSession.clear()
         SecurityRuleEngine.clearAudit()
         forceResetSecurityState(
@@ -83,6 +85,8 @@ class ResetVaultUseCaseInstrumentedTest {
         assertFalse(SecurityAccessSession.isAuthorized())
         assertEquals(TrustState.COMPROMISED, SecurityRuleEngine.getTrustState())
 
+        SecurityAccessSession.grantDefault(context)
+        SecurityVaultResetAuthorization.grantFromVaultResetBiometricSuccess()
         useCase.invoke()
 
         assertTrue(vault.isInitialized())
