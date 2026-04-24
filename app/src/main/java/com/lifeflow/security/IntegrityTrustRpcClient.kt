@@ -23,11 +23,24 @@ internal class UnconfiguredGrpcIntegrityTrustRpcClient(
     override fun requestVerdict(
         request: IntegrityTrustRpcRequest
     ): IntegrityTrustRpcResponse {
-        channel
-        request
-
         throw SecurityException(
-            "gRPC integrity trust verdict RPC contract is not configured yet. Integrity trust remains fail-closed."
+            failClosedMessage(request)
         )
+    }
+
+    private fun failClosedMessage(
+        request: IntegrityTrustRpcRequest
+    ): String {
+        val requestBoundary = request::class.java.simpleName
+        val channelLifecycleState = when {
+            channel.isTerminated -> "terminated"
+            channel.isShutdown -> "shutdown"
+            else -> "reserved"
+        }
+
+        return "gRPC integrity trust verdict RPC contract is not configured yet. " +
+            "Integrity trust remains fail-closed. " +
+            "Request boundary: $requestBoundary. " +
+            "Channel state: $channelLifecycleState."
     }
 }
