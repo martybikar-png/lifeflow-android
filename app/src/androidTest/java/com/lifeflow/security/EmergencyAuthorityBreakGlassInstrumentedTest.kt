@@ -3,8 +3,6 @@ package com.lifeflow.security
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.lifeflow.domain.security.EmergencyAccessReason
-import com.lifeflow.domain.security.EmergencyAccessRequest
-import com.lifeflow.domain.security.EmergencyActivationKeyBinding
 import com.lifeflow.domain.security.EmergencyActivationRequest
 import com.lifeflow.domain.security.EmergencyAuditEventType
 import org.junit.After
@@ -12,7 +10,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -21,6 +18,8 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
     private val appContext
         get() = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+
+    private val support = EmergencyAuthorityBreakGlassTestSupport
 
     @After
     fun tearDown() {
@@ -42,12 +41,12 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
     @Test
     fun createApprovalSession_inDegradedState_succeeds_andCapsWindow() {
-        initializeBoundary()
-        resetTrust(TrustState.DEGRADED, "approval session success")
+        support.initializeBoundary(appContext)
+        support.resetTrust(TrustState.DEGRADED, "approval session success")
         LocalEmergencyAuditSink.clear()
         LocalEmergencyArtifactRegistry.clear()
 
-        val request = freshRequest(
+        val request = support.freshRequest(
             reason = EmergencyAccessReason.MANUAL_BREAK_GLASS_APPROVED,
             requestedDurationMs = 9_999_999L
         )
@@ -74,12 +73,12 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
     @Test
     fun createApprovalSession_inCompromisedState_isRejected_failClosed() {
-        initializeBoundary()
-        resetTrust(TrustState.COMPROMISED, "approval session rejected")
+        support.initializeBoundary(appContext)
+        support.resetTrust(TrustState.COMPROMISED, "approval session rejected")
 
-        val error = expectSecurityException {
+        val error = support.expectSecurityException {
             SecurityEmergencyAccessAuthority.createApprovalSession(
-                request = freshRequest(
+                request = support.freshRequest(
                     reason = EmergencyAccessReason.LOCKED_OUT_RECOVERY,
                     requestedDurationMs = 10_000L
                 ),
@@ -99,12 +98,12 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
     @Test
     fun fullBreakGlassFlow_activate_resolve_clear_roundTripsCleanly() {
-        initializeBoundary()
-        resetTrust(TrustState.DEGRADED, "full break-glass flow")
+        support.initializeBoundary(appContext)
+        support.resetTrust(TrustState.DEGRADED, "full break-glass flow")
         LocalEmergencyAuditSink.clear()
         LocalEmergencyArtifactRegistry.clear()
 
-        val request = freshRequest(
+        val request = support.freshRequest(
             reason = EmergencyAccessReason.CRITICAL_HEALTH_ACCESS,
             requestedDurationMs = 20_000L
         )
@@ -121,9 +120,9 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
                 approvalSession = session,
                 audience = "lifeflow-device",
                 nonce = "nonce-1",
-                requestedAtEpochMs = nowEpochMs(),
+                requestedAtEpochMs = support.nowEpochMs(),
                 artifactLifetimeMs = 30_000L,
-                keyBinding = testKeyBinding("key-1", "thumb-1")
+                keyBinding = support.testKeyBinding("key-1", "thumb-1")
             )
         )
 
@@ -135,7 +134,7 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
         assertEquals(EmergencyAccessReason.CRITICAL_HEALTH_ACCESS, window.reason)
 
         val resolution = SecurityEmergencyAccessAuthority.resolve(
-            freshRequest(
+            support.freshRequest(
                 reason = EmergencyAccessReason.CRITICAL_HEALTH_ACCESS,
                 requestedDurationMs = 10_000L
             )
@@ -151,7 +150,7 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
         assertEquals(
             SecurityEmergencyAccessAuthority.AccessResolution.Missing,
             SecurityEmergencyAccessAuthority.resolve(
-                freshRequest(
+                support.freshRequest(
                     reason = EmergencyAccessReason.CRITICAL_HEALTH_ACCESS,
                     requestedDurationMs = 10_000L
                 )
@@ -167,12 +166,12 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
     @Test
     fun issueActivationArtifact_reusingSameBinding_withoutRekey_isRejected() {
-        initializeBoundary()
-        resetTrust(TrustState.DEGRADED, "rekey rejection")
+        support.initializeBoundary(appContext)
+        support.resetTrust(TrustState.DEGRADED, "rekey rejection")
         LocalEmergencyAuditSink.clear()
         LocalEmergencyArtifactRegistry.clear()
 
-        val request = freshRequest(
+        val request = support.freshRequest(
             reason = EmergencyAccessReason.VAULT_RECOVERY_READONLY,
             requestedDurationMs = 20_000L
         )
@@ -184,26 +183,26 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
             secondApproverId = "approver-b"
         )
 
-        val reusedBinding = testKeyBinding("key-reused", "thumb-reused")
+        val reusedBinding = support.testKeyBinding("key-reused", "thumb-reused")
 
         SecurityEmergencyAccessAuthority.issueActivationArtifact(
             request = EmergencyActivationRequest(
                 approvalSession = session,
                 audience = "lifeflow-device",
                 nonce = "nonce-1",
-                requestedAtEpochMs = nowEpochMs(),
+                requestedAtEpochMs = support.nowEpochMs(),
                 artifactLifetimeMs = 30_000L,
                 keyBinding = reusedBinding
             )
         )
 
-        val error = expectIllegalArgumentException {
+        val error = support.expectIllegalArgumentException {
             SecurityEmergencyAccessAuthority.issueActivationArtifact(
                 request = EmergencyActivationRequest(
                     approvalSession = session,
                     audience = "lifeflow-device",
                     nonce = "nonce-2",
-                    requestedAtEpochMs = nowEpochMs(),
+                    requestedAtEpochMs = support.nowEpochMs(),
                     artifactLifetimeMs = 30_000L,
                     keyBinding = reusedBinding
                 )
@@ -220,12 +219,12 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
     @Test
     fun activateExpiredArtifact_isRejected_andMarkedExpiredUnused() {
-        initializeBoundary()
-        resetTrust(TrustState.DEGRADED, "expired artifact")
+        support.initializeBoundary(appContext)
+        support.resetTrust(TrustState.DEGRADED, "expired artifact")
         LocalEmergencyAuditSink.clear()
         LocalEmergencyArtifactRegistry.clear()
 
-        val request = freshRequest(
+        val request = support.freshRequest(
             reason = EmergencyAccessReason.LOCKED_OUT_RECOVERY,
             requestedDurationMs = 20_000L
         )
@@ -242,15 +241,15 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
                 approvalSession = session,
                 audience = "lifeflow-device",
                 nonce = "nonce-expired",
-                requestedAtEpochMs = nowEpochMs(),
+                requestedAtEpochMs = support.nowEpochMs(),
                 artifactLifetimeMs = 1L,
-                keyBinding = testKeyBinding("key-expired", "thumb-expired")
+                keyBinding = support.testKeyBinding("key-expired", "thumb-expired")
             )
         )
 
         Thread.sleep(20L)
 
-        val error = expectSecurityException {
+        val error = support.expectSecurityException {
             SecurityEmergencyAccessAuthority.activate(artifact)
         }
 
@@ -265,75 +264,5 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
 
         val events = LocalEmergencyAuditSink.getRecords().map { it.record.eventType }
         assertTrue(events.contains(EmergencyAuditEventType.ACTIVATION_ARTIFACT_EXPIRED_UNUSED))
-    }
-
-    private fun initializeBoundary() {
-        EmergencyAuthorityBoundaryBootstrap.start(
-            applicationContext = appContext,
-            isInstrumentation = true
-        )
-    }
-
-    private fun resetTrust(
-        state: TrustState,
-        reason: String
-    ) {
-        SecurityAccessSession.clear()
-        SecurityRuleEngine.clearAudit()
-        SecurityRuleEngine.forceResetForAdversarialSuite(
-            state = state,
-            reason = reason
-        )
-    }
-
-    private fun nowEpochMs(): Long = System.currentTimeMillis()
-
-    private fun freshRequest(
-        reason: EmergencyAccessReason,
-        requestedDurationMs: Long
-    ): EmergencyAccessRequest {
-        return EmergencyAccessRequest(
-            reason = reason,
-            requestedAtEpochMs = nowEpochMs() - 1_000L,
-            requestedDurationMs = requestedDurationMs
-        )
-    }
-
-    private fun testKeyBinding(
-        keyId: String,
-        thumbprint: String
-    ) = EmergencyActivationKeyBinding(
-        keyId = keyId,
-        confirmationKeyThumbprint = thumbprint,
-        algorithm = "EC",
-        createdAtEpochMs = nowEpochMs() - 1_000L,
-        hardwareBacked = true,
-        exportable = false
-    )
-
-    private fun expectSecurityException(
-        block: () -> Unit
-    ): SecurityException {
-        try {
-            block()
-        } catch (e: SecurityException) {
-            return e
-        }
-
-        fail("Expected SecurityException")
-        throw IllegalStateException("Unreachable")
-    }
-
-    private fun expectIllegalArgumentException(
-        block: () -> Unit
-    ): IllegalArgumentException {
-        try {
-            block()
-        } catch (e: IllegalArgumentException) {
-            return e
-        }
-
-        fail("Expected IllegalArgumentException")
-        throw IllegalStateException("Unreachable")
     }
 }
