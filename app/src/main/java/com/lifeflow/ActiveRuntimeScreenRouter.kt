@@ -19,8 +19,6 @@ internal fun ActiveRuntimeScreenRouter(
                 healthState = screen.healthState,
                 requiredCount = screen.requiredPermissions.size,
                 grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
                 onAuthenticate = onAuthenticate,
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings

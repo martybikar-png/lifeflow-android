@@ -17,8 +17,6 @@ internal fun LoadingTransitionContent(
     currentStateMessage: String,
     requiredCount: Int,
     grantedCount: Int,
-    stepsGranted: Boolean,
-    hrGranted: Boolean,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit

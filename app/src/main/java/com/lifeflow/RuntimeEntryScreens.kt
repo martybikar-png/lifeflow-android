@@ -18,8 +18,6 @@ fun LoadingScreen(
     healthState: HealthConnectUiState,
     requiredCount: Int,
     grantedCount: Int,
-    stepsGranted: Boolean,
-    hrGranted: Boolean,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit
@@ -37,8 +35,6 @@ fun LoadingScreen(
             currentStateMessage = currentStateMessage,
             requiredCount = requiredCount,
             grantedCount = grantedCount,
-            stepsGranted = stepsGranted,
-            hrGranted = hrGranted,
             onAuthenticate = onAuthenticate,
             onGrantHealthPermissions = onGrantHealthPermissions,
             onOpenHealthConnectSettings = onOpenHealthConnectSettings
@@ -51,6 +47,8 @@ fun FreeTierScreen(
     message: String,
     onUpgradeToCore: () -> Unit
 ) {
+    val visibleMessage = message.ifBlank { "Free mode is active." }
+
     ScreenContainer(title = "") {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -59,19 +57,12 @@ fun FreeTierScreen(
             LifeFlowSignalPill(text = "Free mode")
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        LifeFlowSectionPanel(title = "Free mode is active") {
-            Text(
-                text = message,
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        LifeFlowSectionPanel(title = "Next step") {
+        LifeFlowCardShell(
+            title = "Free mode",
+            summary = visibleMessage
+        ) {
             Text(
                 text = "Upgrade to Core to unlock protected access.",
                 style = lifeFlowCardSummaryStyle(),
@@ -109,19 +100,12 @@ fun ErrorScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        LifeFlowSectionPanel(title = content.guidanceTitle) {
-            Text(
-                text = content.guidanceMessage,
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        LifeFlowSectionPanel(title = "Next step") {
+        LifeFlowCardShell(
+            title = content.guidanceTitle,
+            summary = content.guidanceMessage
+        ) {
             Text(
                 text = content.nextStepMessage,
                 style = lifeFlowCardSummaryStyle(),
