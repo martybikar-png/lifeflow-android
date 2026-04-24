@@ -13,8 +13,8 @@ internal object EmergencyAuthorityBoundaryBootstrap {
     ): EmergencyAuthorityBoundaryHandle {
         val runtime = if (isInstrumentation) {
             EmergencyAuthorityRuntime(
-                emergencyAuditSink = LocalEmergencyAuditSink,
-                emergencyArtifactRegistry = LocalEmergencyArtifactRegistry,
+                emergencyAuditSink = InstrumentationEmergencyAuditSink,
+                emergencyArtifactRegistry = InstrumentationEmergencyArtifactRegistry,
                 transport = null
             )
         } else {

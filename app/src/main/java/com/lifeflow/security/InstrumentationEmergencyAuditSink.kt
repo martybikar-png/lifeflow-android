@@ -6,13 +6,16 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
- * Temporary local implementation of the external emergency audit sink.
+ * Instrumentation-only emergency audit sink.
  *
- * IMPORTANT:
- * - This is only the boundary implementation for now.
- * - It is not the final off-device immutable authority.
+ * Production rule:
+ * - never used as a local fallback
+ * - production uses the external immutable authority boundary and fails closed when unavailable
+ *
+ * Test rule:
+ * - used only when EmergencyAuthorityBoundaryBootstrap starts with isInstrumentation = true
  */
-object LocalEmergencyAuditSink : EmergencyAuditSinkPort {
+object InstrumentationEmergencyAuditSink : EmergencyAuditSinkPort {
 
     private const val MAX_RECORDS = 500
 

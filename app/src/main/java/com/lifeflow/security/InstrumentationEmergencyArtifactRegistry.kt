@@ -6,13 +6,16 @@ import com.lifeflow.domain.security.EmergencyArtifactRegistryPort
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Temporary local implementation of the one-time activation artifact registry.
+ * Instrumentation-only emergency activation artifact registry.
  *
- * IMPORTANT:
- * - This is only the boundary implementation for now.
- * - It is not the final external authority store.
+ * Production rule:
+ * - never used as a local fallback
+ * - production uses the external authority boundary and fails closed when unavailable
+ *
+ * Test rule:
+ * - used only when EmergencyAuthorityBoundaryBootstrap starts with isInstrumentation = true
  */
-object LocalEmergencyArtifactRegistry : EmergencyArtifactRegistryPort {
+object InstrumentationEmergencyArtifactRegistry : EmergencyArtifactRegistryPort {
 
     private enum class StoredStatus {
         ISSUED,

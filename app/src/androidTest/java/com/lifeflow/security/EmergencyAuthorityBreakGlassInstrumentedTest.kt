@@ -29,8 +29,8 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
             }
         }
 
-        LocalEmergencyAuditSink.clear()
-        LocalEmergencyArtifactRegistry.clear()
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
         SecurityAccessSession.clear()
         SecurityRuleEngine.clearAudit()
         SecurityRuleEngine.forceResetForAdversarialSuite(
@@ -43,8 +43,8 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
     fun createApprovalSession_inDegradedState_succeeds_andCapsWindow() {
         support.initializeBoundary(appContext)
         support.resetTrust(TrustState.DEGRADED, "approval session success")
-        LocalEmergencyAuditSink.clear()
-        LocalEmergencyArtifactRegistry.clear()
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
 
         val request = support.freshRequest(
             reason = EmergencyAccessReason.MANUAL_BREAK_GLASS_APPROVED,
@@ -63,7 +63,7 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
         assertTrue(session.trustedBaseOnly)
         assertTrue(session.requestHash.isNotBlank())
 
-        val records = LocalEmergencyAuditSink.getRecords()
+        val records = InstrumentationEmergencyAuditSink.getRecords()
         assertTrue(records.isNotEmpty())
         assertEquals(
             EmergencyAuditEventType.APPROVAL_SESSION_CREATED,
@@ -100,8 +100,8 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
     fun fullBreakGlassFlow_activate_resolve_clear_roundTripsCleanly() {
         support.initializeBoundary(appContext)
         support.resetTrust(TrustState.DEGRADED, "full break-glass flow")
-        LocalEmergencyAuditSink.clear()
-        LocalEmergencyArtifactRegistry.clear()
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
 
         val request = support.freshRequest(
             reason = EmergencyAccessReason.CRITICAL_HEALTH_ACCESS,
@@ -157,7 +157,7 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
             )
         )
 
-        val events = LocalEmergencyAuditSink.getRecords().map { it.record.eventType }
+        val events = InstrumentationEmergencyAuditSink.getRecords().map { it.record.eventType }
         assertTrue(events.contains(EmergencyAuditEventType.APPROVAL_SESSION_CREATED))
         assertTrue(events.contains(EmergencyAuditEventType.ACTIVATION_ARTIFACT_ISSUED))
         assertTrue(events.contains(EmergencyAuditEventType.ACTIVATION_ARTIFACT_CONSUMED))
@@ -168,8 +168,8 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
     fun issueActivationArtifact_reusingSameBinding_withoutRekey_isRejected() {
         support.initializeBoundary(appContext)
         support.resetTrust(TrustState.DEGRADED, "rekey rejection")
-        LocalEmergencyAuditSink.clear()
-        LocalEmergencyArtifactRegistry.clear()
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
 
         val request = support.freshRequest(
             reason = EmergencyAccessReason.VAULT_RECOVERY_READONLY,
@@ -221,8 +221,8 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
     fun activateExpiredArtifact_isRejected_andMarkedExpiredUnused() {
         support.initializeBoundary(appContext)
         support.resetTrust(TrustState.DEGRADED, "expired artifact")
-        LocalEmergencyAuditSink.clear()
-        LocalEmergencyArtifactRegistry.clear()
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
 
         val request = support.freshRequest(
             reason = EmergencyAccessReason.LOCKED_OUT_RECOVERY,
@@ -262,7 +262,7 @@ class EmergencyAuthorityBreakGlassInstrumentedTest {
         assertEquals(TrustState.DEGRADED, SecurityRuleEngine.getTrustState())
         assertFalse(SecurityEmergencyAccessAuthority.currentWindow() != null)
 
-        val events = LocalEmergencyAuditSink.getRecords().map { it.record.eventType }
+        val events = InstrumentationEmergencyAuditSink.getRecords().map { it.record.eventType }
         assertTrue(events.contains(EmergencyAuditEventType.ACTIVATION_ARTIFACT_EXPIRED_UNUSED))
     }
 }
