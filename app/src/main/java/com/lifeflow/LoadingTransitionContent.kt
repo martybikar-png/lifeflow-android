@@ -31,20 +31,19 @@ internal fun LoadingTransitionContent(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        LifeFlowSignalPill(text = "Loading")
+        LifeFlowSignalPill(text = "Starting")
     }
 
     Spacer(modifier = Modifier.height(10.dp))
 
     LifeFlowSectionPanel(
-        title = if (isAuthenticating) {
-            "Secure access in progress"
-        } else {
-            "Preparing LifeFlow"
-        }
+        title = if (isAuthenticating) "Secure check" else "Starting LifeFlow"
     ) {
         Text(
-            text = currentStateMessage,
+            text = loadingTransitionMessage(
+                isAuthenticating = isAuthenticating,
+                currentStateMessage = currentStateMessage
+            ),
             style = lifeFlowCardSummaryStyle(),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -52,10 +51,7 @@ internal fun LoadingTransitionContent(
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "Health $grantedCount/$requiredCount • Steps " +
-                (if (stepsGranted) "On" else "Off") +
-                " • HR " +
-                (if (hrGranted) "On" else "Off"),
+            text = "Health access $grantedCount/$requiredCount",
             style = lifeFlowCardSummaryStyle(),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -75,6 +71,17 @@ internal fun LoadingTransitionContent(
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings
             )
         }
+    }
+}
+
+private fun loadingTransitionMessage(
+    isAuthenticating: Boolean,
+    currentStateMessage: String
+): String {
+    return when {
+        isAuthenticating -> "Checking protected access."
+        currentStateMessage.isBlank() -> "Preparing your space."
+        else -> currentStateMessage
     }
 }
 
