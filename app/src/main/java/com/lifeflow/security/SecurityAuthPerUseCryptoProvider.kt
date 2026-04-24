@@ -15,7 +15,7 @@ internal class SecurityAuthPerUseCryptoProvider(
             )
         } catch (t: Throwable) {
             SecurityKeystoreFailureHandler.throwForFailure(
-                action = null,
+                operation = null,
                 failureReason = "auth-per-use encrypt cipher creation failed",
                 genericMessage = "Auth-per-use crypto is not available.",
                 throwable = t
@@ -39,7 +39,7 @@ internal class SecurityAuthPerUseCryptoProvider(
             )
         } catch (t: Throwable) {
             SecurityKeystoreFailureHandler.throwForFailure(
-                action = null,
+                operation = null,
                 failureReason = "auth-per-use proof encryption failed",
                 genericMessage = "Auth-per-use crypto proof failed.",
                 throwable = t

@@ -57,7 +57,7 @@ object LifeFlowArchitectureLedger {
             description = "8 domain modulů: HolisticWellbeingNode, AdaptiveTimeline, " +
                     "AutonomousHabits, ShadowDiary, QuantumInsights, SecondBrain, " +
                     "PredictiveShopping, IntimacyConnection. " +
-                    "Všechny V1 rule-based. Všechny s unit testy."
+                    "Všechny V1 rule-based. All verification moved to instrumented/device coverage."
         ),
 
         LedgerEntry(
@@ -76,7 +76,7 @@ object LifeFlowArchitectureLedger {
             title = "Release Freeze",
             description = "FreezeChecklist 33 položek. SignOffProtocol 26 gates. " +
                     "Architecture Ledger uzavřen. " +
-                    "Stack: :app:compileDebugKotlin + :domain:test SUCCESSFUL."
+                    "Stack: :app:compileDebugKotlin + :app:compileDebugAndroidTestKotlin SUCCESSFUL."
         )
     )
 
@@ -95,3 +95,4 @@ data class LedgerEntry(
     val title: String,
     val description: String
 )
+

@@ -1,14 +1,11 @@
 package com.lifeflow
 
 import android.content.Context
-import android.util.Log
-import com.lifeflow.security.IntegrityTrustRuntime
 import com.lifeflow.security.IntegrityTrustVerdictResponse
 import com.lifeflow.security.SecurityAuthPerUseCryptoProvider
 import com.lifeflow.security.SecurityIntegrityTrustAuthority
-import com.lifeflow.security.SecurityIntegrityTrustVerdict
+import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.hardening.SecurityHardeningGuard
-import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
 
 internal class LifeFlowAppRuntime(
@@ -21,224 +18,251 @@ internal class LifeFlowAppRuntime(
             )
         },
     private val launchBackgroundTask: (String, () -> Unit) -> Unit = { name, block ->
-        thread(
-            start = true,
-            isDaemon = true,
-            name = name
-        ) {
-            block()
-        }
+        thread(start = true, isDaemon = true, name = name) { block() }
     },
     private val reportIntegrityTrustVerdictResponse: (IntegrityTrustVerdictResponse) -> Unit =
-        { response ->
-            SecurityIntegrityTrustAuthority.reportVerdictResponse(response)
-        },
+        { response -> SecurityIntegrityTrustAuthority.reportVerdictResponse(response) },
     private val startupIntegrityContextFactory: (Context) -> IntegrityStartupRequestContext =
-        { context ->
-            buildStartupIntegrityRequestContext(context)
-        }
+        { context -> buildLifeFlowAppRuntimeStartupIntegrityRequestContext(context) }
 ) : StartupRuntimeEntryPoint, AutoCloseable {
-
-    companion object {
-        private const val TAG = "LifeFlowAppRuntime"
-        private const val STARTUP_PHASE_APPLICATION_STARTUP = "application_startup"
-        private const val STARTUP_SCHEMA_VERSION = 1
-
-        private fun buildStartupIntegrityRequestContext(
-            context: Context
-        ): IntegrityStartupRequestContext {
-            return IntegrityStartupRequestContext(
-                schemaVersion = STARTUP_SCHEMA_VERSION,
-                packageName = context.packageName,
-                versionName = BuildConfig.VERSION_NAME,
-                versionCode = BuildConfig.VERSION_CODE,
-                buildType = if (BuildConfig.DEBUG) "debug" else "release",
-                startupPhase = STARTUP_PHASE_APPLICATION_STARTUP,
-                requestedAtEpochMs = System.currentTimeMillis()
-            )
-        }
-    }
 
     @Volatile
     private var runtimeBindings: LifeFlowAppRuntimeBindings? = null
-
     @Volatile
     private var startupInitialized = false
-
     @Volatile
     private var startupFailureMessage: String? = null
 
-    @Volatile
-    private var integrityStartupCheckScheduled = false
+    private var automaticProtectedRuntimeRebuildsUsedInProcess = 0
+    private var automaticRuntimeSecurityRebuildsUsedInProcess = 0
+
+    private val rebuildCoordinator = ProtectedRuntimeRebuildCoordinator()
+    private val runtimeSecurityRecoveryBridge = RuntimeSecurityRecoveryBridge(
+        executeBudgetedRecovery = ::performBudgetedRuntimeSecurityRecovery
+    )
+    private val startupIntegrityCoordinator = StartupIntegrityCoordinator(
+        startupIntegrityContextFactory = startupIntegrityContextFactory,
+        reportIntegrityTrustVerdictResponse = reportIntegrityTrustVerdictResponse
+    )
+    private val restartLifecycle = RuntimeIntegrityLifecycleState()
+    private val runtimeSecuritySurveillanceCoordinator =
+        RuntimeSecuritySurveillanceCoordinator(
+            runtimeSecurityRecoveryBridge = runtimeSecurityRecoveryBridge,
+            quickHardeningCompromised = SecurityHardeningGuard::isCompromisedQuick,
+            currentTrustState = SecurityRuleEngine::getTrustState,
+            logWarning = ::logLifeFlowAppRuntimeWarning
+        )
+    private val startupInitLock = Any()
+    private val protectedRuntimeRebuildExecutor =
+        createLifeFlowAppRuntimeProtectedRuntimeRebuildExecutor(
+            startupInitLock = startupInitLock,
+            rebuildCoordinator = rebuildCoordinator,
+            restartLifecycle = restartLifecycle,
+            runtimeSecuritySurveillanceCoordinator = runtimeSecuritySurveillanceCoordinator,
+            runtimeBindingsOrNull = { runtimeBindings },
+            updateRuntimeBindings = { runtimeBindings = it },
+            updateStartupInitialized = { startupInitialized = it },
+            updateStartupFailureMessage = { startupFailureMessage = it },
+            automaticProtectedRuntimeRebuildsUsedInProcess = {
+                automaticProtectedRuntimeRebuildsUsedInProcess
+            },
+            updateAutomaticProtectedRuntimeRebuildsUsedInProcess = {
+                automaticProtectedRuntimeRebuildsUsedInProcess = it
+            },
+            restart = ::ensureStarted,
+            logInfo = ::logLifeFlowAppRuntimeInfo,
+            logWarning = ::logLifeFlowAppRuntimeWarning
+        )
 
     val hardeningReport: SecurityHardeningGuard.HardeningReport?
         get() = runtimeBindings?.hardeningReport
 
-    private val startupInitLock = Any()
-
     override fun ensureStarted(): Boolean {
-        if (startupInitialized) return true
-        synchronized(startupInitLock) {
-            if (startupInitialized) return true
-            return try {
-                runtimeBindings = runtimeBindingsFactory(
-                    applicationContext,
-                    isRunningInstrumentation()
-                )
-                startupInitialized = true
-                startupFailureMessage = null
-                integrityStartupCheckScheduled = false
-                true
-            } catch (t: Throwable) {
-                runtimeBindings?.close()
-                runtimeBindings = null
-                startupInitialized = false
-                startupFailureMessage = buildStartupFailureMessage(t)
-                integrityStartupCheckScheduled = false
-                logError("Startup initialization failed.", t)
-                false
+        val result = ensureLifeFlowAppRuntimeStarted(
+            startupInitLock = startupInitLock,
+            startupInitialized = startupInitialized,
+            startupFailureMessage = startupFailureMessage,
+            applicationContext = applicationContext,
+            runtimeBindingsFactory = runtimeBindingsFactory,
+            updateRuntimeBindings = { runtimeBindings = it },
+            updateStartupInitialized = { startupInitialized = it },
+            updateStartupFailureMessage = { startupFailureMessage = it },
+            restartLifecycle = restartLifecycle,
+            runtimeSecuritySurveillanceCoordinator = runtimeSecuritySurveillanceCoordinator,
+            onRuntimeStartFailed = { throwable ->
+                logLifeFlowAppRuntimeError("Startup initialization failed.", throwable)
             }
+        )
+        if (result.started) {
+            result.triggerToSchedule?.let(::scheduleIntegrityTrustStartupCheck)
         }
+        return result.started
     }
 
-    override fun requireMainViewModelFactory(): MainViewModelFactory {
-        return requireRuntimeBindings().mainViewModelFactory
-    }
+    override fun requireMainViewModelFactory(): MainViewModelFactory =
+        requireLifeFlowAppRuntimeMainViewModelFactory(
+            evaluateProtectedAccessSecurityRecoveryIfNeeded =
+                ::evaluateProtectedAccessSecurityRecoveryIfNeeded,
+            runtimeBindingsOrNull = { runtimeBindings }
+        )
 
-    override fun authPerUseCryptoProviderOrNull(): SecurityAuthPerUseCryptoProvider? {
-        return requireRuntimeBindings().authPerUseCryptoProvider
-    }
-
-    override fun requireIntegrityTrustRuntime(): IntegrityTrustRuntime {
-        return requireRuntimeBindings().integrityTrustRuntime
-    }
+    override fun authPerUseCryptoProviderOrNull(): SecurityAuthPerUseCryptoProvider? =
+        requireLifeFlowAppRuntimeAuthPerUseCryptoProviderOrNull(
+            evaluateProtectedAccessSecurityRecoveryIfNeeded =
+                ::evaluateProtectedAccessSecurityRecoveryIfNeeded,
+            runtimeBindingsOrNull = { runtimeBindings }
+        )
 
     override fun scheduleIntegrityTrustStartupCheck() {
-        val integrityTrustRuntime = synchronized(startupInitLock) {
-            val currentBindings = runtimeBindings ?: return
-            if (!tryScheduleIntegrityTrustStartupCheckLocked(
-                    isConfigured = currentBindings.integrityTrustRuntime.isConfigured()
-                )
-            ) {
-                return
-            }
-            currentBindings.integrityTrustRuntime
-        }
-
-        launchBackgroundTask("LifeFlow-IntegrityStartupCheck") {
-            runIntegrityTrustStartupCheckNow(
-                requestServerVerdict = integrityTrustRuntime::requestServerVerdict
-            )
-        }
+        scheduleIntegrityTrustStartupCheck(
+            trigger = restartLifecycle.currentTriggerOrDefault()
+        )
     }
+
+    internal fun scheduleIntegrityTrustStartupCheck(
+        trigger: IntegrityStartupCheckTrigger
+    ) = scheduleLifeFlowAppRuntimeIntegrityTrustStartupCheck(
+        startupInitLock = startupInitLock,
+        runtimeBindingsOrNull = { runtimeBindings },
+        restartLifecycle = restartLifecycle,
+        trigger = trigger,
+        launchBackgroundTask = launchBackgroundTask,
+        runIntegrityTrustStartupCheckNow = ::runIntegrityTrustStartupCheckNow
+    )
+
+    internal fun prepareSecurityRuntimeRestart(
+        reason: IntegrityRuntimeRestartReason
+    ) = prepareLifeFlowAppRuntimeSecurityRuntimeRestart(
+        startupInitLock = startupInitLock,
+        restartLifecycle = restartLifecycle,
+        reason = reason
+    )
+
+    internal fun closeForSecurityRuntimeRestart(
+        reason: IntegrityRuntimeRestartReason
+    ) = closeLifeFlowAppRuntimeForSecurityRuntimeRestart(
+        startupInitLock = startupInitLock,
+        restartLifecycle = restartLifecycle,
+        runtimeSecuritySurveillanceCoordinator = runtimeSecuritySurveillanceCoordinator,
+        runtimeBindingsOrNull = { runtimeBindings },
+        clearRuntimeBindings = { runtimeBindings = null },
+        updateStartupInitialized = { startupInitialized = it },
+        reason = reason
+    )
+
+    internal fun requestProtectedRuntimeRebuild(): Boolean =
+        requestLifeFlowAppRuntimeProtectedRuntimeRebuild(
+            performControlledProtectedRuntimeRebuild =
+                ::performControlledProtectedRuntimeRebuild
+        )
+
+    internal fun requestProtectedRuntimeRebuildForSecurityRecovery(
+        logMessage: String
+    ): Boolean = runtimeSecurityRecoveryBridge.onExplicitSecurityRecoveryRequest(logMessage)
 
     internal fun tryScheduleIntegrityTrustStartupCheck(
         isConfigured: Boolean
-    ): Boolean = synchronized(startupInitLock) {
-        tryScheduleIntegrityTrustStartupCheckLocked(isConfigured)
-    }
+    ): Boolean = tryScheduleLifeFlowAppRuntimeIntegrityTrustStartupCheck(
+        startupInitLock = startupInitLock,
+        restartLifecycle = restartLifecycle,
+        isConfigured = isConfigured
+    )
+
+    internal fun tryScheduleIntegrityTrustStartupCheck(
+        trigger: IntegrityStartupCheckTrigger,
+        isConfigured: Boolean
+    ): Boolean = tryScheduleLifeFlowAppRuntimeIntegrityTrustStartupCheck(
+        startupInitLock = startupInitLock,
+        restartLifecycle = restartLifecycle,
+        trigger = trigger,
+        isConfigured = isConfigured
+    )
 
     internal fun runIntegrityTrustStartupCheckNow(
         requestServerVerdict: suspend (String) -> IntegrityTrustVerdictResponse
     ) {
-        val requestContext = startupIntegrityContextFactory(applicationContext)
-        val payload = requestContext.serializeIntegrityPayload()
-
-        runCatching {
-            runBlocking {
-                requestServerVerdict(payload)
-            }
-        }.onSuccess { response ->
-            reportIntegrityTrustVerdictResponse(response)
-            logInfo(
-                "Startup integrity trust verdict applied: ${response.verdict} (${response.reason})"
-            )
-        }.onFailure { throwable ->
-            reportIntegrityTrustVerdictResponse(
-                IntegrityTrustVerdictResponse(
-                    verdict = SecurityIntegrityTrustVerdict.DEGRADED,
-                    reason = "STARTUP_VERDICT_FAILURE: ${throwable::class.java.simpleName}: ${throwable.message}"
-                )
-            )
-            logWarning(
-                "Startup integrity trust verdict request failed.",
-                throwable
-            )
-        }
+        runIntegrityTrustStartupCheckNow(
+            trigger = restartLifecycle.currentTriggerOrDefault(),
+            requestServerVerdict = requestServerVerdict
+        )
     }
 
-    override fun readStartupFailureMessage(): String? {
-        return startupFailureMessage
-    }
+    internal fun runIntegrityTrustStartupCheckNow(
+        trigger: IntegrityStartupCheckTrigger,
+        requestServerVerdict: suspend (String) -> IntegrityTrustVerdictResponse
+    ) = runLifeFlowAppRuntimeIntegrityTrustStartupCheckNow(
+        startupInitLock = startupInitLock,
+        restartLifecycle = restartLifecycle,
+        applicationContext = applicationContext,
+        startupIntegrityCoordinator = startupIntegrityCoordinator,
+        trigger = trigger,
+        requestServerVerdict = requestServerVerdict,
+        logInfo = ::logLifeFlowAppRuntimeInfo,
+        logWarning = ::logLifeFlowAppRuntimeWarning,
+        performStartupRecoveryDecision = ::performStartupRecoveryDecision
+    )
 
-    override fun close() {
-        synchronized(startupInitLock) {
-            runtimeBindings?.close()
-            runtimeBindings = null
-            startupInitialized = false
-            startupFailureMessage = null
-            integrityStartupCheckScheduled = false
-        }
-    }
+    override fun readStartupFailureMessage(): String? =
+        readLifeFlowAppRuntimeStartupFailureMessage(
+            startupFailureMessage = startupFailureMessage
+        )
 
-    private fun tryScheduleIntegrityTrustStartupCheckLocked(
-        isConfigured: Boolean
-    ): Boolean {
-        if (integrityStartupCheckScheduled) {
-            return false
-        }
-        if (!isConfigured) {
-            return false
-        }
+    override fun close() = closeLifeFlowAppRuntime(
+        startupInitLock = startupInitLock,
+        runtimeSecuritySurveillanceCoordinator = runtimeSecuritySurveillanceCoordinator,
+        runtimeBindingsOrNull = { runtimeBindings },
+        updateRuntimeBindings = { runtimeBindings = it },
+        updateStartupInitialized = { startupInitialized = it },
+        updateStartupFailureMessage = { startupFailureMessage = it },
+        restartLifecycle = restartLifecycle
+    )
 
-        integrityStartupCheckScheduled = true
-        return true
-    }
+    private fun evaluateProtectedAccessSecurityRecoveryIfNeeded() =
+        evaluateLifeFlowAppRuntimeProtectedAccess(
+            startupInitLock = startupInitLock,
+            startupInitialized = startupInitialized,
+            runtimeBindingsOrNull = { runtimeBindings },
+            runtimeSecuritySurveillanceCoordinator =
+                runtimeSecuritySurveillanceCoordinator
+        )
 
-    private fun requireRuntimeBindings(): LifeFlowAppRuntimeBindings {
-        return runtimeBindings ?: error("LifeFlowAppRuntimeBindings is not initialized.")
-    }
+    private fun performBudgetedRuntimeSecurityRecovery(
+        planner: (Int) -> RuntimeSecurityRecoveryPlan
+    ): Boolean = performLifeFlowAppRuntimeBudgetedRuntimeSecurityRecoveryLocked(
+        startupInitLock = startupInitLock,
+        planner = planner,
+        automaticRuntimeSecurityRebuildsUsedInProcess =
+            automaticRuntimeSecurityRebuildsUsedInProcess,
+        updateAutomaticRuntimeSecurityRebuildsUsedInProcess = {
+            automaticRuntimeSecurityRebuildsUsedInProcess = it
+        },
+        logWarning = ::logLifeFlowAppRuntimeWarning,
+        performControlledProtectedRuntimeRebuild =
+            ::performControlledProtectedRuntimeRebuild
+    )
 
-    private fun buildStartupFailureMessage(t: Throwable): String {
-        val type = t::class.java.simpleName.ifBlank { "UnknownError" }
-        val detail = t.message?.takeIf { it.isNotBlank() } ?: "unknown"
-        return "Application startup failed: $type: $detail"
-    }
+    private fun performStartupRecoveryDecision(
+        trigger: IntegrityStartupCheckTrigger,
+        decision: IntegrityStartupRecoveryDecision,
+        rebuildSource: ProtectedRuntimeRebuildSource,
+        recoverySignal: String
+    ) = performLifeFlowAppRuntimeStartupRecoveryDecisionLocked(
+        startupInitLock = startupInitLock,
+        trigger = trigger,
+        decision = decision,
+        automaticProtectedRuntimeRebuildsUsedInProcess =
+            automaticProtectedRuntimeRebuildsUsedInProcess,
+        rebuildSource = rebuildSource,
+        recoverySignal = recoverySignal,
+        logWarning = ::logLifeFlowAppRuntimeWarning,
+        performControlledProtectedRuntimeRebuild =
+            ::performControlledProtectedRuntimeRebuild
+    )
 
-    private fun isRunningInstrumentation(): Boolean {
-        return try {
-            Class.forName("androidx.test.platform.app.InstrumentationRegistry")
-            true
-        } catch (_: Throwable) {
-            false
-        }
-    }
-
-    private fun logInfo(message: String) {
-        runCatching {
-            Log.i(TAG, message)
-        }
-    }
-
-    private fun logWarning(
-        message: String,
-        throwable: Throwable? = null
-    ) {
-        runCatching {
-            if (throwable == null) {
-                Log.w(TAG, message)
-            } else {
-                Log.w(TAG, message, throwable)
-            }
-        }
-    }
-
-    private fun logError(
-        message: String,
-        throwable: Throwable
-    ) {
-        runCatching {
-            Log.e(TAG, message, throwable)
-        }
-    }
+    private fun performControlledProtectedRuntimeRebuild(
+        request: ProtectedRuntimeRebuildRequest
+    ): Boolean = performLifeFlowAppRuntimeControlledProtectedRuntimeRebuild(
+        protectedRuntimeRebuildExecutor = protectedRuntimeRebuildExecutor,
+        request = request
+    )
 }

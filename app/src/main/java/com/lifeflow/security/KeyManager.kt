@@ -68,7 +68,7 @@ class KeyManager(
 
     companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        private const val DEFAULT_ALIAS = "LifeFlow_Master_Key"
+        private const val DEFAULT_ALIAS = SESSION_KEY_ALIAS
         private const val KEY_SIZE_BITS = 256
         private const val AUTH_VALIDITY_SECONDS = 30
         private const val AUTH_PER_USE_VALIDITY_SECONDS = -1
@@ -99,7 +99,7 @@ class KeyManager(
                 generateKeyInternal(useStrongBox = true)
                 return
             } catch (_: StrongBoxUnavailableException) {
-            } catch (_: Exception) {
+            } catch (_: ProviderException) {
             }
         }
 

@@ -152,6 +152,23 @@ object SecurityAuditLog {
             currentTrustState = currentTrustState
         )
 
+    internal fun abuseMonitoringSnapshot(
+        currentTrustState: TrustState
+    ): SecurityAbuseMonitoringSnapshot =
+        SecurityAbuseMonitoringAnalyzer.snapshot(
+            incident = incidentSignalSnapshot(),
+            currentTrustState = currentTrustState
+        )
+
+    internal fun abuseMonitoringSnapshotSince(
+        since: Instant,
+        currentTrustState: TrustState
+    ): SecurityAbuseMonitoringSnapshot =
+        SecurityAbuseMonitoringAnalyzer.snapshot(
+            incident = incidentSignalSnapshotSince(since),
+            currentTrustState = currentTrustState
+        )
+
     internal fun runtimeContainmentSnapshot(
         currentTrustState: TrustState
     ): SecurityRuntimeContainmentSnapshot =

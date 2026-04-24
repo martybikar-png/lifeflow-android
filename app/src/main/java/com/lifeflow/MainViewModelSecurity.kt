@@ -1,11 +1,11 @@
 package com.lifeflow
 
-import com.lifeflow.domain.security.TrustState as DomainTrustState
-import com.lifeflow.security.SecurityRuntimeAccessMode
-import com.lifeflow.security.SecurityRuntimeAccessPolicy
-import com.lifeflow.security.SecurityRuleEngine
-import com.lifeflow.security.TrustState
-import com.lifeflow.security.toDomainTrustState
+import com.lifeflow.domain.security.TrustState
+import com.lifeflow.security.AUTH_REQUIRED_USER_MESSAGE
+import com.lifeflow.security.SECURITY_COMPROMISED_USER_MESSAGE
+import com.lifeflow.security.SECURITY_DEGRADED_USER_MESSAGE
+import com.lifeflow.security.SECURITY_EMERGENCY_LIMITED_USER_MESSAGE
+import com.lifeflow.security.lockedReasonToUserMessage
 
 internal const val MAIN_VIEW_MODEL_UNEXPECTED_REFRESH_FAILURE_MESSAGE =
     "Protected refresh failed unexpectedly. Please authenticate again."
@@ -14,175 +14,80 @@ internal const val MAIN_VIEW_MODEL_SESSION_EXPIRED_MESSAGE =
 internal const val MAIN_VIEW_MODEL_REFRESH_BLOCKED_MESSAGE =
     "Protected refresh blocked until authentication is valid."
 
-private const val SECURITY_COMPROMISED_MESSAGE =
-    "Security compromised. Reset vault is required before continuing."
-private const val SECURITY_DEGRADED_MESSAGE =
-    "Security degraded. Please authenticate again."
-private const val SECURITY_EMERGENCY_LIMITED_MESSAGE =
-    "Emergency limited mode is active. Standard protected runtime remains blocked."
-private const val AUTH_REQUIRED_MESSAGE =
-    "Active auth session missing. Please authenticate again."
-
-internal sealed interface MainViewModelTrustUpdate {
-    data object NoOp : MainViewModelTrustUpdate
-    data class FailClosed(val message: String) : MainViewModelTrustUpdate
-    data class LastAction(val message: String) : MainViewModelTrustUpdate
-}
-
-private fun isAuthenticatedUi(uiState: UiState): Boolean =
-    uiState is UiState.Authenticated
-
 private fun runtimeEntryTrustStateBlockMessage(
-    trustState: DomainTrustState
+    trustState: TrustState
 ): String? =
     when (trustState) {
-        DomainTrustState.COMPROMISED -> SECURITY_COMPROMISED_MESSAGE
-        DomainTrustState.DEGRADED -> SECURITY_DEGRADED_MESSAGE
-        DomainTrustState.EMERGENCY_LIMITED -> SECURITY_EMERGENCY_LIMITED_MESSAGE
-        DomainTrustState.VERIFIED -> null
+        TrustState.COMPROMISED -> SECURITY_COMPROMISED_USER_MESSAGE
+        TrustState.DEGRADED -> SECURITY_DEGRADED_USER_MESSAGE
+        TrustState.EMERGENCY_LIMITED -> SECURITY_EMERGENCY_LIMITED_USER_MESSAGE
+        TrustState.VERIFIED -> null
     }
 
 private fun requiresSessionExpiryForTrustState(
-    trustState: DomainTrustState
+    trustState: TrustState
 ): Boolean =
     when (trustState) {
-        DomainTrustState.COMPROMISED,
-        DomainTrustState.DEGRADED,
-        DomainTrustState.EMERGENCY_LIMITED,
-        DomainTrustState.VERIFIED -> true
+        TrustState.COMPROMISED,
+        TrustState.DEGRADED,
+        TrustState.EMERGENCY_LIMITED,
+        TrustState.VERIFIED -> true
     }
 
-private fun currentStandardProtectedRuntimeDecision() =
-    SecurityRuntimeAccessPolicy.decide(
-        accessMode = SecurityRuntimeAccessMode.STANDARD_PROTECTED
-    )
-
-internal fun mainViewModelLockedReasonToUserMessage(reason: String): String =
-    when {
-        reason.startsWith("COMPROMISED:", ignoreCase = true) ->
-            SECURITY_COMPROMISED_MESSAGE
-
-        reason.startsWith("RECOVERY_REQUIRED:", ignoreCase = true) ->
-            "Recovery is required before protected access can continue."
-
-        reason.startsWith("PROTECTED_RUNTIME_BLOCKED:", ignoreCase = true) ->
-            "Protected runtime is blocked by current security policy."
-
-        reason.startsWith("EMERGENCY_LIMITED:", ignoreCase = true) ->
-            SECURITY_EMERGENCY_LIMITED_MESSAGE
-
-        reason.startsWith("AUTH_REQUIRED:", ignoreCase = true) ->
-            "Authentication required. Please authenticate again."
-
-        reason.isBlank() ->
-            "Access locked. Please authenticate again."
-
-        else -> reason
-    }
-
-internal fun canMainViewModelExposeProtectedUiData(uiState: UiState): Boolean {
-    val decision = currentStandardProtectedRuntimeDecision()
-
-    return canMainViewModelExposeProtectedUiData(
-        uiState = uiState,
-        isAuthorized = decision.allowed,
-        trustState = decision.effectiveTrustState.toDomainTrustState()
-    )
-}
-
-internal fun canMainViewModelExposeProtectedUiData(
-    uiState: UiState,
-    isAuthorized: Boolean,
-    trustState: DomainTrustState
-): Boolean =
-    isAuthenticatedUi(uiState) &&
-        isAuthorized &&
-        trustState == DomainTrustState.VERIFIED
-
-internal fun mainViewModelRuntimeEntryBlockMessage(
+internal fun mainViewModelSecurityEvaluation(
+    isAuthenticatedUi: Boolean,
     isAuthorized: Boolean,
     trustState: TrustState
-): String? =
-    mainViewModelRuntimeEntryBlockMessage(
-        isAuthorized = isAuthorized,
-        trustState = trustState.toDomainTrustState()
+): MainViewModelSecurityEvaluation {
+    val canExposeProtectedUiData =
+        isAuthenticatedUi &&
+            isAuthorized &&
+            trustState == TrustState.VERIFIED
+
+    val runtimeEntryBlockMessage =
+        if (!isAuthorized) {
+            AUTH_REQUIRED_USER_MESSAGE
+        } else {
+            runtimeEntryTrustStateBlockMessage(trustState)
+        }
+
+    val shouldExpireSession =
+        isAuthenticatedUi &&
+            !isAuthorized &&
+            requiresSessionExpiryForTrustState(trustState)
+
+    return MainViewModelSecurityEvaluation(
+        canExposeProtectedUiData = canExposeProtectedUiData,
+        runtimeEntryBlockMessage = runtimeEntryBlockMessage,
+        shouldExpireSession = shouldExpireSession
     )
-
-internal fun mainViewModelRuntimeEntryBlockMessage(
-    isAuthorized: Boolean,
-    trustState: DomainTrustState
-): String? {
-    if (!isAuthorized) {
-        return AUTH_REQUIRED_MESSAGE
-    }
-
-    return runtimeEntryTrustStateBlockMessage(trustState)
 }
 
-internal fun resolveMainViewModelTrustUpdate(
+internal fun mainViewModelTrustStateMessageOrNull(
     trustState: TrustState,
-    uiState: UiState
-): MainViewModelTrustUpdate =
-    resolveMainViewModelTrustUpdate(
-        trustState = trustState.toDomainTrustState(),
-        uiState = uiState
-    )
-
-internal fun resolveMainViewModelTrustUpdate(
-    trustState: DomainTrustState,
-    uiState: UiState
-): MainViewModelTrustUpdate =
+    isAuthenticatedUi: Boolean
+): String? =
     when (trustState) {
-        DomainTrustState.COMPROMISED ->
-            MainViewModelTrustUpdate.FailClosed(SECURITY_COMPROMISED_MESSAGE)
+        TrustState.COMPROMISED ->
+            SECURITY_COMPROMISED_USER_MESSAGE
 
-        DomainTrustState.DEGRADED ->
-            if (isAuthenticatedUi(uiState)) {
-                MainViewModelTrustUpdate.FailClosed(SECURITY_DEGRADED_MESSAGE)
+        TrustState.DEGRADED ->
+            if (isAuthenticatedUi) {
+                SECURITY_DEGRADED_USER_MESSAGE
             } else {
-                MainViewModelTrustUpdate.NoOp
+                null
             }
 
-        DomainTrustState.EMERGENCY_LIMITED ->
-            if (isAuthenticatedUi(uiState)) {
-                MainViewModelTrustUpdate.FailClosed(SECURITY_EMERGENCY_LIMITED_MESSAGE)
+        TrustState.EMERGENCY_LIMITED ->
+            if (isAuthenticatedUi) {
+                SECURITY_EMERGENCY_LIMITED_USER_MESSAGE
             } else {
-                MainViewModelTrustUpdate.NoOp
+                null
             }
 
-        DomainTrustState.VERIFIED ->
-            if (isAuthenticatedUi(uiState)) {
-                MainViewModelTrustUpdate.LastAction("Security trust verified.")
-            } else {
-                MainViewModelTrustUpdate.NoOp
-            }
+        TrustState.VERIFIED ->
+            null
     }
 
-internal fun shouldMainViewModelExpireSession(uiState: UiState): Boolean {
-    val decision = currentStandardProtectedRuntimeDecision()
-
-    return shouldMainViewModelExpireSession(
-        uiState = uiState,
-        isAuthorized = decision.allowed,
-        trustState = decision.effectiveTrustState.toDomainTrustState()
-    )
-}
-
-internal fun shouldMainViewModelExpireSession(
-    uiState: UiState,
-    isAuthorized: Boolean
-): Boolean =
-    shouldMainViewModelExpireSession(
-        uiState = uiState,
-        isAuthorized = isAuthorized,
-        trustState = SecurityRuleEngine.getTrustState().toDomainTrustState()
-    )
-
-internal fun shouldMainViewModelExpireSession(
-    uiState: UiState,
-    isAuthorized: Boolean,
-    trustState: DomainTrustState
-): Boolean =
-    isAuthenticatedUi(uiState) &&
-        !isAuthorized &&
-        requiresSessionExpiryForTrustState(trustState)
+internal fun mainViewModelLockedReasonToUserMessage(reason: String): String =
+    lockedReasonToUserMessage(reason)

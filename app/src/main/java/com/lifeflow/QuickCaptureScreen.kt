@@ -1,114 +1,111 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.lifeflow.boundary.BoundaryEntitlementSource
+import com.lifeflow.boundary.BoundaryPresentation
+import com.lifeflow.boundary.BoundaryPresentationState
+import com.lifeflow.boundary.isLockedLike
+import com.lifeflow.boundary.shouldShowUpgradeAction
+import com.lifeflow.domain.core.boundary.BoundaryAuditExpectation
+import com.lifeflow.domain.core.boundary.EntitlementStatus
 
 @Composable
 fun QuickCaptureScreen(
-    lastAction: String = "Quick capture shell active",
+    enrichedCapturePresentation: BoundaryPresentation? = null,
     onPrimaryCapture: () -> Unit = {},
     onOpenCaptureLibrary: () -> Unit = {},
+    onUpgradeToCore: () -> Unit = {},
     onBackToHome: () -> Unit = {},
-    debugLines: List<String> = emptyList()
 ) {
+    val enrichedCaptureLocked = enrichedCapturePresentation.isLockedLike()
+
     ScreenContainer(title = "Quick Capture") {
-        GuidanceCard(
-            title = "Capture something small",
-            leadingIconResId = R.drawable.lf_ic_focus,
-            message = "Quick Capture is a lightweight entry point for a fast thought, note, signal, or reflection. In this phase it remains a calm structure layer."
-        )
-        ScreenSectionSpacer()
-        Card {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ButtonDefaultsSpacing)
-            ) {
-                Text(
-                    text = "What this step does",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "It provides one simple capture entry point first, without turning this screen into a busy workflow. This is shell structure, not final execution.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                ScreenSectionSpacer()
-                Text(
-                    text = "Primary focus",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    text = "Use one calm action to add something small before any deeper orchestration, routing, or protected behavior is connected.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                ScreenSectionSpacer()
-                Button(
-                    onClick = onPrimaryCapture,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Start capture shell")
-                }
-                OutlinedButton(
-                    onClick = onOpenCaptureLibrary,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Open capture library shell")
-                }
-            }
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            LifeFlowSignalPill(text = "Quick Capture")
         }
-        ScreenSectionSpacer()
-        Card {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ButtonDefaultsSpacing)
-            ) {
-                Text(
-                    text = "Possible capture types",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "• Quick note\n• Mood or state check\n• Reflection prompt\n• Lightweight signal",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LifeFlowSectionPanel(title = "Capture") {
+            Text(
+                text = "Add one small thing.",
+                style = lifeFlowCardSummaryStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LifeFlowPrimaryActionButton(
+                label = "Start Capture",
+                onClick = onPrimaryCapture
+            )
         }
-        ScreenSectionSpacer()
-        Card {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(ButtonDefaultsSpacing)
-            ) {
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LifeFlowSectionPanel(title = "More") {
+            LifeFlowPrimaryActionButton(
+                label = "Open Library",
+                onClick = onOpenCaptureLibrary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LifeFlowPrimaryActionButton(
+                label = "Back to Home",
+                onClick = onBackToHome
+            )
+        }
+
+        if (enrichedCaptureLocked) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            LifeFlowSectionPanel(title = "Core") {
                 Text(
-                    text = "Current boundary",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "This screen is intentionally non-final. It does not assert trust-state truth, biometric authority, recovery logic, or protected execution behavior.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = enrichedCapturePresentation?.detailMessage ?: "Core required.",
+                    style = lifeFlowCardSummaryStyle(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                ScreenSectionSpacer()
-                OutlinedButton(
-                    onClick = onBackToHome,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Back to Home")
+
+                if (enrichedCapturePresentation?.shouldShowUpgradeAction() == true) {
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    LifeFlowPrimaryActionButton(
+                        label = "Upgrade to Core",
+                        onClick = onUpgradeToCore
+                    )
                 }
             }
         }
-        ScreenFooter(lastAction = lastAction, debugLines = debugLines)
     }
 }
 
-private val ButtonDefaultsSpacing = 14.dp
+internal fun publicShellEnrichedCapturePresentation(): BoundaryPresentation {
+    return BoundaryPresentation(
+        boundaryKey = "action.capture.enriched",
+        title = "Enriched Capture Analysis",
+        state = BoundaryPresentationState.LOCKED,
+        showUpgradePrompt = true,
+        showLockedBadge = true,
+        allowUserActionAudit = false,
+        messageCode = "core_enriched_capture_required",
+        owner = "Capture",
+        entitlementStatus = EntitlementStatus.ACTIVE,
+        entitlementSource = BoundaryEntitlementSource.PUBLIC_SHELL,
+        isGraceAccess = false,
+        auditExpectation = BoundaryAuditExpectation.NONE,
+        detailMessage = "Core required. Enriched capture stays locked in public shell."
+    )
+}

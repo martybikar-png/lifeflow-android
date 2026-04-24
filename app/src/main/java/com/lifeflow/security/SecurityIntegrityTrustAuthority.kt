@@ -10,7 +10,7 @@ import com.lifeflow.security.audit.SecurityIntegrityAuditExplainability
  * - normalize server verdict metadata / replay / policyVersion rules
  * - enforce structured claim restrictions
  * - write audit-ready integrity evidence
- * - apply the final verdict into SecurityRuleEngine as a trust-state transition
+ * - apply the final zero-trust decision into SecurityRuleEngine
  *
  * SecurityRuleEngine stays focused on trust-state transitions and runtime rule enforcement.
  */
@@ -35,9 +35,8 @@ internal object SecurityIntegrityTrustAuthority {
 
         recordSecurityAudit(normalized)
 
-        SecurityRuleEngine.reportIntegrityTrustVerdict(
-            verdict = normalized.verdict,
-            reason = normalized.reason
+        SecurityRuleEngine.reportIntegrityTrustDecision(
+            response = normalized
         )
     }
 

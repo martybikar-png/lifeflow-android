@@ -1,5 +1,6 @@
 package com.lifeflow.security
 
+import com.lifeflow.domain.security.DomainOperation
 import com.lifeflow.security.audit.SecurityAuditLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * - Deny-by-default
  * - Trust state remains the authoritative security posture state
- * - Runtime action enforcement is delegated to SecurityRuntimeAccessPolicy
+ * - Runtime action enforcement is delegated to SecurityRuntimeOperationGate
  * - Raw integrity verdict response normalization/audit is delegated to
  *   SecurityIntegrityTrustAuthority
  * - COMPROMISED: deny everything + clear session (immediate lockdown)
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Phase VI.B:
  * - Exposes trustState as StateFlow so UI can fail-closed immediately.
+ * - Applies server zero-trust decisions (ALLOW / STEP_UP / DEGRADED / DENY / LOCK)
+ *   on top of normalized integrity verdicts.
  */
 object SecurityRuleEngine {
 
@@ -29,7 +32,7 @@ object SecurityRuleEngine {
     data class AuditEvent(
         val timestampEpochMs: Long,
         val decision: Decision,
-        val action: RuleAction,
+        val operation: DomainOperation?,
         val reason: String,
         val trustState: TrustState
     )
@@ -47,7 +50,7 @@ object SecurityRuleEngine {
     @Synchronized
     private fun record(
         decision: Decision,
-        action: RuleAction,
+        operation: DomainOperation?,
         reason: String,
         state: TrustState
     ) {
@@ -56,7 +59,7 @@ object SecurityRuleEngine {
             AuditEvent(
                 timestampEpochMs = System.currentTimeMillis(),
                 decision = decision,
-                action = action,
+                operation = operation,
                 reason = reason,
                 trustState = state
             )
@@ -83,7 +86,7 @@ object SecurityRuleEngine {
     private fun transitionTo(
         newState: TrustState,
         decision: Decision,
-        action: RuleAction,
+        operation: DomainOperation?,
         reason: String
     ) {
         _trustState.value = newState
@@ -91,7 +94,7 @@ object SecurityRuleEngine {
 
         record(
             decision = decision,
-            action = action,
+            operation = operation,
             reason = reason,
             state = newState
         )
@@ -101,14 +104,6 @@ object SecurityRuleEngine {
         }
     }
 
-    /**
-     * Explicit trust change.
-     *
-     * SECURITY RULE (B2):
-     * If we're COMPROMISED, you cannot set VERIFIED/DEGRADED/EMERGENCY_LIMITED
-     * via normal flows.
-     * A dedicated recovery/reset flow must handle that later.
-     */
     @Suppress("unused")
     @Synchronized
     fun setTrustState(state: TrustState, reason: String) {
@@ -117,7 +112,7 @@ object SecurityRuleEngine {
         if (current == TrustState.COMPROMISED && state != TrustState.COMPROMISED) {
             record(
                 decision = Decision.DENY,
-                action = RuleAction.READ_ACTIVE,
+                operation = null,
                 reason = "DENY_TRUST_OVERRIDE: COMPROMISED -> $state blocked. $reason",
                 state = current
             )
@@ -128,18 +123,67 @@ object SecurityRuleEngine {
         transitionTo(
             newState = state,
             decision = Decision.ALLOW,
-            action = RuleAction.READ_ACTIVE,
+            operation = null,
             reason = "TrustState set to $state: $reason"
         )
     }
 
-    /**
-     * Applies a final integrity trust verdict.
-     *
-     * NOTE:
-     * - raw integrity response handling lives in SecurityIntegrityTrustAuthority
-     * - this method only applies the already normalized verdict to trust state
-     */
+    @Synchronized
+    internal fun reportIntegrityTrustDecision(
+        response: IntegrityTrustVerdictResponse
+    ) {
+        val current = _trustState.value
+
+        if (current == TrustState.COMPROMISED &&
+            response.verdict != SecurityIntegrityTrustVerdict.COMPROMISED &&
+            response.decision != IntegrityTrustDecision.LOCK
+        ) {
+            record(
+                decision = Decision.DENY,
+                operation = null,
+                reason =
+                    "DENY_ZERO_TRUST_OVERRIDE: COMPROMISED -> ${response.decision}/${response.verdict} blocked. " +
+                        response.reason,
+                state = current
+            )
+            SecurityAccessSession.clear()
+            return
+        }
+
+        when (response.decision) {
+            IntegrityTrustDecision.ALLOW -> {
+                reportIntegrityTrustVerdict(
+                    verdict = response.verdict,
+                    reason = "ZERO_TRUST_ALLOW: ${response.reason}"
+                )
+            }
+
+            IntegrityTrustDecision.STEP_UP -> {
+                applyIntegrityStepUp(response)
+            }
+
+            IntegrityTrustDecision.DEGRADED -> {
+                reportIntegrityTrustVerdict(
+                    verdict = SecurityIntegrityTrustVerdict.DEGRADED,
+                    reason = "ZERO_TRUST_DEGRADED: ${response.reason}"
+                )
+            }
+
+            IntegrityTrustDecision.DENY -> {
+                applyIntegrityDeny(response)
+            }
+
+            IntegrityTrustDecision.LOCK -> {
+                transitionTo(
+                    newState = TrustState.COMPROMISED,
+                    decision = Decision.DENY,
+                    operation = null,
+                    reason = "ZERO_TRUST_LOCK: ${response.reason}"
+                )
+            }
+        }
+    }
+
     @Synchronized
     internal fun reportIntegrityTrustVerdict(
         verdict: SecurityIntegrityTrustVerdict,
@@ -152,7 +196,7 @@ object SecurityRuleEngine {
         ) {
             record(
                 decision = Decision.DENY,
-                action = RuleAction.READ_ACTIVE,
+                operation = null,
                 reason = "DENY_INTEGRITY_OVERRIDE: COMPROMISED -> $verdict blocked. $reason",
                 state = current
             )
@@ -165,7 +209,7 @@ object SecurityRuleEngine {
                 transitionTo(
                     newState = TrustState.VERIFIED,
                     decision = Decision.ALLOW,
-                    action = RuleAction.READ_ACTIVE,
+                    operation = null,
                     reason = "INTEGRITY_TRUST_VERIFIED: $reason"
                 )
             }
@@ -174,7 +218,7 @@ object SecurityRuleEngine {
                 transitionTo(
                     newState = TrustState.DEGRADED,
                     decision = Decision.DENY,
-                    action = RuleAction.READ_ACTIVE,
+                    operation = null,
                     reason = "INTEGRITY_TRUST_DEGRADED: $reason"
                 )
             }
@@ -183,22 +227,89 @@ object SecurityRuleEngine {
                 transitionTo(
                     newState = TrustState.COMPROMISED,
                     decision = Decision.DENY,
-                    action = RuleAction.READ_ACTIVE,
+                    operation = null,
                     reason = "INTEGRITY_TRUST_COMPROMISED: $reason"
                 )
             }
         }
     }
 
-    /**
-     * Dedicated manual-suite reset hook.
-     *
-     * IMPORTANT:
-     * - This bypasses the normal COMPROMISED -> VERIFIED/DEGRADED/EMERGENCY_LIMITED block on purpose.
-     * - It exists only so the adversarial manual suite can deterministically reset baseline
-     *   between destructive test cases.
-     * - Normal production/auth flows must NOT use this.
-     */
+    @Synchronized
+    private fun applyIntegrityStepUp(
+        response: IntegrityTrustVerdictResponse
+    ) {
+        when (response.verdict) {
+            SecurityIntegrityTrustVerdict.VERIFIED -> {
+                transitionTo(
+                    newState = TrustState.VERIFIED,
+                    decision = Decision.ALLOW,
+                    operation = null,
+                    reason = "ZERO_TRUST_STEP_UP: ${response.reason}"
+                )
+                SecurityAccessSession.clear()
+            }
+
+            SecurityIntegrityTrustVerdict.DEGRADED -> {
+                transitionTo(
+                    newState = TrustState.DEGRADED,
+                    decision = Decision.DENY,
+                    operation = null,
+                    reason = "ZERO_TRUST_STEP_UP: ${response.reason}"
+                )
+            }
+
+            SecurityIntegrityTrustVerdict.COMPROMISED -> {
+                transitionTo(
+                    newState = TrustState.COMPROMISED,
+                    decision = Decision.DENY,
+                    operation = null,
+                    reason = "ZERO_TRUST_STEP_UP_INVALID: ${response.reason}"
+                )
+            }
+        }
+    }
+
+    @Synchronized
+    private fun applyIntegrityDeny(
+        response: IntegrityTrustVerdictResponse
+    ) {
+        when (response.verdict) {
+            SecurityIntegrityTrustVerdict.COMPROMISED -> {
+                transitionTo(
+                    newState = TrustState.COMPROMISED,
+                    decision = Decision.DENY,
+                    operation = null,
+                    reason = "ZERO_TRUST_DENY: ${response.reason}"
+                )
+            }
+
+            SecurityIntegrityTrustVerdict.VERIFIED,
+            SecurityIntegrityTrustVerdict.DEGRADED -> {
+                transitionTo(
+                    newState = TrustState.DEGRADED,
+                    decision = Decision.DENY,
+                    operation = null,
+                    reason = "ZERO_TRUST_DENY: ${response.reason}"
+                )
+            }
+        }
+    }
+
+    @Synchronized
+    internal fun reportRuntimeCompromise(reason: String) {
+        if (_trustState.value == TrustState.COMPROMISED) {
+            SecurityAccessSession.clear()
+            return
+        }
+
+        transitionTo(
+            newState = TrustState.COMPROMISED,
+            decision = Decision.DENY,
+            operation = null,
+            reason = "RUNTIME_COMPROMISE: $reason"
+        )
+    }
+
     @Synchronized
     internal fun forceResetForAdversarialSuite(
         state: TrustState,
@@ -215,21 +326,12 @@ object SecurityRuleEngine {
 
         record(
             decision = Decision.ALLOW,
-            action = RuleAction.READ_ACTIVE,
+            operation = null,
             reason = "ADVERSARIAL_SUITE_FORCE_RESET: $reason -> $state",
             state = state
         )
     }
 
-    /**
-     * Dedicated production recovery hook after a successful vault reset.
-     *
-     * IMPORTANT:
-     * - This is the ONLY normal recovery path allowed to move from COMPROMISED
-     *   back to a safe baseline.
-     * - It must be used only after destructive vault reset + blob wipe succeeds.
-     * - Resulting state is DEGRADED (fail-closed baseline, auth required again).
-     */
     @Synchronized
     internal fun recoverAfterVaultReset(reason: String) {
         auditEvents.clear()
@@ -240,43 +342,47 @@ object SecurityRuleEngine {
 
         record(
             decision = Decision.ALLOW,
-            action = RuleAction.READ_ACTIVE,
+            operation = null,
             reason = "VAULT_RESET_RECOVERY: $reason -> DEGRADED",
             state = TrustState.DEGRADED
         )
     }
 
-    /**
-     * Phase VI hook: call when crypto/integrity fails.
-     * This is treated as a COMPROMISED signal (fail-closed).
-     */
     @Synchronized
-    fun reportCryptoFailure(action: RuleAction, reason: String, throwable: Throwable) {
+    fun reportCryptoFailure(
+        operation: DomainOperation,
+        reason: String,
+        throwable: Throwable
+    ) {
         transitionTo(
             newState = TrustState.COMPROMISED,
             decision = Decision.DENY,
-            action = action,
+            operation = operation,
             reason = "CRYPTO_FAILURE: $reason (${throwable::class.java.simpleName}: ${throwable.message})"
         )
     }
 
     @Synchronized
-    fun requireAllowed(action: RuleAction, reason: String) {
+    fun requireAllowed(
+        operation: DomainOperation,
+        reason: String
+    ) {
         val state = _trustState.value
-        val decision = SecurityRuntimeAccessPolicy.decideRuleAction(action)
+        val decision = SecurityRuntimeOperationGate.evaluate(operation)
 
         when (decision.outcome) {
-            SecurityRuntimeRuleActionOutcome.ALLOWED -> {
+            SecurityRuntimeOperationOutcome.ALLOWED -> {
                 if (state == TrustState.VERIFIED) {
                     denyCount = 0
                 }
-                record(Decision.ALLOW, action, reason, state)
+                record(Decision.ALLOW, operation, reason, state)
                 return
             }
 
-            SecurityRuntimeRuleActionOutcome.DENIED -> {
-                val denialCode = decision.code ?: "DENIED"
-                record(Decision.DENY, action, "$denialCode: $reason", state)
+            SecurityRuntimeOperationOutcome.DENIED -> {
+                val denialCode =
+                    SecurityRuntimeOperationGate.denialCodeName(decision)
+                record(Decision.DENY, operation, "$denialCode: $reason", state)
 
                 if (state == TrustState.VERIFIED) {
                     denyCount += 1
@@ -284,28 +390,45 @@ object SecurityRuleEngine {
                         transitionTo(
                             newState = TrustState.DEGRADED,
                             decision = Decision.DENY,
-                            action = action,
+                            operation = operation,
                             reason = "AUTO_DEGRADE: deny threshold reached ($DENY_THRESHOLD_TO_DEGRADE)"
                         )
                     }
                 }
 
-                throw SecurityException("RuleEngine denied ($denialCode): $action → $reason")
+                throw SecurityRuntimeOperationGate.deniedException(
+                    operation = operation,
+                    decision = decision,
+                    reason = reason
+                )
             }
 
-            SecurityRuntimeRuleActionOutcome.LOCKED -> {
-                val denialCode = decision.code ?: "LOCKED"
+            SecurityRuntimeOperationOutcome.LOCKED -> {
+                val denialCode =
+                    SecurityRuntimeOperationGate.denialCodeName(decision)
 
-                if (denialCode == "COMPROMISED") {
+                if (SecurityRuntimeOperationGate.isCompromisedLockdown(decision)) {
                     SecurityAccessSession.clear()
-                    record(Decision.DENY, action, "LOCKDOWN(COMPROMISED): $reason", state)
-                    throw SecurityException("RuleEngine denied (COMPROMISED): $action → $reason")
+                    record(
+                        Decision.DENY,
+                        operation,
+                        "LOCKDOWN(COMPROMISED): $reason",
+                        state
+                    )
+                    throw SecurityRuntimeOperationGate.deniedException(
+                        operation = operation,
+                        decision = decision,
+                        reason = reason
+                    )
                 }
 
-                record(Decision.DENY, action, "LOCKDOWN($denialCode): $reason", state)
-                throw SecurityException("RuleEngine denied ($denialCode): $action → $reason")
+                record(Decision.DENY, operation, "LOCKDOWN($denialCode): $reason", state)
+                throw SecurityRuntimeOperationGate.deniedException(
+                    operation = operation,
+                    decision = decision,
+                    reason = reason
+                )
             }
         }
     }
 }
-

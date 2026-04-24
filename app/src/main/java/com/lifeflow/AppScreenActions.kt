@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.lifeflow.BuildConfig
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 
@@ -108,20 +107,6 @@ internal fun DashboardActionsCard(
                 onReAuthenticate = onReAuthenticate
             )
         }
-    }
-}
-
-@Composable
-internal fun ScreenFooter(
-    lastAction: String,
-    debugLines: List<String>
-) {
-    ScreenSectionSpacer()
-    LastActionCard(lastAction = lastAction)
-
-    if (BuildConfig.DEBUG) {
-        ScreenSectionSpacer()
-        DebugCard(debugLines = debugLines)
     }
 }
 

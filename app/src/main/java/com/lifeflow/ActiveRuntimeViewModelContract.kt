@@ -1,21 +1,22 @@
 package com.lifeflow
 
 import androidx.compose.runtime.State
+import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.core.HealthConnectUiState
-import com.lifeflow.domain.core.TierState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.wellbeing.WellbeingAssessment
 
 interface ActiveRuntimeViewModelContract {
     val uiState: State<UiState>
     val lastAction: State<String>
+    val freeTierMessage: State<String>
     val healthConnectState: State<HealthConnectUiState>
     val requiredHealthPermissions: State<Set<String>>
     val grantedHealthPermissions: State<Set<String>>
     val healthPermissionsInitError: State<String?>
     val digitalTwinState: State<DigitalTwinState?>
     val wellbeingAssessment: State<WellbeingAssessment?>
-    val currentTier: State<TierState>
+    val boundarySnapshot: State<MainBoundarySnapshot>
 
     fun refreshMetricsAndTwinNow()
     fun onHealthPermissionsResult(granted: Set<String>)

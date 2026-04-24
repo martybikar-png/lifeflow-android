@@ -52,7 +52,11 @@ class LifeFlowOrchestratorProtectedOperations(
         return coreOperationAccess.run(
             operationPolicy = LifeFlowOrchestratorPolicies.bootstrapIdentity
         ) {
-            lifeflowOrchestratorBootstrapIdentityIfNeeded(identityRepository)
+            lifeflowOrchestratorBootstrapIdentityIfNeeded(
+                identityRepository = identityRepository,
+                readAccessPolicy = LifeFlowOrchestratorPolicies.bootstrapIdentityReadAccess,
+                writeAccessPolicy = LifeFlowOrchestratorPolicies.bootstrapIdentityWriteAccess
+            )
         }
     }
 
@@ -74,4 +78,3 @@ class LifeFlowOrchestratorProtectedOperations(
         }
     }
 }
-

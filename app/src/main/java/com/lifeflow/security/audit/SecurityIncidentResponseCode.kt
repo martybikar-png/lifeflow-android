@@ -1,0 +1,13 @@
+package com.lifeflow.security.audit
+
+internal enum class SecurityIncidentResponseCode {
+    ACTIVE_COMPROMISE_SIGNAL,
+    TRUST_ALREADY_COMPROMISED,
+    FORCE_COMPROMISED_LOCKDOWN,
+    RECOVERY_REQUIRED,
+    AUTH_FAILURE_BURST,
+    POLICY_VIOLATION_BURST,
+    RECOMMEND_TRUST_DEGRADE,
+    HEIGHTENED_GUARD,
+    OBSERVE_ONLY
+}

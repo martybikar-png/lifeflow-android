@@ -2,7 +2,13 @@ package com.lifeflow.core
 
 import com.lifeflow.domain.connection.ConnectionEntry
 import com.lifeflow.domain.connection.ConnectionState
+import com.lifeflow.domain.core.TierManager
 import com.lifeflow.domain.core.TierState
+import com.lifeflow.domain.core.TierTruthSnapshot
+import com.lifeflow.domain.core.boundary.BoundaryDecision
+import com.lifeflow.domain.core.boundary.BoundaryEvaluator
+import com.lifeflow.domain.core.boundary.EntitlementState
+import com.lifeflow.domain.core.boundary.toEntitlementState
 import com.lifeflow.domain.diary.DiaryEntry
 import com.lifeflow.domain.diary.ShadowDiaryState
 import com.lifeflow.domain.habits.HabitsState
@@ -24,10 +30,25 @@ import com.lifeflow.domain.wellbeing.WellbeingAssessment
 class LifeFlowOrchestrator(
     private val protectedOperations: LifeFlowOrchestratorProtectedOperations,
     private val moduleOperations: LifeFlowOrchestratorModuleOperations,
-    private val derivationOperations: LifeFlowOrchestratorDerivationOperations
+    private val derivationOperations: LifeFlowOrchestratorDerivationOperations,
+    private val tierManager: TierManager
 ) {
+    private val boundaryEvaluator = BoundaryEvaluator()
+
     fun currentTier(): TierState =
-        protectedOperations.currentTier()
+        tierManager.currentTier()
+
+    fun currentTierTruthSnapshot(): TierTruthSnapshot =
+        tierManager.currentSnapshot()
+
+    fun currentEntitlementState(): EntitlementState =
+        currentTierTruthSnapshot().toEntitlementState()
+
+    fun evaluateBoundary(boundaryKey: String): BoundaryDecision =
+        boundaryEvaluator.evaluate(
+            boundaryKey = boundaryKey,
+            entitlementState = currentEntitlementState()
+        )
 
     fun healthConnectUiState(): HealthConnectUiState =
         protectedOperations.healthConnectUiState()

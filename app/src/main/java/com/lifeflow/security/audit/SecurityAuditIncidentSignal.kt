@@ -21,7 +21,7 @@ internal data class SecurityIncidentSignalSnapshot(
     val repeatedPolicyViolationSignal: Boolean,
     val latestEventType: SecurityAuditLog.EventType?,
     val latestCriticalEventType: SecurityAuditLog.EventType?,
-    val triggerCodes: Set<String>
+    val triggerCodes: Set<SecurityIncidentTriggerCode>
 )
 
 internal object SecurityAuditIncidentSignalAnalyzer {
@@ -29,17 +29,21 @@ internal object SecurityAuditIncidentSignalAnalyzer {
     private const val AUTH_FAILURE_BURST_THRESHOLD = 3
     private const val POLICY_VIOLATION_BURST_THRESHOLD = 2
 
-    private val compromiseEventTypes = setOf(
+    /**
+     * Only truly critical compromise events may raise activeCompromiseSignal.
+     *
+     * Degraded/warning-only signals such as emulator detection or a single
+     * policy violation must not auto-escalate the incident level to CRITICAL.
+     */
+    private val activeCompromiseEventTypes = setOf(
         SecurityAuditLog.EventType.TRUST_COMPROMISED,
         SecurityAuditLog.EventType.HARDENING_CHECK_FAILED,
         SecurityAuditLog.EventType.ROOT_DETECTED,
         SecurityAuditLog.EventType.DEBUGGER_DETECTED,
-        SecurityAuditLog.EventType.EMULATOR_DETECTED,
         SecurityAuditLog.EventType.INSTRUMENTATION_DETECTED,
         SecurityAuditLog.EventType.TAMPER_DETECTED,
         SecurityAuditLog.EventType.SIGNATURE_INVALID,
         SecurityAuditLog.EventType.INTEGRITY_FAILED,
-        SecurityAuditLog.EventType.POLICY_VIOLATION,
         SecurityAuditLog.EventType.INVARIANT_VIOLATION
     )
 
@@ -51,7 +55,7 @@ internal object SecurityAuditIncidentSignalAnalyzer {
         val warningCount = entries.count { it.severity == SecurityAuditLog.Severity.WARNING }
         val infoCount = entries.count { it.severity == SecurityAuditLog.Severity.INFO }
 
-        val activeCompromiseSignal = entries.any { it.eventType in compromiseEventTypes }
+        val activeCompromiseSignal = entries.any(::isActiveCompromiseEvent)
 
         val authFailureCount = entries.count {
             it.eventType == SecurityAuditLog.EventType.AUTH_FAILURE ||
@@ -66,14 +70,22 @@ internal object SecurityAuditIncidentSignalAnalyzer {
         val repeatedPolicyViolationSignal =
             policyViolationCount >= POLICY_VIOLATION_BURST_THRESHOLD
 
-        val triggerCodes = linkedSetOf<String>().apply {
-            if (activeCompromiseSignal) add("ACTIVE_COMPROMISE_SIGNAL")
-            if (repeatedAuthFailureSignal) add("AUTH_FAILURE_BURST")
-            if (repeatedPolicyViolationSignal) add("POLICY_VIOLATION_BURST")
-            if (!activeCompromiseSignal && !repeatedAuthFailureSignal &&
-                !repeatedPolicyViolationSignal && warningCount > 0
+        val triggerCodes = linkedSetOf<SecurityIncidentTriggerCode>().apply {
+            if (activeCompromiseSignal) {
+                add(SecurityIncidentTriggerCode.ACTIVE_COMPROMISE_SIGNAL)
+            }
+            if (repeatedAuthFailureSignal) {
+                add(SecurityIncidentTriggerCode.AUTH_FAILURE_BURST)
+            }
+            if (repeatedPolicyViolationSignal) {
+                add(SecurityIncidentTriggerCode.POLICY_VIOLATION_BURST)
+            }
+            if (!activeCompromiseSignal &&
+                !repeatedAuthFailureSignal &&
+                !repeatedPolicyViolationSignal &&
+                warningCount > 0
             ) {
-                add("WARNING_ACTIVITY")
+                add(SecurityIncidentTriggerCode.WARNING_ACTIVITY)
             }
         }
 
@@ -101,5 +113,12 @@ internal object SecurityAuditIncidentSignalAnalyzer {
             }?.eventType,
             triggerCodes = triggerCodes
         )
+    }
+
+    private fun isActiveCompromiseEvent(
+        entry: SecurityAuditLog.AuditEntry
+    ): Boolean {
+        return entry.severity == SecurityAuditLog.Severity.CRITICAL &&
+            entry.eventType in activeCompromiseEventTypes
     }
 }

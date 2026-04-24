@@ -56,8 +56,8 @@ object SecurityHardeningGuard {
         val findings: List<String>
     ) {
         val isCritical: Boolean
-            get() = rootDetected || debuggerDetected || instrumentationDetected || 
-                    tamperSignalDetected || signatureInvalid || runtimeIntegrityFailed
+            get() = rootDetected || debuggerDetected || instrumentationDetected ||
+                tamperSignalDetected || signatureInvalid || runtimeIntegrityFailed
 
         val isDegraded: Boolean
             get() = emulatorDetected || installerTrustWarningDetected
@@ -68,19 +68,17 @@ object SecurityHardeningGuard {
 
     fun assess(context: Context): HardeningReport {
         val findings = mutableListOf<String>()
-        
-        // Original checks
+
         val rootDetected = detectRoot(context, findings)
         val debuggerDetected = detectDebugger(findings)
         val emulatorDetected = detectEmulator(findings)
         val instrumentationDetected = detectInstrumentation(context, findings)
         val installerTrustWarningDetected = detectInstallerTrust(context, findings)
         val tamperSignalDetected = detectTamperSignal(findings)
-        
-        // New checks (Phase 19-21)
+
         val signatureResult = ApkSignatureVerifier.verify(context)
         findings += signatureResult.findings
-        
+
         val integrityResult = RuntimeIntegrityCheck.check()
         findings += integrityResult.findings
 
@@ -98,11 +96,19 @@ object SecurityHardeningGuard {
     }
 
     /**
-     * Quick integrity check for hot paths.
-     * Returns true if immediate compromise is detected.
+     * Quick integrity check suitable for runtime access paths.
+     *
+     * Release:
+     * - fail-closed on debugger/tracer
+     * - fail-closed on runtime tamper signals
+     *
+     * Debug:
+     * - do not self-lock during local development
      */
     fun isCompromisedQuick(): Boolean {
-        return RuntimeIntegrityCheck.isCompromised()
+        if (BuildConfig.DEBUG) return false
+        if (RuntimeIntegrityCheck.isCompromised()) return true
+        return SecurityTamperSignal.detect(mutableListOf())
     }
 
     private fun detectRoot(context: Context, findings: MutableList<String>): Boolean {

@@ -1,6 +1,8 @@
 package com.lifeflow
 
 import android.content.Context
+import com.lifeflow.domain.core.TierState
+import com.lifeflow.domain.core.TierTruthSnapshot
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinEngine
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.security.LifeFlowSecurityBootstrap
@@ -20,7 +22,23 @@ internal object LifeFlowAppGraphFactory {
         val digitalTwinOrchestrator = createDigitalTwinOrchestrator()
         val moduleRepositoryBindings = LifeFlowModuleRepositoryBindings.create(
             applicationContext = applicationContext,
-            encryptionPort = securityBootstrap.encryptionPort
+            encryptionPort = securityBootstrap.encryptionPort,
+            deviceBindingIdProvider = {
+                securityBootstrap.deviceBindingManager
+                    .requireCurrentBinding()
+                    .bindingId
+            }
+        )
+
+        val performVaultReset: suspend () -> Unit = {
+            securityBootstrap.resetVaultUseCase.invoke()
+            moduleRepositoryBindings.clearAll()
+            securityBootstrap.deviceBindingManager.resetAndRebind()
+        }
+
+        val initialTierSnapshot = TierTruthSnapshot.localSeed(
+            tier = TierState.CORE,
+            auditTag = "tier_seed_app_graph_factory"
         )
 
         val mainRuntimeBindings = MainRuntimeBindings(
@@ -37,7 +55,8 @@ internal object LifeFlowAppGraphFactory {
             memoryRepository = moduleRepositoryBindings.memoryRepository,
             connectionRepository = moduleRepositoryBindings.connectionRepository,
             shoppingRepository = moduleRepositoryBindings.shoppingRepository,
-            performVaultReset = securityBootstrap.resetVaultUseCase::invoke
+            performVaultReset = performVaultReset,
+            initialTierSnapshot = initialTierSnapshot
         )
 
         val appGraph = LifeFlowAppGraph(

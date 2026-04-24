@@ -2,13 +2,14 @@ package com.lifeflow.security
 
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.UserNotAuthenticatedException
+import com.lifeflow.domain.security.DomainOperation
 import java.security.InvalidKeyException
 import java.security.UnrecoverableKeyException
 
 internal object SecurityKeystoreFailureHandler {
 
     fun throwForFailure(
-        action: RuleAction?,
+        operation: DomainOperation?,
         failureReason: String,
         genericMessage: String,
         throwable: Throwable
@@ -16,9 +17,10 @@ internal object SecurityKeystoreFailureHandler {
         when {
             hasCause<UserNotAuthenticatedException>(throwable) -> {
                 SecurityAccessSession.clear()
-                throw SecurityException(
-                    "$genericMessage. Recent biometric authentication is required.",
-                    throwable
+                throw SecurityLockedException(
+                    lockedReason = SecurityLockedReason.AUTH_REQUIRED
+                        .withDetail(genericMessage),
+                    cause = throwable
                 )
             }
 
@@ -29,9 +31,10 @@ internal object SecurityKeystoreFailureHandler {
                     TrustState.COMPROMISED,
                     reason = "KEYSTORE_RECOVERY_REQUIRED: $failureReason"
                 )
-                throw SecurityException(
-                    "$genericMessage. Keystore key was invalidated. Reset vault is required.",
-                    throwable
+                throw SecurityLockedException(
+                    lockedReason = SecurityLockedReason.RECOVERY_REQUIRED
+                        .withDetail(genericMessage),
+                    cause = throwable
                 )
             }
 
@@ -41,9 +44,10 @@ internal object SecurityKeystoreFailureHandler {
                     TrustState.COMPROMISED,
                     reason = "KEYSTORE_POSTURE_VIOLATION: $failureReason"
                 )
-                throw SecurityException(
-                    "$genericMessage. Keystore security posture is not valid. Reset vault is required.",
-                    throwable
+                throw SecurityLockedException(
+                    lockedReason = SecurityLockedReason.RECOVERY_REQUIRED
+                        .withDetail(genericMessage),
+                    cause = throwable
                 )
             }
 
@@ -53,20 +57,27 @@ internal object SecurityKeystoreFailureHandler {
                     TrustState.COMPROMISED,
                     reason = "KEYSTORE_INVALID_KEY: $failureReason"
                 )
-                throw SecurityException(
-                    "$genericMessage. Keystore key is not operational. Reset vault is required.",
-                    throwable
+                throw SecurityLockedException(
+                    lockedReason = SecurityLockedReason.RECOVERY_REQUIRED
+                        .withDetail(genericMessage),
+                    cause = throwable
                 )
             }
 
             else -> {
-                action?.let {
+                operation?.let {
                     SecurityRuleEngine.reportCryptoFailure(
-                        action = it,
+                        operation = it,
                         reason = failureReason,
                         throwable = throwable
                     )
+                    throw SecurityLockedException(
+                        lockedReason = SecurityLockedReason.COMPROMISED
+                            .withDetail(genericMessage),
+                        cause = throwable
+                    )
                 }
+
                 throw SecurityException(genericMessage, throwable)
             }
         }

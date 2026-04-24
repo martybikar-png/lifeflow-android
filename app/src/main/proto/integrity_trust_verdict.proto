@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package lifeflow.security.integrity.v1;
+
+option java_multiple_files = true;
+option java_package = "com.lifeflow.security.proto.integrity.v1";
+option java_outer_classname = "IntegrityTrustVerdictProto";
+
+service IntegrityTrustVerdictService {
+  rpc RequestVerdict (IntegrityTrustVerdictRequestMessage) returns (IntegrityTrustVerdictResponseMessage);
+}
+
+enum IntegrityTrustVerdictMessage {
+  INTEGRITY_TRUST_VERDICT_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_VERDICT_VERIFIED = 1;
+  INTEGRITY_TRUST_VERDICT_DEGRADED = 2;
+  INTEGRITY_TRUST_VERDICT_COMPROMISED = 3;
+}
+
+enum IntegrityTrustVerdictSourceMessage {
+  INTEGRITY_TRUST_VERDICT_SOURCE_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_VERDICT_SOURCE_PLAY_INTEGRITY_STANDARD_SERVER = 1;
+}
+
+enum IntegrityTrustAppRecognitionVerdictMessage {
+  INTEGRITY_TRUST_APP_RECOGNITION_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_APP_RECOGNITION_PLAY_RECOGNIZED = 1;
+  INTEGRITY_TRUST_APP_RECOGNITION_UNRECOGNIZED_VERSION = 2;
+  INTEGRITY_TRUST_APP_RECOGNITION_UNEVALUATED = 3;
+}
+
+enum IntegrityTrustDeviceRecognitionVerdictMessage {
+  INTEGRITY_TRUST_DEVICE_RECOGNITION_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_DEVICE_RECOGNITION_MEETS_BASIC_INTEGRITY = 1;
+  INTEGRITY_TRUST_DEVICE_RECOGNITION_MEETS_DEVICE_INTEGRITY = 2;
+  INTEGRITY_TRUST_DEVICE_RECOGNITION_MEETS_STRONG_INTEGRITY = 3;
+  INTEGRITY_TRUST_DEVICE_RECOGNITION_MEETS_VIRTUAL_INTEGRITY = 4;
+}
+
+enum IntegrityTrustAppLicensingVerdictMessage {
+  INTEGRITY_TRUST_APP_LICENSING_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_APP_LICENSING_LICENSED = 1;
+  INTEGRITY_TRUST_APP_LICENSING_UNLICENSED = 2;
+  INTEGRITY_TRUST_APP_LICENSING_UNEVALUATED = 3;
+}
+
+enum IntegrityTrustPlayProtectVerdictMessage {
+  INTEGRITY_TRUST_PLAY_PROTECT_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_PLAY_PROTECT_NO_ISSUES = 1;
+  INTEGRITY_TRUST_PLAY_PROTECT_NO_DATA = 2;
+  INTEGRITY_TRUST_PLAY_PROTECT_POSSIBLE_RISK = 3;
+  INTEGRITY_TRUST_PLAY_PROTECT_MEDIUM_RISK = 4;
+  INTEGRITY_TRUST_PLAY_PROTECT_HIGH_RISK = 5;
+  INTEGRITY_TRUST_PLAY_PROTECT_UNEVALUATED = 6;
+}
+
+enum IntegrityTrustAttestationStatusMessage {
+  INTEGRITY_TRUST_ATTESTATION_STATUS_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_ATTESTATION_STATUS_CAPTURED = 1;
+  INTEGRITY_TRUST_ATTESTATION_STATUS_UNAVAILABLE = 2;
+}
+
+enum IntegrityTrustAttestationChainVerdictMessage {
+  INTEGRITY_TRUST_ATTESTATION_CHAIN_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_ATTESTATION_CHAIN_VERIFIED = 1;
+  INTEGRITY_TRUST_ATTESTATION_CHAIN_FAILED = 2;
+  INTEGRITY_TRUST_ATTESTATION_CHAIN_UNEVALUATED = 3;
+}
+
+enum IntegrityTrustAttestationChallengeVerdictMessage {
+  INTEGRITY_TRUST_ATTESTATION_CHALLENGE_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_ATTESTATION_CHALLENGE_MATCHED = 1;
+  INTEGRITY_TRUST_ATTESTATION_CHALLENGE_MISMATCHED = 2;
+  INTEGRITY_TRUST_ATTESTATION_CHALLENGE_UNEVALUATED = 3;
+}
+
+enum IntegrityTrustAttestationRootVerdictMessage {
+  INTEGRITY_TRUST_ATTESTATION_ROOT_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_ATTESTATION_ROOT_GOOGLE_TRUSTED = 1;
+  INTEGRITY_TRUST_ATTESTATION_ROOT_UNTRUSTED = 2;
+  INTEGRITY_TRUST_ATTESTATION_ROOT_UNEVALUATED = 3;
+}
+
+enum IntegrityTrustAttestationRevocationVerdictMessage {
+  INTEGRITY_TRUST_ATTESTATION_REVOCATION_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_ATTESTATION_REVOCATION_CLEAN = 1;
+  INTEGRITY_TRUST_ATTESTATION_REVOCATION_REVOKED = 2;
+  INTEGRITY_TRUST_ATTESTATION_REVOCATION_UNCHECKED = 3;
+  INTEGRITY_TRUST_ATTESTATION_REVOCATION_UNEVALUATED = 4;
+}
+
+enum IntegrityTrustAttestationAppBindingVerdictMessage {
+  INTEGRITY_TRUST_ATTESTATION_APP_BINDING_UNSPECIFIED = 0;
+  INTEGRITY_TRUST_ATTESTATION_APP_BINDING_MATCHED = 1;
+  INTEGRITY_TRUST_ATTESTATION_APP_BINDING_MISMATCHED = 2;
+  INTEGRITY_TRUST_ATTESTATION_APP_BINDING_UNEVALUATED = 3;
+}
+
+message IntegrityTrustClaimsMessage {
+  IntegrityTrustAppRecognitionVerdictMessage app_recognition_verdict = 1;
+  repeated IntegrityTrustDeviceRecognitionVerdictMessage device_recognition_verdicts = 2;
+  IntegrityTrustAppLicensingVerdictMessage app_licensing_verdict = 3;
+  IntegrityTrustPlayProtectVerdictMessage play_protect_verdict = 4;
+}
+
+message IntegrityTrustAttestationEvidenceMessage {
+  IntegrityTrustAttestationStatusMessage status = 1;
+  string key_alias = 2;
+  int32 chain_entry_count = 3;
+  string challenge_base64 = 4;
+  repeated string certificate_chain_der_base64 = 5;
+  string challenge_sha256 = 6;
+  string leaf_certificate_sha256 = 7;
+  bool strong_box_requested = 8;
+  string failure_reason = 9;
+}
+
+message IntegrityTrustAttestationVerificationMessage {
+  IntegrityTrustAttestationChainVerdictMessage chain_verdict = 1;
+  IntegrityTrustAttestationChallengeVerdictMessage challenge_verdict = 2;
+  IntegrityTrustAttestationRootVerdictMessage root_verdict = 3;
+  IntegrityTrustAttestationRevocationVerdictMessage revocation_verdict = 4;
+  IntegrityTrustAttestationAppBindingVerdictMessage app_binding_verdict = 5;
+  string detail = 6;
+}
+
+message IntegrityTrustVerdictRequestMessage {
+  string request_hash = 1;
+  string integrity_token = 2;
+  IntegrityTrustAttestationEvidenceMessage attestation_evidence = 3;
+}
+
+message IntegrityTrustVerdictResponseMessage {
+  IntegrityTrustVerdictMessage verdict = 1;
+  string reason = 2;
+  string request_hash_echo = 3;
+  int64 server_timestamp_epoch_ms = 4;
+  string policy_version = 5;
+  IntegrityTrustVerdictSourceMessage verdict_source = 6;
+  IntegrityTrustClaimsMessage claims = 7;
+  IntegrityTrustAttestationVerificationMessage attestation_verification = 8;
+}

@@ -46,15 +46,15 @@ object LifeFlowFreezeChecklist {
         FreezeCheckItem("UI-04", "ActiveRuntimeScreenSnapshot assembles cleanly from ViewModel"),
 
         // — Tests —
-        FreezeCheckItem("TST-01", "All domain module unit tests passing"),
-        FreezeCheckItem("TST-02", "SecurityRuleEngine tests passing"),
-        FreezeCheckItem("TST-03", "MainViewModel tests passing"),
-        FreezeCheckItem("TST-04", "LifeFlowOrchestrator tests passing"),
-        FreezeCheckItem("TST-05", "EncryptionService tests passing"),
+        FreezeCheckItem("TST-01", "Core runtime instrumented recovery suites passing"),
+        FreezeCheckItem("TST-02", "SecurityRuleEngine device/instrumented coverage passing"),
+        FreezeCheckItem("TST-03", "MainViewModel protected runtime coverage passing"),
+        FreezeCheckItem("TST-04", "LifeFlowOrchestrator protected flow coverage passing"),
+        FreezeCheckItem("TST-05", "Encryption and keystore device coverage passing"),
 
         // — Build —
         FreezeCheckItem("BLD-01", ":app:compileDebugKotlin BUILD SUCCESSFUL"),
-        FreezeCheckItem("BLD-02", ":domain:test BUILD SUCCESSFUL"),
+        FreezeCheckItem("BLD-02", ":app:compileDebugAndroidTestKotlin BUILD SUCCESSFUL"),
         FreezeCheckItem("BLD-03", "No unresolved references in any module")
     )
 
@@ -67,3 +67,4 @@ data class FreezeCheckItem(
     val id: String,
     val description: String
 )
+

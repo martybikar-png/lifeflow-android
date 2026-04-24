@@ -3,6 +3,7 @@ package com.lifeflow.security
 import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
+import com.lifeflow.domain.security.DomainOperation
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -47,7 +48,7 @@ class EncryptedIdentityRepository(
     override suspend fun save(identity: LifeFlowIdentity) {
         mutex.withLock {
             SecurityRuleEngine.requireAllowed(
-                action = RuleAction.WRITE_SAVE,
+                operation = DomainOperation.SAVE_IDENTITY,
                 reason = "save(identity) requires active auth session"
             )
 
@@ -61,7 +62,7 @@ class EncryptedIdentityRepository(
                 )
             } catch (t: Throwable) {
                 SecurityKeystoreFailureHandler.throwForFailure(
-                    action = RuleAction.WRITE_SAVE,
+                    operation = DomainOperation.SAVE_IDENTITY,
                     failureReason = "save failed for id=${identity.id}",
                     genericMessage = "EncryptedIdentityRepository: save() crypto failure",
                     throwable = t
@@ -73,7 +74,7 @@ class EncryptedIdentityRepository(
     override suspend fun getById(id: UUID): LifeFlowIdentity? {
         return mutex.withLock {
             SecurityRuleEngine.requireAllowed(
-                action = RuleAction.READ_BY_ID,
+                operation = DomainOperation.READ_IDENTITY_BY_ID,
                 reason = "getById(id) requires active auth session"
             )
 
@@ -87,7 +88,7 @@ class EncryptedIdentityRepository(
                 identity
             } catch (t: Throwable) {
                 SecurityKeystoreFailureHandler.throwForFailure(
-                    action = RuleAction.READ_BY_ID,
+                    operation = DomainOperation.READ_IDENTITY_BY_ID,
                     failureReason = "decrypt/deserialize failed for id=$id",
                     genericMessage = "EncryptedIdentityRepository: getById() integrity failure",
                     throwable = t
@@ -99,7 +100,7 @@ class EncryptedIdentityRepository(
     override suspend fun getActiveIdentity(): LifeFlowIdentity? {
         return mutex.withLock {
             SecurityRuleEngine.requireAllowed(
-                action = RuleAction.READ_ACTIVE,
+                operation = DomainOperation.READ_ACTIVE_IDENTITY,
                 reason = "getActiveIdentity() requires active auth session"
             )
 
@@ -118,7 +119,7 @@ class EncryptedIdentityRepository(
                 null
             } catch (t: Throwable) {
                 SecurityKeystoreFailureHandler.throwForFailure(
-                    action = RuleAction.READ_ACTIVE,
+                    operation = DomainOperation.READ_ACTIVE_IDENTITY,
                     failureReason = "decrypt/deserialize failed during scan",
                     genericMessage = "EncryptedIdentityRepository: getActiveIdentity() integrity failure",
                     throwable = t
@@ -130,7 +131,7 @@ class EncryptedIdentityRepository(
     override suspend fun delete(identity: LifeFlowIdentity) {
         mutex.withLock {
             SecurityRuleEngine.requireAllowed(
-                action = RuleAction.WRITE_DELETE,
+                operation = DomainOperation.DELETE_IDENTITY,
                 reason = "delete(identity) requires active auth session"
             )
 
@@ -148,7 +149,7 @@ class EncryptedIdentityRepository(
                 vault.clearIdentityVersion(identity.id)
             } catch (t: Throwable) {
                 SecurityKeystoreFailureHandler.throwForFailure(
-                    action = RuleAction.WRITE_DELETE,
+                    operation = DomainOperation.DELETE_IDENTITY,
                     failureReason = "delete failed for id=${identity.id}",
                     genericMessage = "EncryptedIdentityRepository: delete() failure",
                     throwable = t
@@ -270,3 +271,12 @@ class EncryptedIdentityRepository(
         return encryptedIdentityDeserialize(bytes)
     }
 }
+
+
+
+
+
+
+
+
+

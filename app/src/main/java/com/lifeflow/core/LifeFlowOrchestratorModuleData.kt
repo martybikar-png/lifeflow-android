@@ -18,10 +18,9 @@ import com.lifeflow.domain.shopping.ShoppingState
 import com.lifeflow.domain.shopping.TrackedItem
 
 /**
- * Module data access layer — consent-gated reads and writes for persistent domain modules.
+ * Module data access layer — pure repository and derivation operations.
  *
- * All operations go through the shared orchestrator access boundary.
- * Fail-closed on missing session or compromised trust.
+ * Security/tier/repository boundary checks live in the orchestrator access layer.
  */
 
 // --- Diary ---
@@ -30,13 +29,13 @@ internal suspend fun lifeflowOrchestratorLoadDiaryState(
     diaryRepository: LocalDiaryRepository,
     identityInitialized: Boolean
 ): ActionResult<ShadowDiaryState> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Diary read",
-        defaultErrorMessage = "Diary load failed"
-    ) {
+    return try {
         val entries = diaryRepository.loadAllEntries()
-        ShadowDiaryCoreEngine().compute(entries, identityInitialized)
+        ActionResult.Success(
+            ShadowDiaryCoreEngine().compute(entries, identityInitialized)
+        )
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Diary load failed")
     }
 }
 
@@ -44,12 +43,11 @@ internal suspend fun lifeflowOrchestratorSaveDiaryEntry(
     diaryRepository: LocalDiaryRepository,
     entry: DiaryEntry
 ): ActionResult<Unit> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Diary write",
-        defaultErrorMessage = "Diary save failed"
-    ) {
+    return try {
         diaryRepository.saveEntry(entry)
+        ActionResult.Success(Unit)
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Diary save failed")
     }
 }
 
@@ -59,13 +57,13 @@ internal suspend fun lifeflowOrchestratorLoadMemoryState(
     memoryRepository: LocalMemoryRepository,
     identityInitialized: Boolean
 ): ActionResult<SecondBrainState> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Memory read",
-        defaultErrorMessage = "Memory load failed"
-    ) {
+    return try {
         val entries = memoryRepository.loadAllEntries()
-        SecondBrainEngine().compute(entries, identityInitialized)
+        ActionResult.Success(
+            SecondBrainEngine().compute(entries, identityInitialized)
+        )
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Memory load failed")
     }
 }
 
@@ -73,12 +71,11 @@ internal suspend fun lifeflowOrchestratorSaveMemoryEntry(
     memoryRepository: LocalMemoryRepository,
     entry: MemoryEntry
 ): ActionResult<Unit> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Memory write",
-        defaultErrorMessage = "Memory save failed"
-    ) {
+    return try {
         memoryRepository.saveEntry(entry)
+        ActionResult.Success(Unit)
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Memory save failed")
     }
 }
 
@@ -88,13 +85,13 @@ internal suspend fun lifeflowOrchestratorLoadConnectionState(
     connectionRepository: LocalConnectionRepository,
     identityInitialized: Boolean
 ): ActionResult<ConnectionState> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Connection read",
-        defaultErrorMessage = "Connection load failed"
-    ) {
+    return try {
         val entries = connectionRepository.loadAllEntries()
-        IntimacyConnectionEngine().compute(entries, identityInitialized)
+        ActionResult.Success(
+            IntimacyConnectionEngine().compute(entries, identityInitialized)
+        )
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Connection load failed")
     }
 }
 
@@ -102,12 +99,11 @@ internal suspend fun lifeflowOrchestratorSaveConnectionEntry(
     connectionRepository: LocalConnectionRepository,
     entry: ConnectionEntry
 ): ActionResult<Unit> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Connection write",
-        defaultErrorMessage = "Connection save failed"
-    ) {
+    return try {
         connectionRepository.saveEntry(entry)
+        ActionResult.Success(Unit)
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Connection save failed")
     }
 }
 
@@ -117,13 +113,13 @@ internal suspend fun lifeflowOrchestratorLoadShoppingState(
     shoppingRepository: LocalShoppingRepository,
     identityInitialized: Boolean
 ): ActionResult<ShoppingState> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Shopping read",
-        defaultErrorMessage = "Shopping load failed"
-    ) {
+    return try {
         val items = shoppingRepository.loadAllItems()
-        PredictiveShoppingEngine().compute(items, identityInitialized)
+        ActionResult.Success(
+            PredictiveShoppingEngine().compute(items, identityInitialized)
+        )
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Shopping load failed")
     }
 }
 
@@ -131,11 +127,10 @@ internal suspend fun lifeflowOrchestratorSaveShoppingItem(
     shoppingRepository: LocalShoppingRepository,
     item: TrackedItem
 ): ActionResult<Unit> {
-    return lifeflowOrchestratorRunAccessControlledCatchingOperation(
-        accessMode = LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED,
-        reason = "Shopping write",
-        defaultErrorMessage = "Shopping save failed"
-    ) {
+    return try {
         shoppingRepository.saveItem(item)
+        ActionResult.Success(Unit)
+    } catch (t: Throwable) {
+        ActionResult.Error(t.message ?: "Shopping save failed")
     }
 }

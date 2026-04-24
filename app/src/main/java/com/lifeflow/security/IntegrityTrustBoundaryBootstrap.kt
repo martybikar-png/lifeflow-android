@@ -1,10 +1,13 @@
 package com.lifeflow.security
 
 import android.content.Context
+import android.util.Log
 import com.lifeflow.BuildConfig
 import com.lifeflow.security.integrity.PlayIntegrityBootstrapPreparation
 
 internal object IntegrityTrustBoundaryBootstrap {
+
+    private const val TAG = "IntegrityTrustBootstrap"
 
     fun start(
         applicationContext: Context,
@@ -24,7 +27,21 @@ internal object IntegrityTrustBoundaryBootstrap {
         val transport = if (isInstrumentation) {
             null
         } else {
-            GrpcIntegrityTrustTransport.create(applicationContext)
+            runCatching {
+                val tlsMaterialProvider = IntegrityTrustTlsMaterialBootstrap.create(
+                    applicationContext = applicationContext
+                )
+                GrpcIntegrityTrustTransport.create(
+                    applicationContext = applicationContext,
+                    tlsMaterialProvider = tlsMaterialProvider
+                )
+            }.onFailure { throwable ->
+                Log.w(
+                    TAG,
+                    "Integrity trust transport disabled: TLS bootstrap is unavailable. External verdict transport remains fail-closed.",
+                    throwable
+                )
+            }.getOrNull()
         }
 
         return IntegrityTrustRuntime(

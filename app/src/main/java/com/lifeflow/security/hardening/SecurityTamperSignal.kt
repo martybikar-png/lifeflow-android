@@ -8,26 +8,62 @@ internal object SecurityTamperSignal {
         "/data/local/tmp/frida-server",
         "/data/local/tmp/re.frida.server",
         "/data/local/tmp/frida-gadget.so",
+        "/data/local/tmp/libfrida-gadget.so",
+        "/data/local/tmp/frida-agent.so",
         "/system/bin/frida-server",
-        "/system/xbin/frida-server"
+        "/system/xbin/frida-server",
+        "/system/lib/libfrida-gadget.so",
+        "/system/lib64/libfrida-gadget.so"
     )
 
     private val suspiciousRuntimeMapTokens = setOf(
         "frida",
+        "frida-agent",
+        "frida-gadget",
+        "libfrida",
         "xposed",
+        "edxp",
+        "lsposed",
+        "riru",
+        "zygisk",
         "substrate"
     )
 
+    data class SignalSnapshot(
+        val presentArtifactPaths: Set<String>,
+        val detectedRuntimeMapTokens: Set<String>
+    ) {
+        val detected: Boolean
+            get() = presentArtifactPaths.isNotEmpty() || detectedRuntimeMapTokens.isNotEmpty()
+    }
+
     fun detect(findings: MutableList<String>): Boolean {
-        val presentArtifactPaths = suspiciousArtifactPaths.filterTo(mutableSetOf()) { path ->
+        val snapshot = snapshot()
+
+        snapshot.presentArtifactPaths.forEach { path ->
+            findings += "Tamper: suspicious artifact path detected ($path)"
+        }
+
+        snapshot.detectedRuntimeMapTokens.forEach { token ->
+            findings += "Tamper: suspicious runtime mapping detected ($token)"
+        }
+
+        return snapshot.detected
+    }
+
+    fun snapshot(): SignalSnapshot {
+        val presentArtifactPaths = suspiciousArtifactPaths.filterTo(linkedSetOf()) { path ->
             File(path).exists()
         }
-        val procSelfMaps = readProcSelfMaps()
 
-        return detectFromSignals(
+        val normalizedMaps = readProcSelfMaps().orEmpty().lowercase()
+        val detectedRuntimeMapTokens = suspiciousRuntimeMapTokens.filterTo(linkedSetOf()) { token ->
+            normalizedMaps.contains(token)
+        }
+
+        return SignalSnapshot(
             presentArtifactPaths = presentArtifactPaths,
-            procSelfMaps = procSelfMaps,
-            findings = findings
+            detectedRuntimeMapTokens = detectedRuntimeMapTokens
         )
     }
 
@@ -36,20 +72,35 @@ internal object SecurityTamperSignal {
         procSelfMaps: String?,
         findings: MutableList<String>
     ): Boolean {
-        presentArtifactPaths.forEach { path ->
+        val snapshot = snapshotFromSignals(
+            presentArtifactPaths = presentArtifactPaths,
+            procSelfMaps = procSelfMaps
+        )
+
+        snapshot.presentArtifactPaths.forEach { path ->
             findings += "Tamper: suspicious artifact path detected ($path)"
         }
 
-        val normalizedMaps = procSelfMaps.orEmpty().lowercase()
-        val detectedTokens = suspiciousRuntimeMapTokens.filterTo(mutableSetOf()) { token ->
-            normalizedMaps.contains(token)
-        }
-
-        detectedTokens.forEach { token ->
+        snapshot.detectedRuntimeMapTokens.forEach { token ->
             findings += "Tamper: suspicious runtime mapping detected ($token)"
         }
 
-        return presentArtifactPaths.isNotEmpty() || detectedTokens.isNotEmpty()
+        return snapshot.detected
+    }
+
+    internal fun snapshotFromSignals(
+        presentArtifactPaths: Set<String>,
+        procSelfMaps: String?
+    ): SignalSnapshot {
+        val normalizedMaps = procSelfMaps.orEmpty().lowercase()
+        val detectedRuntimeMapTokens = suspiciousRuntimeMapTokens.filterTo(linkedSetOf()) { token ->
+            normalizedMaps.contains(token)
+        }
+
+        return SignalSnapshot(
+            presentArtifactPaths = presentArtifactPaths.toCollection(linkedSetOf()),
+            detectedRuntimeMapTokens = detectedRuntimeMapTokens
+        )
     }
 
     private fun readProcSelfMaps(): String? {

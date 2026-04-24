@@ -18,14 +18,12 @@ internal fun ActiveRuntimeScreenRouter(
         ErrorScreen(
             message = "Protected access is paused until a fresh authentication step is completed.",
             resetRequired = false,
-            lastAction = screen.displayedLastAction,
-            onRetry = onAuthenticate,
-            debugLines = screen.debugLines
+            onRetry = onAuthenticate
         )
         return
     }
 
-    when (val uiState = screen.uiState) {
+    when (screen.uiState) {
         UiState.Loading -> {
             LoadingScreen(
                 isAuthenticating = screen.isAuthenticating,
@@ -34,11 +32,9 @@ internal fun ActiveRuntimeScreenRouter(
                 grantedCount = screen.grantedPermissions.size,
                 stepsGranted = screen.stepsGranted,
                 hrGranted = screen.hrGranted,
-                lastAction = screen.displayedLastAction,
                 onAuthenticate = onAuthenticate,
                 onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                debugLines = screen.debugLines
+                onOpenHealthConnectSettings = onOpenHealthConnectSettings
             )
         }
 
@@ -51,35 +47,30 @@ internal fun ActiveRuntimeScreenRouter(
                 hrGranted = screen.hrGranted,
                 digitalTwinState = screen.digitalTwinState,
                 wellbeingAssessment = screen.wellbeingAssessment,
-                lastAction = screen.displayedLastAction,
+                boundarySnapshot = screen.boundarySnapshot,
                 onRefreshNow = onRefreshNow,
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
                 onReAuthenticate = onAuthenticate,
-                debugLines = screen.debugLines
+                onUpgradeToCore = onUpgradeToCore
             )
         }
 
-        is UiState.FreeTier -> {
+        UiState.FreeTier -> {
             FreeTierScreen(
-                message = uiState.message,
-                lastAction = screen.displayedLastAction,
-                onUpgradeToCore = onUpgradeToCore,
-                debugLines = screen.debugLines
+                message = screen.freeTierMessage.ifBlank { "Free tier active." },
+                onUpgradeToCore = onUpgradeToCore
             )
         }
 
         is UiState.Error -> {
-            val message = uiState.message
+            val message = screen.uiState.message
             val resetRequired = requiresVaultReset(message)
             ErrorScreen(
                 message = message,
                 resetRequired = resetRequired,
-                lastAction = screen.displayedLastAction,
-                onRetry = if (resetRequired) onResetVault else onAuthenticate,
-                debugLines = screen.debugLines
+                onRetry = if (resetRequired) onResetVault else onAuthenticate
             )
         }
     }
 }
-

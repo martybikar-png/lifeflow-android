@@ -2,14 +2,10 @@ package com.lifeflow.core
 
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
-import com.lifeflow.domain.security.AuthContext
-import com.lifeflow.domain.security.AuthorizationResult
-import com.lifeflow.domain.security.DenialReason
-import com.lifeflow.domain.security.DomainOperation
-import com.lifeflow.domain.security.ElevationReason
-import com.lifeflow.domain.security.LockReason
 import com.lifeflow.security.SecurityAccessSession
-import com.lifeflow.security.SecurityAuthorizationPortAdapter
+import com.lifeflow.security.SecurityLockedException
+import com.lifeflow.security.SecurityLockedReason
+import com.lifeflow.security.withDetail
 import java.util.UUID
 
 /**
@@ -21,25 +17,21 @@ import java.util.UUID
  *
  * Important:
  * - trust elevation must NOT happen here
- * - this layer consumes the canonical authorization boundary instead of
- *   mutating trust state locally
+ * - this layer now consumes shared orchestrator access policy inputs
+ *   instead of calling the security gate directly
  */
 internal suspend fun lifeflowOrchestratorBootstrapIdentityIfNeeded(
-    identityRepository: IdentityRepository
+    identityRepository: IdentityRepository,
+    readAccessPolicy: LifeFlowOrchestratorAccessPolicy,
+    writeAccessPolicy: LifeFlowOrchestratorAccessPolicy
 ): ActionResult<Unit> {
-    authorizeBootstrapOperation(
-        operation = DomainOperation.READ_ACTIVE_IDENTITY,
-        reason = "Identity bootstrap"
-    )?.let { return it }
+    authorizeBootstrapAccess(readAccessPolicy)?.let { return it }
 
     return try {
         val active = identityRepository.getActiveIdentity()
 
         if (active == null) {
-            authorizeBootstrapOperation(
-                operation = DomainOperation.SAVE_IDENTITY,
-                reason = "Identity bootstrap"
-            )?.let { return it }
+            authorizeBootstrapAccess(writeAccessPolicy)?.let { return it }
 
             val newIdentity = LifeFlowIdentity(
                 id = UUID.randomUUID(),
@@ -50,11 +42,14 @@ internal suspend fun lifeflowOrchestratorBootstrapIdentityIfNeeded(
         }
 
         ActionResult.Success(Unit)
+    } catch (e: SecurityLockedException) {
+        SecurityAccessSession.clear()
+        ActionResult.Locked(e.lockedReason)
     } catch (e: SecurityException) {
         SecurityAccessSession.clear()
         ActionResult.Locked(
-            bootstrapSecurityExceptionToLockedReason(
-                message = e.message ?: "Security denied"
+            SecurityLockedReason.AUTH_REQUIRED.withDetail(
+                e.message ?: "Security denied"
             )
         )
     } catch (t: Throwable) {
@@ -63,141 +58,12 @@ internal suspend fun lifeflowOrchestratorBootstrapIdentityIfNeeded(
     }
 }
 
-private fun authorizeBootstrapOperation(
-    operation: DomainOperation,
-    reason: String
+private fun authorizeBootstrapAccess(
+    accessPolicy: LifeFlowOrchestratorAccessPolicy
 ): ActionResult.Locked? {
-    val authorization = SecurityAuthorizationPortAdapter().authorize(
-        operation = operation,
-        context = currentBootstrapStrictAuthContext()
+    return lifeflowOrchestratorAuthorizeOperation(
+        operation = accessPolicy.operation,
+        detail = accessPolicy.detail,
+        contextKind = accessPolicy.contextKind
     )
-
-    return when (authorization) {
-        AuthorizationResult.Allowed -> null
-
-        is AuthorizationResult.EmergencyAllowed ->
-            ActionResult.Locked("EMERGENCY_LIMITED: $reason")
-
-        is AuthorizationResult.Denied ->
-            ActionResult.Locked(
-                bootstrapDeniedReasonToLockedReason(
-                    denialReason = authorization.reason,
-                    reason = reason
-                )
-            )
-
-        is AuthorizationResult.RequiresElevation ->
-            ActionResult.Locked(
-                bootstrapElevationReasonToLockedReason(
-                    elevationReason = authorization.reason,
-                    reason = reason
-                )
-            )
-
-        is AuthorizationResult.Locked ->
-            ActionResult.Locked(
-                bootstrapLockReasonToLockedReason(
-                    lockReason = authorization.reason,
-                    reason = reason
-                )
-            )
-    }
-}
-
-private fun currentBootstrapStrictAuthContext(): AuthContext {
-    return AuthContext(
-        hasRecentAuthentication = SecurityAccessSession.isAuthorized(),
-        requiresStrictAuth = true
-    )
-}
-
-private fun bootstrapDeniedReasonToLockedReason(
-    denialReason: DenialReason,
-    reason: String
-): String =
-    when (denialReason) {
-        DenialReason.AUTH_CONTEXT_INVALID,
-        DenialReason.OPERATION_NOT_ALLOWED,
-        DenialReason.POLICY_REJECTED,
-        DenialReason.TRUST_NOT_SUFFICIENT ->
-            "AUTH_REQUIRED: $reason"
-
-        DenialReason.TRUSTED_BASE_ONLY_REQUIRED,
-        DenialReason.EMERGENCY_NOT_APPROVED,
-        DenialReason.EMERGENCY_WINDOW_EXPIRED ->
-            "EMERGENCY_LIMITED: $reason"
-    }
-
-private fun bootstrapElevationReasonToLockedReason(
-    elevationReason: ElevationReason,
-    reason: String
-): String =
-    when (elevationReason) {
-        ElevationReason.RECENT_AUTH_REQUIRED,
-        ElevationReason.STRONGER_AUTH_REQUIRED ->
-            "AUTH_REQUIRED: $reason"
-
-        ElevationReason.EMERGENCY_APPROVAL_REQUIRED ->
-            "EMERGENCY_LIMITED: $reason"
-    }
-
-private fun bootstrapLockReasonToLockedReason(
-    lockReason: LockReason,
-    reason: String
-): String =
-    when (lockReason) {
-        LockReason.COMPROMISED ->
-            "COMPROMISED: $reason"
-
-        LockReason.EMERGENCY_REJECTED ->
-            "EMERGENCY_LIMITED: $reason"
-
-        LockReason.LOCKED_OUT ->
-            "AUTH_REQUIRED: $reason"
-
-        LockReason.RECOVERY_REQUIRED ->
-            "RECOVERY_REQUIRED: $reason"
-    }
-
-private fun bootstrapSecurityExceptionToLockedReason(
-    message: String
-): String {
-    val normalized = message.trim()
-
-    if (normalized.hasCanonicalBootstrapPrefix()) {
-        return normalized
-    }
-
-    return when {
-        normalized.contains("reset vault is required", ignoreCase = true) ->
-            "RECOVERY_REQUIRED: $normalized"
-
-        normalized.contains("recovery is required", ignoreCase = true) ->
-            "RECOVERY_REQUIRED: $normalized"
-
-        normalized.contains("recent biometric authentication is required", ignoreCase = true) ->
-            "AUTH_REQUIRED: $normalized"
-
-        normalized.contains("active auth session is required", ignoreCase = true) ->
-            "AUTH_REQUIRED: $normalized"
-
-        normalized.contains("auth session is required", ignoreCase = true) ->
-            "AUTH_REQUIRED: $normalized"
-
-        normalized.contains("emergency", ignoreCase = true) ->
-            "EMERGENCY_LIMITED: $normalized"
-
-        normalized.contains("compromised", ignoreCase = true) ->
-            "COMPROMISED: $normalized"
-
-        else ->
-            "AUTH_REQUIRED: $normalized"
-    }
-}
-
-private fun String.hasCanonicalBootstrapPrefix(): Boolean {
-    return startsWith("AUTH_REQUIRED:") ||
-        startsWith("EMERGENCY_LIMITED:") ||
-        startsWith("COMPROMISED:") ||
-        startsWith("RECOVERY_REQUIRED:")
 }

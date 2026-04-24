@@ -1,47 +1,68 @@
 package com.lifeflow.core
 
-import com.lifeflow.security.SecurityRuntimeAccessDecision
-import com.lifeflow.security.SecurityRuntimeAccessMode
-import com.lifeflow.security.SecurityRuntimeAccessPolicy
+import com.lifeflow.domain.security.DomainOperation
+import com.lifeflow.security.SecurityAuthorizationGate
 
-internal enum class LifeFlowOrchestratorAccessMode {
-    STANDARD_PROTECTED,
-    TRUSTED_BASE_READ
+internal enum class LifeFlowOrchestratorAuthContextKind {
+    STANDARD_PROTECTED_CURRENT_SESSION,
+    STRICT_PROTECTED_CURRENT_SESSION,
+    TRUSTED_BASE_READ_ONLY_CURRENT_SESSION
 }
 
 internal fun lifeflowOrchestratorAuthorizeOperation(
-    accessMode: LifeFlowOrchestratorAccessMode,
-    reason: String
+    operation: DomainOperation,
+    detail: String,
+    contextKind: LifeFlowOrchestratorAuthContextKind
 ): ActionResult.Locked? {
-    val decision = SecurityRuntimeAccessPolicy.decide(
-        accessMode = accessMode.toSecurityRuntimeAccessMode()
-    )
+    val lockedReason = when (contextKind) {
+        LifeFlowOrchestratorAuthContextKind.STANDARD_PROTECTED_CURRENT_SESSION ->
+            SecurityAuthorizationGate.standardProtectedLockedReasonOrNull(
+                operation = operation,
+                detail = detail
+            )
 
-    return decision.toLocked(reason)
+        LifeFlowOrchestratorAuthContextKind.STRICT_PROTECTED_CURRENT_SESSION ->
+            SecurityAuthorizationGate.strictProtectedLockedReasonOrNull(
+                operation = operation,
+                detail = detail
+            )
+
+        LifeFlowOrchestratorAuthContextKind.TRUSTED_BASE_READ_ONLY_CURRENT_SESSION ->
+            SecurityAuthorizationGate.trustedBaseReadOnlyLockedReasonOrNull(
+                operation = operation,
+                detail = detail
+            )
+    }
+
+    return lockedReason?.let { ActionResult.Locked(it) }
 }
 
 internal suspend fun <T> lifeflowOrchestratorRunAccessControlledOperation(
-    accessMode: LifeFlowOrchestratorAccessMode,
-    reason: String,
+    operation: DomainOperation,
+    detail: String,
+    contextKind: LifeFlowOrchestratorAuthContextKind,
     block: suspend () -> ActionResult<T>
 ): ActionResult<T> {
     lifeflowOrchestratorAuthorizeOperation(
-        accessMode = accessMode,
-        reason = reason
+        operation = operation,
+        detail = detail,
+        contextKind = contextKind
     )?.let { return it }
 
     return block()
 }
 
 internal suspend fun <T> lifeflowOrchestratorRunAccessControlledCatchingOperation(
-    accessMode: LifeFlowOrchestratorAccessMode,
-    reason: String,
+    operation: DomainOperation,
+    detail: String,
+    contextKind: LifeFlowOrchestratorAuthContextKind,
     defaultErrorMessage: String,
     block: suspend () -> T
 ): ActionResult<T> {
     return lifeflowOrchestratorRunAccessControlledOperation(
-        accessMode = accessMode,
-        reason = reason
+        operation = operation,
+        detail = detail,
+        contextKind = contextKind
     ) {
         try {
             ActionResult.Success(block())
@@ -49,21 +70,4 @@ internal suspend fun <T> lifeflowOrchestratorRunAccessControlledCatchingOperatio
             ActionResult.Error(t.message ?: defaultErrorMessage)
         }
     }
-}
-
-private fun LifeFlowOrchestratorAccessMode.toSecurityRuntimeAccessMode():
-    SecurityRuntimeAccessMode =
-    when (this) {
-        LifeFlowOrchestratorAccessMode.STANDARD_PROTECTED ->
-            SecurityRuntimeAccessMode.STANDARD_PROTECTED
-
-        LifeFlowOrchestratorAccessMode.TRUSTED_BASE_READ ->
-            SecurityRuntimeAccessMode.TRUSTED_BASE_READ
-    }
-
-private fun SecurityRuntimeAccessDecision.toLocked(
-    reason: String
-): ActionResult.Locked? {
-    if (allowed) return null
-    return ActionResult.Locked("${denialCode ?: "ACCESS_DENIED"}: $reason")
 }

@@ -1,6 +1,12 @@
 package com.lifeflow
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.lifeflow.boundary.BoundaryPresentation
+import com.lifeflow.boundary.MainBoundarySnapshot
+import com.lifeflow.boundary.isLockedLike
+import com.lifeflow.boundary.shouldShowUpgradeAction
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.wellbeing.WellbeingAssessment
@@ -14,12 +20,12 @@ internal fun AuthenticatedDashboardScreen(
     hrGranted: Boolean,
     digitalTwinState: DigitalTwinState?,
     wellbeingAssessment: WellbeingAssessment?,
-    lastAction: String,
+    boundarySnapshot: MainBoundarySnapshot,
     onRefreshNow: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
     onReAuthenticate: () -> Unit,
-    debugLines: List<String>
+    onUpgradeToCore: () -> Unit
 ) {
     val dashboardState = resolveDashboardState(
         healthState = healthState,
@@ -29,28 +35,32 @@ internal fun AuthenticatedDashboardScreen(
         wellbeingAssessment = wellbeingAssessment
     )
 
+    val coreInsightsLocked = boundarySnapshot.coreInsights.isLockedLike()
+    val adaptiveHabitsLocked = boundarySnapshot.adaptiveHabits.isLockedLike()
+
+    val needsSetupActions = dashboardState in listOf(
+        DashboardState.HC_UNAVAILABLE,
+        DashboardState.NEEDS_PERMISSIONS
+    )
+
     ScreenContainer(title = "LifeFlow Dashboard") {
-        // Welcome card with state-aware messaging
         DashboardWelcomeCard(
             state = dashboardState,
             onPrimaryAction = {
                 when (dashboardState) {
                     DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
                     DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
-                    DashboardState.LOADING, DashboardState.NO_DATA -> onRefreshNow()
-                    DashboardState.ATTENTION, DashboardState.READY -> onRefreshNow()
+                    DashboardState.LOADING,
+                    DashboardState.NO_DATA,
+                    DashboardState.ATTENTION,
+                    DashboardState.READY -> onRefreshNow()
                 }
             }
         )
 
         ScreenSectionSpacer()
 
-        // Priority: Show actions first if user needs to do something
-        if (dashboardState in listOf(
-                DashboardState.HC_UNAVAILABLE,
-                DashboardState.NEEDS_PERMISSIONS
-            )
-        ) {
+        if (needsSetupActions) {
             DashboardActionsCard(
                 healthState = healthState,
                 requiredCount = requiredCount,
@@ -64,22 +74,25 @@ internal fun AuthenticatedDashboardScreen(
             ScreenSectionSpacer()
         }
 
-        // Wellbeing first when we have data
-        if (wellbeingAssessment != null) {
+        if (coreInsightsLocked) {
+            BoundaryLockedTeaserCard(
+                presentation = boundarySnapshot.coreInsights,
+                onUpgradeToCore = onUpgradeToCore
+            )
+            ScreenSectionSpacer()
+        } else if (wellbeingAssessment != null) {
             WellbeingAssessmentCard(
                 wellbeingAssessment = wellbeingAssessment
             )
             ScreenSectionSpacer()
         }
 
-        // Digital Twin
         DigitalTwinCard(
             digitalTwinState = digitalTwinState
         )
 
         ScreenSectionSpacer()
 
-        // Health summary
         HealthSummaryCard(
             healthState = healthState,
             requiredCount = requiredCount,
@@ -88,23 +101,16 @@ internal fun AuthenticatedDashboardScreen(
             hrGranted = hrGranted
         )
 
-        ScreenSectionSpacer()
-
-        // Dashboard status (detailed)
-        DashboardStatusCard(
-            healthState = healthState,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            digitalTwinState = digitalTwinState
-        )
-
-        // Actions at bottom if not shown at top
-        if (dashboardState !in listOf(
-                DashboardState.HC_UNAVAILABLE,
-                DashboardState.NEEDS_PERMISSIONS
-            )
-        ) {
+        if (adaptiveHabitsLocked) {
             ScreenSectionSpacer()
+
+            BoundaryLockedTeaserCard(
+                presentation = boundarySnapshot.adaptiveHabits,
+                onUpgradeToCore = onUpgradeToCore
+            )
+        } else if (!needsSetupActions) {
+            ScreenSectionSpacer()
+
             DashboardActionsCard(
                 healthState = healthState,
                 requiredCount = requiredCount,
@@ -116,10 +122,28 @@ internal fun AuthenticatedDashboardScreen(
                 onReAuthenticate = onReAuthenticate
             )
         }
+    }
+}
 
-        ScreenFooter(
-            lastAction = lastAction,
-            debugLines = debugLines
+@Composable
+private fun BoundaryLockedTeaserCard(
+    presentation: BoundaryPresentation,
+    onUpgradeToCore: () -> Unit
+) {
+    LifeFlowSectionPanel(title = presentation.title) {
+        Text(
+            text = presentation.detailMessage,
+            style = lifeFlowCardSummaryStyle(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        if (presentation.shouldShowUpgradeAction()) {
+            ScreenSectionSpacer()
+
+            LifeFlowPrimaryActionButton(
+                label = "Upgrade to Core",
+                onClick = onUpgradeToCore
+            )
+        }
     }
 }

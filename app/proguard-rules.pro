@@ -1,21 +1,19 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# LifeFlow release shrink / obfuscation baseline
 #
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Principle:
+# - keep only code that is used indirectly at runtime
+# - let R8 shrink and obfuscate the security packages unless a proven runtime dependency requires preservation
+# - let DexGuard later harden the sensitive packages on top of this minimal baseline
+#
+# Android components and standard framework entry points are already covered by:
+# getDefaultProguardFile("proguard-android-optimize.txt")
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve metadata commonly needed by Kotlin / annotations / generic signatures.
+-keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Hide original source file names in release outputs.
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Intentionally no broad package-wide -keep rules here.
+# Security, integrity, keystore, attestation, and authority code should stay
+# shrinkable and obfuscatable unless a concrete indirect runtime path proves otherwise.

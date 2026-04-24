@@ -10,6 +10,7 @@ import com.lifeflow.security.hardening.SecurityHardeningGuard
 internal class LifeFlowSecurityBootstrapResult internal constructor(
     val hardeningReport: SecurityHardeningGuard.HardeningReport?,
     val integrityTrustRuntime: IntegrityTrustRuntime,
+    val deviceBindingManager: DeviceBindingManager,
     val androidVault: AndroidDataSovereigntyVault,
     val identityBlobStore: EncryptedIdentityBlobStore,
     val encryptedIdentityRepository: EncryptedIdentityRepository,
@@ -33,9 +34,6 @@ internal class LifeFlowSecurityBootstrapResult internal constructor(
 internal object LifeFlowSecurityBootstrap {
 
     private const val TAG = "LifeFlowSecurityBootstrap"
-    private const val TEST_KEY_ALIAS = "LifeFlow_Test_Key"
-    private const val SESSION_KEY_ALIAS = "LifeFlow_Master_Key"
-    private const val AUTH_PER_USE_KEY_ALIAS = "LifeFlow_Master_Key_AuthPerUse"
 
     fun start(
         applicationContext: Context,
@@ -58,11 +56,26 @@ internal object LifeFlowSecurityBootstrap {
 
         val cryptoBindings = createCryptoBindings(isInstrumentation = isInstrumentation)
 
+        val deviceBindingStore = DeviceBindingStore(applicationContext)
+        val deviceBindingManager = DeviceBindingManager(
+            applicationContext = applicationContext,
+            store = deviceBindingStore,
+            sessionKeyAlias = if (isInstrumentation) TEST_KEY_ALIAS else SESSION_KEY_ALIAS,
+            authPerUseKeyAlias = if (cryptoBindings.authPerUseKeyManager != null) {
+                AUTH_PER_USE_KEY_ALIAS
+            } else {
+                null
+            },
+            attestationKeyAlias = ATTESTATION_KEY_ALIAS,
+            clientAuthKeyAlias = INTEGRITY_CLIENT_AUTH_KEY_ALIAS
+        )
+        val deviceBindingRuntime = SecurityDeviceBindingRuntime(deviceBindingManager)
+        deviceBindingRuntime.ensureRegistered()
+
         val androidVault = AndroidDataSovereigntyVault(
             applicationContext,
             cryptoBindings.sessionKeyManager
         )
-        androidVault.ensureInitialized()
 
         val identityBlobStore = EncryptedIdentityBlobStore(applicationContext)
         val encryptedIdentityRepository = EncryptedIdentityRepository(
@@ -91,9 +104,15 @@ internal object LifeFlowSecurityBootstrap {
             isInstrumentation = isInstrumentation
         )
 
+        val keyAttestationRuntime = SecurityKeyAttestationBootstrap.start(
+            applicationContext = applicationContext,
+            isInstrumentation = isInstrumentation
+        )
+
         return LifeFlowSecurityBootstrapResult(
             hardeningReport = hardeningReport,
             integrityTrustRuntime = integrityTrustRuntime,
+            deviceBindingManager = deviceBindingManager,
             androidVault = androidVault,
             identityBlobStore = identityBlobStore,
             encryptedIdentityRepository = encryptedIdentityRepository,
@@ -103,8 +122,10 @@ internal object LifeFlowSecurityBootstrap {
             encryptionPort = encryptionPort,
             cryptoBindings = cryptoBindings,
             closeables = listOf(
+                deviceBindingRuntime,
                 emergencyAuthorityBoundaryHandle,
-                integrityTrustRuntime
+                integrityTrustRuntime,
+                keyAttestationRuntime
             )
         )
     }
@@ -145,9 +166,79 @@ internal object LifeFlowSecurityBootstrap {
         if (isInstrumentation) return null
         if (!KeyManager.supportsAuthPerUseBiometric()) return null
 
-        return KeyManager(
+        val keyManager = KeyManager(
             alias = AUTH_PER_USE_KEY_ALIAS,
             authenticationPolicy = KeyManager.AuthenticationPolicy.BIOMETRIC_AUTH_PER_USE
         )
+
+        return runCatching {
+            keyManager.ensureKey()
+            keyManager
+        }.getOrElse { throwable ->
+            handleAuthPerUseBootstrapFailure(
+                keyManager = keyManager,
+                throwable = throwable
+            )
+            null
+        }
+    }
+
+    private fun handleAuthPerUseBootstrapFailure(
+        keyManager: KeyManager,
+        throwable: Throwable
+    ) {
+        when (throwable) {
+            is SecurityKeystorePostureException -> {
+                deleteAuthPerUseKeySilently(
+                    keyManager = keyManager,
+                    reason = "posture mismatch"
+                )
+                Log.w(
+                    TAG,
+                    "Auth-per-use crypto disabled: keystore posture mismatch.",
+                    throwable
+                )
+            }
+
+            is SecurityKeystoreOperationException -> {
+                if (throwable.code == SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE ||
+                    throwable.code == SecurityKeystoreFailureCode.KEY_UNRECOVERABLE
+                ) {
+                    deleteAuthPerUseKeySilently(
+                        keyManager = keyManager,
+                        reason = "invalid or unrecoverable key"
+                    )
+                }
+
+                Log.w(
+                    TAG,
+                    "Auth-per-use crypto disabled: keystore bootstrap failed (${throwable.code}).",
+                    throwable
+                )
+            }
+
+            else -> {
+                Log.w(
+                    TAG,
+                    "Auth-per-use crypto disabled: unexpected bootstrap failure.",
+                    throwable
+                )
+            }
+        }
+    }
+
+    private fun deleteAuthPerUseKeySilently(
+        keyManager: KeyManager,
+        reason: String
+    ) {
+        runCatching {
+            keyManager.deleteKey()
+        }.onFailure { deleteFailure ->
+            Log.w(
+                TAG,
+                "Auth-per-use key cleanup failed after $reason.",
+                deleteFailure
+            )
+        }
     }
 }

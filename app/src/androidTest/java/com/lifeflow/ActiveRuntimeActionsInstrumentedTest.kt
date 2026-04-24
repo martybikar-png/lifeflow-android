@@ -3,8 +3,8 @@ package com.lifeflow
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.core.HealthConnectUiState
-import com.lifeflow.domain.core.TierState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.wellbeing.WellbeingAssessment
 import com.lifeflow.security.SecurityAccessSession
@@ -111,6 +111,7 @@ class ActiveRuntimeActionsInstrumentedTest {
     private class RecordingActiveRuntimeViewModel : ActiveRuntimeViewModelContract {
         override val uiState: State<UiState> = mutableStateOf(UiState.Loading)
         override val lastAction: State<String> = mutableStateOf("")
+        override val freeTierMessage: State<String> = mutableStateOf("")
         override val healthConnectState: State<HealthConnectUiState> =
             unusedState("healthConnectState")
         override val requiredHealthPermissions: State<Set<String>> =
@@ -123,8 +124,8 @@ class ActiveRuntimeActionsInstrumentedTest {
             mutableStateOf(null)
         override val wellbeingAssessment: State<WellbeingAssessment?> =
             mutableStateOf(null)
-        override val currentTier: State<TierState> =
-            mutableStateOf(TierState.CORE)
+        override val boundarySnapshot: State<MainBoundarySnapshot> =
+            mutableStateOf(MainBoundarySnapshot.initial())
 
         var resetVaultCalled: Boolean = false
         var authenticationErrorMessage: String? = null

@@ -1,13 +1,11 @@
 package com.lifeflow
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,11 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,32 +33,21 @@ private val TwinMarkerText = Color(0xFF6C788A)
 private val TwinMarkerDotColor = Color(0xFF22CDF7).copy(alpha = 0.74f)
 private val TwinMarkerSurfaceStart = Color(0xFFFFFFFF).copy(alpha = 0.72f)
 private val TwinMarkerSurfaceMid = Color(0xFFEFF9FD).copy(alpha = 0.80f)
-
 @Composable
 internal fun OnboardingTwinScreen(
-    lastAction: String = "Onboarding twin preview active",
     onContinue: () -> Unit = {},
     onViewSummary: () -> Unit = {},
-    debugLines: List<String> = emptyList()
 ) {
-    ScreenContainer(
-        title = "",
-        useBackdrop = false,
-        showBottomAura = true
-    ) {
+    ScreenContainer(title = "") {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(586.dp),
             contentAlignment = Alignment.TopCenter
         ) {
-            TwinScreenBackground(
-                modifier = Modifier.fillMaxSize()
-            )
-
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -74,7 +58,7 @@ internal fun OnboardingTwinScreen(
                 Spacer(modifier = Modifier.height(26.dp))
 
                 Text(
-                    text = "Your inner model starts taking shape",
+                    text = "Your twin takes shape",
                     color = TwinTextPrimary,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
@@ -88,7 +72,7 @@ internal fun OnboardingTwinScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "With your OK, LifeFlow can begin forming a calm picture of what supports you, what drains you, and what helps over time.",
+                    text = "Gentle and adaptive.",
                     color = TwinTextSecondary,
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 11.sp,
@@ -104,19 +88,9 @@ internal fun OnboardingTwinScreen(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                LifeFlowSectionPanel(title = "Learns gently") {
+                LifeFlowSectionPanel(title = "Twin") {
                     Text(
-                        text = "The twin is not a score or a label. It becomes a soft internal summary shaped by your own flow.",
-                        style = lifeFlowCardSummaryStyle(),
-                        color = TwinTextTertiary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                LifeFlowSectionPanel(title = "Built from your rhythm") {
-                    Text(
-                        text = "Patterns emerge from what you allow — signals, reflections, and small moments that help LifeFlow respond more calmly.",
+                        text = "A soft picture of your rhythm.",
                         style = lifeFlowCardSummaryStyle(),
                         color = TwinTextTertiary
                     )
@@ -213,109 +187,6 @@ private fun TwinMarkerSeparator() {
 }
 
 @Composable
-private fun TwinScreenBackground(
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val topHazeCenter = Offset(
-            x = size.width * 0.34f,
-            y = size.height * 0.18f
-        )
-        val lowerHazeCenter = Offset(
-            x = size.width * 0.66f,
-            y = size.height * 0.62f
-        )
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFEAFBFF).copy(alpha = 0.18f),
-                    Color(0xFFDDF8FF).copy(alpha = 0.08f),
-                    Color.Transparent
-                ),
-                center = topHazeCenter,
-                radius = size.minDimension * 0.34f
-            ),
-            center = topHazeCenter,
-            radius = size.minDimension * 0.34f
-        )
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFEAFBFF).copy(alpha = 0.12f),
-                    Color.Transparent
-                ),
-                center = lowerHazeCenter,
-                radius = size.minDimension * 0.30f
-            ),
-            center = lowerHazeCenter,
-            radius = size.minDimension * 0.30f
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.30f),
-            startAngle = 196f,
-            sweepAngle = 118f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.96f, size.height * 0.10f),
-            size = Size(size.width * 2.22f, size.height * 0.30f),
-            style = Stroke(width = 2.15.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.22f),
-            startAngle = 318f,
-            sweepAngle = 132f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.26f, size.height * 0.06f),
-            size = Size(size.width * 1.64f, size.height * 0.40f),
-            style = Stroke(width = 1.72.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.20f),
-            startAngle = 150f,
-            sweepAngle = 142f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.54f, size.height * 0.34f),
-            size = Size(size.width * 1.56f, size.height * 0.22f),
-            style = Stroke(width = 1.36.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.16f),
-            startAngle = 338f,
-            sweepAngle = 136f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.06f, size.height * 0.30f),
-            size = Size(size.width * 1.18f, size.height * 0.26f),
-            style = Stroke(width = 1.12.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.18f),
-            startAngle = 18f,
-            sweepAngle = 116f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.94f, size.height * 0.70f),
-            size = Size(size.width * 2.12f, size.height * 0.22f),
-            style = Stroke(width = 1.54.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.14f),
-            startAngle = 40f,
-            sweepAngle = 118f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.20f, size.height * 0.66f),
-            size = Size(size.width * 1.46f, size.height * 0.28f),
-            style = Stroke(width = 1.20.dp.toPx())
-        )
-    }
-}
-
-@Composable
 private fun TwinPageIndicator(
     selectedIndex: Int,
     pageCount: Int
@@ -355,5 +226,3 @@ private fun TwinPageIndicator(
         }
     }
 }
-
-

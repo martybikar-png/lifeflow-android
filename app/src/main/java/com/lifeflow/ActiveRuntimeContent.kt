@@ -33,13 +33,9 @@ internal fun ActiveRuntimeContent(
     appPackageName: String,
     onStartIntent: (Intent) -> Unit
 ) {
-    var uiLastAction by rememberSaveable { mutableStateOf(NO_ACTION_RECORDED) }
     var pendingSettingsRefresh by rememberSaveable { mutableStateOf(false) }
     var showIntroSplash by rememberSaveable { mutableStateOf(true) }
-
-    fun setLastAction(message: String) {
-        uiLastAction = message.ifBlank { NO_ACTION_RECORDED }
-    }
+    val setLastAction: (String) -> Unit = { _ -> }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -70,7 +66,7 @@ internal fun ActiveRuntimeContent(
             requestActiveRuntimeRefreshWithUiFeedback(
                 viewModel = viewModel,
                 requestMessage = "Returned from settings; refresh requested",
-                setLastAction = ::setLastAction
+                setLastAction = setLastAction
             )
         }
     )
@@ -79,7 +75,7 @@ internal fun ActiveRuntimeContent(
         requestActiveRuntimeRefreshWithUiFeedback(
             viewModel = viewModel,
             requestMessage = "Startup refresh requested",
-            setLastAction = ::setLastAction
+            setLastAction = setLastAction
         )
     }
 
@@ -89,8 +85,7 @@ internal fun ActiveRuntimeContent(
     }
 
     val screen = collectActiveRuntimeScreenSnapshot(
-        viewModel = viewModel,
-        uiLastAction = uiLastAction
+        viewModel = viewModel
     )
 
     val permissionsLauncher = rememberLauncherForActivityResult(
@@ -105,7 +100,7 @@ internal fun ActiveRuntimeContent(
             requestActiveRuntimeRefreshWithUiFeedback(
                 viewModel = viewModel,
                 requestMessage = "Post-auth refresh requested",
-                setLastAction = ::setLastAction
+                setLastAction = setLastAction
             )
         }
     }
@@ -131,7 +126,7 @@ internal fun ActiveRuntimeContent(
             onStartIntent = onStartIntent,
             onSettingsOpened = { pendingSettingsRefresh = true },
             onSettingsOpenFailed = { pendingSettingsRefresh = false },
-            setLastAction = ::setLastAction
+            setLastAction = setLastAction
         )
     }
 
@@ -139,7 +134,7 @@ internal fun ActiveRuntimeContent(
         requestActiveRuntimeBiometricAuthentication(
             biometricAuthManager = biometricAuthManager,
             viewModel = viewModel,
-            setLastAction = ::setLastAction
+            setLastAction = setLastAction
         )
     }
 
@@ -161,14 +156,14 @@ internal fun ActiveRuntimeContent(
             requestActiveRuntimeRefreshWithUiFeedback(
                 viewModel = viewModel,
                 requestMessage = "Manual refresh requested",
-                setLastAction = ::setLastAction
+                setLastAction = setLastAction
             )
         },
         onResetVault = {
             requestActiveRuntimeVaultResetAuthentication(
                 biometricAuthManager = biometricAuthManager,
                 viewModel = viewModel,
-                setLastAction = ::setLastAction
+                setLastAction = setLastAction
             )
         },
         onUpgradeToCore = onUpgradeToCore

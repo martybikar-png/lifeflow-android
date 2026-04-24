@@ -14,23 +14,51 @@ internal class LifeFlowModuleRepositoryBindings private constructor(
     val connectionRepository: LocalConnectionRepository,
     val shoppingRepository: LocalShoppingRepository
 ) {
+    fun clearAll() {
+        diaryRepository.clearAll()
+        memoryRepository.clearAll()
+        connectionRepository.clearAll()
+        shoppingRepository.clearAll()
+    }
+
     companion object {
         fun create(
             applicationContext: Context,
-            encryptionPort: EncryptionPortAdapter
+            encryptionPort: EncryptionPortAdapter,
+            deviceBindingIdProvider: () -> String
         ): LifeFlowModuleRepositoryBindings {
             return LifeFlowModuleRepositoryBindings(
                 diaryRepository = LocalDiaryRepository(
-                    EncryptedModuleStore(applicationContext, "lifeflow_diary", encryptionPort)
+                    EncryptedModuleStore(
+                        context = applicationContext,
+                        prefsName = "lifeflow_diary",
+                        encryption = encryptionPort,
+                        deviceBindingContextProvider = deviceBindingIdProvider
+                    )
                 ),
                 memoryRepository = LocalMemoryRepository(
-                    EncryptedModuleStore(applicationContext, "lifeflow_memory", encryptionPort)
+                    EncryptedModuleStore(
+                        context = applicationContext,
+                        prefsName = "lifeflow_memory",
+                        encryption = encryptionPort,
+                        deviceBindingContextProvider = deviceBindingIdProvider
+                    )
                 ),
                 connectionRepository = LocalConnectionRepository(
-                    EncryptedModuleStore(applicationContext, "lifeflow_connection", encryptionPort)
+                    EncryptedModuleStore(
+                        context = applicationContext,
+                        prefsName = "lifeflow_connection",
+                        encryption = encryptionPort,
+                        deviceBindingContextProvider = deviceBindingIdProvider
+                    )
                 ),
                 shoppingRepository = LocalShoppingRepository(
-                    EncryptedModuleStore(applicationContext, "lifeflow_shopping", encryptionPort)
+                    EncryptedModuleStore(
+                        context = applicationContext,
+                        prefsName = "lifeflow_shopping",
+                        encryption = encryptionPort,
+                        deviceBindingContextProvider = deviceBindingIdProvider
+                    )
                 )
             )
         }

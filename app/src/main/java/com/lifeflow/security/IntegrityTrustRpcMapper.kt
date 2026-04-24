@@ -5,9 +5,13 @@ package com.lifeflow.security
  *
  * Rules:
  * - request mapping is structural
- * - response mapping is structural only
+ * - response mapping is structural plus request-hash echo binding
  * - verdict semantics / fail-closed policy live in SecurityIntegrityTrustAuthority
  *   via SecurityIntegrityServerVerdictPolicy
+ *
+ * Important:
+ * - requestHash echo mismatch is rejected here because only this boundary
+ *   simultaneously sees both the expected request hash and the raw RPC response
  */
 internal object IntegrityTrustRpcMapper {
 
@@ -16,7 +20,36 @@ internal object IntegrityTrustRpcMapper {
     ): IntegrityTrustRpcRequest {
         return IntegrityTrustRpcRequest(
             requestHash = request.requestHash,
-            integrityToken = request.integrityToken
+            requestPayload = request.requestPayload,
+            integrityToken = request.integrityToken,
+            attestationEvidence = request.attestationEvidence?.let { evidence ->
+                IntegrityTrustRpcAttestationEvidence(
+                    status = when (evidence.status) {
+                        IntegrityTrustAttestationStatus.CAPTURED ->
+                            IntegrityTrustRpcAttestationStatus.CAPTURED
+
+                        IntegrityTrustAttestationStatus.UNAVAILABLE ->
+                            IntegrityTrustRpcAttestationStatus.UNAVAILABLE
+                    },
+                    keyAlias = evidence.keyAlias,
+                    chainEntryCount = evidence.chainEntryCount,
+                    challengeBase64 = evidence.challengeBase64,
+                    certificateChainDerBase64 = evidence.certificateChainDerBase64,
+                    challengeSha256 = evidence.challengeSha256,
+                    leafCertificateSha256 = evidence.leafCertificateSha256,
+                    strongBoxRequested = evidence.strongBoxRequested,
+                    failureKind = evidence.failureKind?.let {
+                        when (it) {
+                            IntegrityTrustAttestationFailureKind.UNAVAILABLE ->
+                                IntegrityTrustRpcAttestationFailureKind.UNAVAILABLE
+
+                            IntegrityTrustAttestationFailureKind.HARD_FAILURE ->
+                                IntegrityTrustRpcAttestationFailureKind.HARD_FAILURE
+                        }
+                    },
+                    failureReason = evidence.failureReason
+                )
+            }
         )
     }
 
@@ -26,6 +59,16 @@ internal object IntegrityTrustRpcMapper {
     ): IntegrityTrustVerdictResponse {
         require(expectedRequestHash.isNotBlank()) {
             "expectedRequestHash must not be blank."
+        }
+
+        if (response.requestHashEcho != expectedRequestHash) {
+            return IntegrityTrustVerdictResponse(
+                verdict = SecurityIntegrityTrustVerdict.COMPROMISED,
+                reason = "SERVER_VERDICT_METADATA_INVALID: requestHash echo mismatch",
+                verdictSource = IntegrityTrustVerdictSource.CLIENT_FAILSAFE,
+                decision = IntegrityTrustDecision.LOCK,
+                decisionReasonCode = "SERVER_REQUEST_HASH_ECHO_MISMATCH"
+            )
         }
 
         return IntegrityTrustVerdictResponse(
@@ -41,6 +84,7 @@ internal object IntegrityTrustRpcMapper {
             },
             reason = response.reason.trim(),
             requestHashEcho = response.requestHashEcho,
+            requestBindingVerified = response.requestBindingVerified,
             serverTimestampEpochMs = response.serverTimestampEpochMs,
             policyVersion = response.policyVersion,
             verdictSource = when (response.verdictSource) {
@@ -109,7 +153,82 @@ internal object IntegrityTrustRpcMapper {
                             SecurityIntegrityPlayProtectVerdict.UNEVALUATED
                     }
                 }
-            )
+            ),
+            attestationVerification = response.attestationVerification?.let { verification ->
+                IntegrityTrustAttestationVerification(
+                    chainVerdict = when (verification.chainVerdict) {
+                        IntegrityTrustRpcAttestationChainVerdict.VERIFIED ->
+                            IntegrityTrustAttestationChainVerdict.VERIFIED
+
+                        IntegrityTrustRpcAttestationChainVerdict.FAILED ->
+                            IntegrityTrustAttestationChainVerdict.FAILED
+
+                        IntegrityTrustRpcAttestationChainVerdict.UNEVALUATED ->
+                            IntegrityTrustAttestationChainVerdict.UNEVALUATED
+                    },
+                    challengeVerdict = when (verification.challengeVerdict) {
+                        IntegrityTrustRpcAttestationChallengeVerdict.MATCHED ->
+                            IntegrityTrustAttestationChallengeVerdict.MATCHED
+
+                        IntegrityTrustRpcAttestationChallengeVerdict.MISMATCHED ->
+                            IntegrityTrustAttestationChallengeVerdict.MISMATCHED
+
+                        IntegrityTrustRpcAttestationChallengeVerdict.UNEVALUATED ->
+                            IntegrityTrustAttestationChallengeVerdict.UNEVALUATED
+                    },
+                    rootVerdict = when (verification.rootVerdict) {
+                        IntegrityTrustRpcAttestationRootVerdict.GOOGLE_TRUSTED ->
+                            IntegrityTrustAttestationRootVerdict.GOOGLE_TRUSTED
+
+                        IntegrityTrustRpcAttestationRootVerdict.UNTRUSTED ->
+                            IntegrityTrustAttestationRootVerdict.UNTRUSTED
+
+                        IntegrityTrustRpcAttestationRootVerdict.UNEVALUATED ->
+                            IntegrityTrustAttestationRootVerdict.UNEVALUATED
+                    },
+                    revocationVerdict = when (verification.revocationVerdict) {
+                        IntegrityTrustRpcAttestationRevocationVerdict.CLEAN ->
+                            IntegrityTrustAttestationRevocationVerdict.CLEAN
+
+                        IntegrityTrustRpcAttestationRevocationVerdict.REVOKED ->
+                            IntegrityTrustAttestationRevocationVerdict.REVOKED
+
+                        IntegrityTrustRpcAttestationRevocationVerdict.UNCHECKED ->
+                            IntegrityTrustAttestationRevocationVerdict.UNCHECKED
+
+                        IntegrityTrustRpcAttestationRevocationVerdict.UNEVALUATED ->
+                            IntegrityTrustAttestationRevocationVerdict.UNEVALUATED
+                    },
+                    appBindingVerdict = when (verification.appBindingVerdict) {
+                        IntegrityTrustRpcAttestationAppBindingVerdict.MATCHED ->
+                            IntegrityTrustAttestationAppBindingVerdict.MATCHED
+
+                        IntegrityTrustRpcAttestationAppBindingVerdict.MISMATCHED ->
+                            IntegrityTrustAttestationAppBindingVerdict.MISMATCHED
+
+                        IntegrityTrustRpcAttestationAppBindingVerdict.UNEVALUATED ->
+                            IntegrityTrustAttestationAppBindingVerdict.UNEVALUATED
+                    },
+                    detail = verification.detail
+                )
+            },
+            decision = when (response.decision) {
+                IntegrityTrustRpcDecision.ALLOW ->
+                    IntegrityTrustDecision.ALLOW
+
+                IntegrityTrustRpcDecision.STEP_UP ->
+                    IntegrityTrustDecision.STEP_UP
+
+                IntegrityTrustRpcDecision.DEGRADED ->
+                    IntegrityTrustDecision.DEGRADED
+
+                IntegrityTrustRpcDecision.DENY ->
+                    IntegrityTrustDecision.DENY
+
+                IntegrityTrustRpcDecision.LOCK ->
+                    IntegrityTrustDecision.LOCK
+            },
+            decisionReasonCode = response.decisionReasonCode
         )
     }
 }

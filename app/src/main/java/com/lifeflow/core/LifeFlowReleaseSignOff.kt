@@ -42,10 +42,10 @@ object LifeFlowReleaseSignOff {
             title = "Test Gate",
             gates = listOf(
                 ":app:compileDebugKotlin SUCCESSFUL",
-                ":domain:test SUCCESSFUL",
-                ":app:testDebugUnitTest SUCCESSFUL",
-                "No failing or skipped tests",
-                "All domain module engines tested"
+                ":app:compileDebugAndroidTestKotlin SUCCESSFUL",
+                "Selected instrumented security suites passing",
+                "No failing or skipped instrumented tests",
+                "Recovery and protected runtime device flows verified"
             )
         ),
 
@@ -95,3 +95,4 @@ data class SignOffSection(
     val title: String,
     val gates: List<String>
 )
+

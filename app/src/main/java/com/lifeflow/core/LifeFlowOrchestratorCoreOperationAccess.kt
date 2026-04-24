@@ -20,8 +20,9 @@ internal class LifeFlowOrchestratorCoreOperationAccess(
         }
 
         return lifeflowOrchestratorRunAccessControlledOperation(
-            accessMode = accessPolicy.accessMode,
-            reason = accessPolicy.reason,
+            operation = accessPolicy.operation,
+            detail = accessPolicy.detail,
+            contextKind = accessPolicy.contextKind,
             block = block
         )
     }

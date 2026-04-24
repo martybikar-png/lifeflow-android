@@ -20,7 +20,7 @@ internal data class SecurityIncidentResponseSnapshot(
     val blockSensitiveOperations: Boolean,
     val requireRecovery: Boolean,
     val notifyMonitoring: Boolean,
-    val responseCodes: Set<String>
+    val responseCodes: Set<SecurityIncidentResponseCode>
 )
 
 internal object SecurityIncidentResponseBridge {
@@ -30,18 +30,18 @@ internal object SecurityIncidentResponseBridge {
         currentTrustState: TrustState,
         generatedAt: Instant = Instant.now()
     ): SecurityIncidentResponseSnapshot {
-        val responseCodes = linkedSetOf<String>()
+        val responseCodes = linkedSetOf<SecurityIncidentResponseCode>()
 
         return when {
             incident.activeCompromiseSignal || currentTrustState == TrustState.COMPROMISED -> {
                 if (incident.activeCompromiseSignal) {
-                    responseCodes += "ACTIVE_COMPROMISE_SIGNAL"
+                    responseCodes += SecurityIncidentResponseCode.ACTIVE_COMPROMISE_SIGNAL
                 }
                 if (currentTrustState == TrustState.COMPROMISED) {
-                    responseCodes += "TRUST_ALREADY_COMPROMISED"
+                    responseCodes += SecurityIncidentResponseCode.TRUST_ALREADY_COMPROMISED
                 }
-                responseCodes += "FORCE_COMPROMISED_LOCKDOWN"
-                responseCodes += "RECOVERY_REQUIRED"
+                responseCodes += SecurityIncidentResponseCode.FORCE_COMPROMISED_LOCKDOWN
+                responseCodes += SecurityIncidentResponseCode.RECOVERY_REQUIRED
 
                 SecurityIncidentResponseSnapshot(
                     generatedAt = generatedAt,
@@ -59,15 +59,15 @@ internal object SecurityIncidentResponseBridge {
 
             incident.incidentLevel == SecurityIncidentLevel.ELEVATED -> {
                 if (incident.repeatedAuthFailureSignal) {
-                    responseCodes += "AUTH_FAILURE_BURST"
+                    responseCodes += SecurityIncidentResponseCode.AUTH_FAILURE_BURST
                 }
                 if (incident.repeatedPolicyViolationSignal) {
-                    responseCodes += "POLICY_VIOLATION_BURST"
+                    responseCodes += SecurityIncidentResponseCode.POLICY_VIOLATION_BURST
                 }
                 if (currentTrustState == TrustState.VERIFIED) {
-                    responseCodes += "RECOMMEND_TRUST_DEGRADE"
+                    responseCodes += SecurityIncidentResponseCode.RECOMMEND_TRUST_DEGRADE
                 }
-                responseCodes += "HEIGHTENED_GUARD"
+                responseCodes += SecurityIncidentResponseCode.HEIGHTENED_GUARD
 
                 SecurityIncidentResponseSnapshot(
                     generatedAt = generatedAt,
@@ -89,7 +89,7 @@ internal object SecurityIncidentResponseBridge {
             }
 
             incident.incidentLevel == SecurityIncidentLevel.OBSERVE -> {
-                responseCodes += "OBSERVE_ONLY"
+                responseCodes += SecurityIncidentResponseCode.OBSERVE_ONLY
 
                 SecurityIncidentResponseSnapshot(
                     generatedAt = generatedAt,

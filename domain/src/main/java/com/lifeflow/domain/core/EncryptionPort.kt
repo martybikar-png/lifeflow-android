@@ -7,6 +7,25 @@ package com.lifeflow.domain.core
  * the security implementation directly.
  */
 interface EncryptionPort {
-    fun encrypt(plaintext: ByteArray): ByteArray
-    fun decrypt(ciphertext: ByteArray): ByteArray
+    fun encrypt(plaintext: ByteArray): ByteArray =
+        encrypt(
+            plaintext = plaintext,
+            aad = null
+        )
+
+    fun decrypt(ciphertext: ByteArray): ByteArray =
+        decrypt(
+            ciphertext = ciphertext,
+            aad = null
+        )
+
+    fun encrypt(
+        plaintext: ByteArray,
+        aad: ByteArray?
+    ): ByteArray
+
+    fun decrypt(
+        ciphertext: ByteArray,
+        aad: ByteArray?
+    ): ByteArray
 }

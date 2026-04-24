@@ -12,6 +12,7 @@ internal class LifeFlowOrchestratorReadWriteModuleAccess<R>(
     suspend fun <T> read(block: suspend (R) -> ActionResult<T>): ActionResult<T> {
         return run(
             operationPolicy = modulePolicy.readOperation,
+            accessPolicy = modulePolicy.readAccess,
             block = block
         )
     }
@@ -19,16 +20,24 @@ internal class LifeFlowOrchestratorReadWriteModuleAccess<R>(
     suspend fun <T> write(block: suspend (R) -> ActionResult<T>): ActionResult<T> {
         return run(
             operationPolicy = modulePolicy.writeOperation,
+            accessPolicy = modulePolicy.writeAccess,
             block = block
         )
     }
 
     private suspend fun <T> run(
         operationPolicy: LifeFlowOrchestratorCoreOperationPolicy,
+        accessPolicy: LifeFlowOrchestratorAccessPolicy,
         block: suspend (R) -> ActionResult<T>
     ): ActionResult<T> {
         tierGateMessage(tierManager, TierState.CORE, operationPolicy.operationName)
             ?.let { return ActionResult.Locked(it) }
+
+        lifeflowOrchestratorAuthorizeOperation(
+            operation = accessPolicy.operation,
+            detail = accessPolicy.detail,
+            contextKind = accessPolicy.contextKind
+        )?.let { return it }
 
         val resolvedRepository = repository
             ?: return ActionResult.Locked(modulePolicy.repositoryUnavailableMessage)

@@ -11,6 +11,7 @@ import com.lifeflow.data.memory.LocalMemoryRepository
 import com.lifeflow.data.shopping.LocalShoppingRepository
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.core.TierManager
+import com.lifeflow.domain.core.TierTruthSnapshot
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinOrchestrator
 import com.lifeflow.domain.security.TrustStatePort
 import com.lifeflow.domain.wellbeing.HolisticWellbeingNode
@@ -35,10 +36,16 @@ internal class MainRuntimeBindings(
     memoryRepository: LocalMemoryRepository,
     connectionRepository: LocalConnectionRepository,
     shoppingRepository: LocalShoppingRepository,
-    performVaultReset: suspend () -> Unit
+    performVaultReset: suspend () -> Unit,
+    initialTierSnapshot: TierTruthSnapshot
 ) {
+
+    init {
+        SecurityAccessSession.bindRuntimeContext(applicationContext)
+    }
+
     private val sessionAuthorizationChecker: () -> Boolean = {
-        SecurityAccessSession.isAuthorized(applicationContext)
+        SecurityAccessSession.isAuthorized()
     }
 
     private val sessionClearAction: () -> Unit = {
@@ -49,8 +56,16 @@ internal class MainRuntimeBindings(
         SecurityTrustStatePortAdapter()
     }
 
+    private val tierPreferencesStore: TierPreferencesStore by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        TierPreferencesStore(applicationContext)
+    }
+
     private val mainTierManager: TierManager by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        TierManager()
+        TierManager(
+            tierTruthSource = tierPreferencesStore
+        ).also { manager ->
+            manager.ensurePersistedSnapshot(seedSnapshot = initialTierSnapshot)
+        }
     }
 
     private val mainWellbeingNode: HolisticWellbeingNode by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -89,7 +104,8 @@ internal class MainRuntimeBindings(
         LifeFlowOrchestrator(
             protectedOperations = protectedOperations,
             moduleOperations = moduleOperations,
-            derivationOperations = derivationOperations
+            derivationOperations = derivationOperations,
+            tierManager = mainTierManager
         )
     }
 

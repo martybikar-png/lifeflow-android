@@ -1,22 +1,19 @@
 package com.lifeflow.security
 
+import com.lifeflow.domain.security.AuthorizationPolicy
+import com.lifeflow.domain.security.DomainOperation
 import com.lifeflow.security.audit.SecurityAuditLog
-
-internal enum class SecurityRuntimeAccessMode {
-    STANDARD_PROTECTED,
-    TRUSTED_BASE_READ
-}
+import com.lifeflow.security.hardening.SecurityHardeningGuard
 
 internal data class SecurityRuntimeAccessDecision(
     val allowed: Boolean,
     val effectiveTrustState: TrustState,
-    val denialCode: String? = null
+    val denialCode: SecurityRuntimeDecisionCode? = null
 )
 
 internal data class SecurityRuntimeAuthorizationRequest(
-    val isReadOperation: Boolean,
-    val requiresStrictAuth: Boolean,
-    val trustedBaseOnly: Boolean,
+    val operation: DomainOperation,
+    val authorizationPolicy: AuthorizationPolicy,
     val hasRecentAuthentication: Boolean
 )
 
@@ -31,19 +28,19 @@ internal enum class SecurityRuntimeAuthorizationOutcome {
 internal data class SecurityRuntimeAuthorizationDecision(
     val outcome: SecurityRuntimeAuthorizationOutcome,
     val effectiveTrustState: TrustState,
-    val code: String? = null
+    val code: SecurityRuntimeDecisionCode? = null
 )
 
-internal enum class SecurityRuntimeRuleActionOutcome {
+internal enum class SecurityRuntimeOperationOutcome {
     ALLOWED,
     DENIED,
     LOCKED
 }
 
-internal data class SecurityRuntimeRuleActionDecision(
-    val outcome: SecurityRuntimeRuleActionOutcome,
+internal data class SecurityRuntimeOperationDecision(
+    val outcome: SecurityRuntimeOperationOutcome,
     val effectiveTrustState: TrustState,
-    val code: String? = null
+    val code: SecurityRuntimeDecisionCode? = null
 )
 
 private data class SecurityRuntimeAccessSnapshot(
@@ -54,31 +51,20 @@ private data class SecurityRuntimeAccessSnapshot(
 
 internal object SecurityRuntimeAccessPolicy {
 
-    fun decide(
-        accessMode: SecurityRuntimeAccessMode
-    ): SecurityRuntimeAccessDecision {
+    fun decideStandardProtectedEntry(): SecurityRuntimeAccessDecision {
         val snapshot = currentSnapshot()
+        return accessDecision(
+            snapshot = snapshot,
+            denialCode = decideStandardProtected(snapshot)
+        )
+    }
 
-        val denialCode = when (accessMode) {
-            SecurityRuntimeAccessMode.STANDARD_PROTECTED ->
-                decideStandardProtected(snapshot)
-
-            SecurityRuntimeAccessMode.TRUSTED_BASE_READ ->
-                decideTrustedBaseRead(snapshot)
-        }
-
-        return if (denialCode == null) {
-            SecurityRuntimeAccessDecision(
-                allowed = true,
-                effectiveTrustState = snapshot.containment.effectiveTrustState
-            )
-        } else {
-            SecurityRuntimeAccessDecision(
-                allowed = false,
-                effectiveTrustState = snapshot.containment.effectiveTrustState,
-                denialCode = denialCode
-            )
-        }
+    fun decideTrustedBaseReadEntry(): SecurityRuntimeAccessDecision {
+        val snapshot = currentSnapshot()
+        return accessDecision(
+            snapshot = snapshot,
+            denialCode = decideTrustedBaseRead(snapshot)
+        )
     }
 
     fun decideAuthorization(
@@ -96,102 +82,111 @@ internal object SecurityRuntimeAccessPolicy {
         if (request.hasRecentAuthentication != snapshot.sessionAuthorized) {
             return deniedAuthorizationDecision(
                 snapshot = snapshot,
-                code = "AUTH_CONTEXT_INVALID"
+                code = SecurityRuntimeDecisionCode.AUTH_CONTEXT_INVALID
             )
         }
 
-        if (snapshot.containment.effectiveTrustState == TrustState.EMERGENCY_LIMITED) {
+        if (snapshot.isEmergencyLimited()) {
             return decideEmergencyLimitedAuthorization(
                 snapshot = snapshot,
                 request = request
             )
         }
 
+        if (!snapshot.sessionAuthorized &&
+            request.requiresTrustedBaseReadOnly() &&
+            request.allowsTrustedBaseReadOnly()
+        ) {
+            return allowedAuthorizationDecision(snapshot)
+        }
+
         if (!snapshot.sessionAuthorized) {
             return requiresElevationDecision(
                 snapshot = snapshot,
-                code = "RECENT_AUTH_REQUIRED"
+                code = SecurityRuntimeDecisionCode.RECENT_AUTH_REQUIRED
             )
         }
 
-        if (!request.isReadOperation &&
-            !snapshot.containment.capabilityEnvelope.allowSensitiveOperations
+        if (request.requiresSensitiveOperationsCapability() &&
+            !snapshot.allowsSensitiveOperations()
         ) {
             return deniedAuthorizationDecision(
                 snapshot = snapshot,
-                code = "TRUST_NOT_SUFFICIENT"
+                code = SecurityRuntimeDecisionCode.TRUST_NOT_SUFFICIENT
             )
         }
 
-        if (request.requiresStrictAuth &&
-            snapshot.containment.effectiveTrustState != TrustState.VERIFIED
+        if (request.requiresVerifiedTrust() &&
+            !snapshot.isVerified()
         ) {
             return requiresElevationDecision(
                 snapshot = snapshot,
-                code = "STRONGER_AUTH_REQUIRED"
+                code = SecurityRuntimeDecisionCode.STRONGER_AUTH_REQUIRED
             )
         }
 
-        if (!request.isReadOperation &&
-            snapshot.containment.effectiveTrustState == TrustState.DEGRADED
+        if (request.requiresSensitiveOperationsCapability() &&
+            snapshot.isDegraded()
         ) {
             return deniedAuthorizationDecision(
                 snapshot = snapshot,
-                code = "TRUST_NOT_SUFFICIENT"
+                code = SecurityRuntimeDecisionCode.TRUST_NOT_SUFFICIENT
             )
         }
 
         return allowedAuthorizationDecision(snapshot)
     }
 
-    fun decideRuleAction(
-        action: RuleAction
-    ): SecurityRuntimeRuleActionDecision {
+    fun decideOperation(
+        operation: DomainOperation
+    ): SecurityRuntimeOperationDecision {
         val snapshot = currentSnapshot()
 
         containmentLockCode(snapshot)?.let { code ->
-            return lockedRuleActionDecision(
+            return lockedOperationDecision(
                 snapshot = snapshot,
                 code = code
             )
         }
 
-        if (snapshot.containment.effectiveTrustState == TrustState.EMERGENCY_LIMITED) {
-            return deniedRuleActionDecision(
+        if (snapshot.isEmergencyLimited()) {
+            return deniedOperationDecision(
                 snapshot = snapshot,
-                code = "EMERGENCY_LIMITED"
+                code = SecurityRuntimeDecisionCode.EMERGENCY_LIMITED
             )
         }
 
         if (!snapshot.sessionAuthorized) {
-            return deniedRuleActionDecision(
+            return deniedOperationDecision(
                 snapshot = snapshot,
-                code = "AUTH_REQUIRED"
+                code = SecurityRuntimeDecisionCode.AUTH_REQUIRED
             )
         }
 
-        if (!action.isRead &&
-            !snapshot.containment.capabilityEnvelope.allowSensitiveOperations
+        if (operation.requiresSensitiveOperationsCapability() &&
+            !snapshot.allowsSensitiveOperations()
         ) {
-            return deniedRuleActionDecision(
+            return deniedOperationDecision(
                 snapshot = snapshot,
-                code = "TRUST_NOT_SUFFICIENT"
+                code = SecurityRuntimeDecisionCode.TRUST_NOT_SUFFICIENT
             )
         }
 
-        if (!action.isRead &&
-            snapshot.containment.effectiveTrustState == TrustState.DEGRADED
+        if (operation.requiresSensitiveOperationsCapability() &&
+            snapshot.isDegraded()
         ) {
-            return deniedRuleActionDecision(
+            return deniedOperationDecision(
                 snapshot = snapshot,
-                code = "TRUST_NOT_SUFFICIENT"
+                code = SecurityRuntimeDecisionCode.TRUST_NOT_SUFFICIENT
             )
         }
 
-        return allowedRuleActionDecision(snapshot)
+        return allowedOperationDecision(snapshot)
     }
 
     private fun currentSnapshot(): SecurityRuntimeAccessSnapshot {
+        refreshRuntimeHardeningTrustState()
+
         val currentTrustState = SecurityRuleEngine.getTrustState()
 
         return SecurityRuntimeAccessSnapshot(
@@ -204,17 +199,43 @@ internal object SecurityRuntimeAccessPolicy {
         )
     }
 
+    private fun refreshRuntimeHardeningTrustState() {
+        if (SecurityHardeningGuard.isCompromisedQuick()) {
+            SecurityRuleEngine.reportRuntimeCompromise(
+                reason = "Quick runtime hardening signal detected during access evaluation."
+            )
+        }
+    }
+
+    private fun accessDecision(
+        snapshot: SecurityRuntimeAccessSnapshot,
+        denialCode: SecurityRuntimeDecisionCode?
+    ): SecurityRuntimeAccessDecision {
+        return if (denialCode == null) {
+            SecurityRuntimeAccessDecision(
+                allowed = true,
+                effectiveTrustState = snapshot.containment.effectiveTrustState
+            )
+        } else {
+            SecurityRuntimeAccessDecision(
+                allowed = false,
+                effectiveTrustState = snapshot.containment.effectiveTrustState,
+                denialCode = denialCode
+            )
+        }
+    }
+
     private fun decideStandardProtected(
         snapshot: SecurityRuntimeAccessSnapshot
-    ): String? {
+    ): SecurityRuntimeDecisionCode? {
         containmentLockCode(snapshot)?.let { return it }
 
-        if (snapshot.containment.effectiveTrustState == TrustState.EMERGENCY_LIMITED) {
-            return "EMERGENCY_LIMITED"
+        if (snapshot.isEmergencyLimited()) {
+            return SecurityRuntimeDecisionCode.EMERGENCY_LIMITED
         }
 
         if (!snapshot.sessionAuthorized) {
-            return "AUTH_REQUIRED"
+            return SecurityRuntimeDecisionCode.AUTH_REQUIRED
         }
 
         return null
@@ -222,13 +243,13 @@ internal object SecurityRuntimeAccessPolicy {
 
     private fun decideTrustedBaseRead(
         snapshot: SecurityRuntimeAccessSnapshot
-    ): String? {
+    ): SecurityRuntimeDecisionCode? {
         containmentLockCode(snapshot)?.let { return it }
 
-        if (snapshot.containment.effectiveTrustState == TrustState.EMERGENCY_LIMITED &&
+        if (snapshot.isEmergencyLimited() &&
             !snapshot.hasTrustedBaseWindow
         ) {
-            return "EMERGENCY_LIMITED"
+            return SecurityRuntimeDecisionCode.EMERGENCY_LIMITED
         }
 
         return null
@@ -238,47 +259,49 @@ internal object SecurityRuntimeAccessPolicy {
         snapshot: SecurityRuntimeAccessSnapshot,
         request: SecurityRuntimeAuthorizationRequest
     ): SecurityRuntimeAuthorizationDecision {
-        if (!request.trustedBaseOnly || !request.isReadOperation) {
+        if (!request.requiresTrustedBaseReadOnly() ||
+            !request.allowsTrustedBaseReadOnly()
+        ) {
             return deniedAuthorizationDecision(
                 snapshot = snapshot,
-                code = "TRUSTED_BASE_ONLY_REQUIRED"
+                code = SecurityRuntimeDecisionCode.TRUSTED_BASE_ONLY_REQUIRED
             )
         }
 
         if (!snapshot.sessionAuthorized) {
             return requiresElevationDecision(
                 snapshot = snapshot,
-                code = "EMERGENCY_APPROVAL_REQUIRED"
+                code = SecurityRuntimeDecisionCode.EMERGENCY_APPROVAL_REQUIRED
             )
         }
 
         if (!snapshot.hasTrustedBaseWindow) {
             return requiresElevationDecision(
                 snapshot = snapshot,
-                code = "EMERGENCY_APPROVAL_REQUIRED"
+                code = SecurityRuntimeDecisionCode.EMERGENCY_APPROVAL_REQUIRED
             )
         }
 
         return SecurityRuntimeAuthorizationDecision(
             outcome = SecurityRuntimeAuthorizationOutcome.REQUIRES_EMERGENCY_RESOLUTION,
             effectiveTrustState = snapshot.containment.effectiveTrustState,
-            code = "RESOLVE_EMERGENCY_ACCESS"
+            code = SecurityRuntimeDecisionCode.RESOLVE_EMERGENCY_ACCESS
         )
     }
 
     private fun containmentLockCode(
         snapshot: SecurityRuntimeAccessSnapshot
-    ): String? {
-        if (snapshot.containment.effectiveTrustState == TrustState.COMPROMISED) {
-            return "COMPROMISED"
+    ): SecurityRuntimeDecisionCode? {
+        if (snapshot.isCompromised()) {
+            return SecurityRuntimeDecisionCode.COMPROMISED
         }
 
-        if (snapshot.containment.requireRecovery) {
-            return "RECOVERY_REQUIRED"
+        if (snapshot.requiresRecovery()) {
+            return SecurityRuntimeDecisionCode.RECOVERY_REQUIRED
         }
 
-        if (!snapshot.containment.capabilityEnvelope.allowProtectedRuntime) {
-            return "PROTECTED_RUNTIME_BLOCKED"
+        if (!snapshot.allowsProtectedRuntime()) {
+            return SecurityRuntimeDecisionCode.PROTECTED_RUNTIME_BLOCKED
         }
 
         return null
@@ -294,7 +317,7 @@ internal object SecurityRuntimeAccessPolicy {
 
     private fun deniedAuthorizationDecision(
         snapshot: SecurityRuntimeAccessSnapshot,
-        code: String
+        code: SecurityRuntimeDecisionCode
     ): SecurityRuntimeAuthorizationDecision =
         SecurityRuntimeAuthorizationDecision(
             outcome = SecurityRuntimeAuthorizationOutcome.DENIED,
@@ -304,7 +327,7 @@ internal object SecurityRuntimeAccessPolicy {
 
     private fun requiresElevationDecision(
         snapshot: SecurityRuntimeAccessSnapshot,
-        code: String
+        code: SecurityRuntimeDecisionCode
     ): SecurityRuntimeAuthorizationDecision =
         SecurityRuntimeAuthorizationDecision(
             outcome = SecurityRuntimeAuthorizationOutcome.REQUIRES_ELEVATION,
@@ -314,7 +337,7 @@ internal object SecurityRuntimeAccessPolicy {
 
     private fun lockedAuthorizationDecision(
         snapshot: SecurityRuntimeAccessSnapshot,
-        code: String
+        code: SecurityRuntimeDecisionCode
     ): SecurityRuntimeAuthorizationDecision =
         SecurityRuntimeAuthorizationDecision(
             outcome = SecurityRuntimeAuthorizationOutcome.LOCKED,
@@ -322,31 +345,97 @@ internal object SecurityRuntimeAccessPolicy {
             code = code
         )
 
-    private fun allowedRuleActionDecision(
+    private fun allowedOperationDecision(
         snapshot: SecurityRuntimeAccessSnapshot
-    ): SecurityRuntimeRuleActionDecision =
-        SecurityRuntimeRuleActionDecision(
-            outcome = SecurityRuntimeRuleActionOutcome.ALLOWED,
+    ): SecurityRuntimeOperationDecision =
+        SecurityRuntimeOperationDecision(
+            outcome = SecurityRuntimeOperationOutcome.ALLOWED,
             effectiveTrustState = snapshot.containment.effectiveTrustState
         )
 
-    private fun deniedRuleActionDecision(
+    private fun deniedOperationDecision(
         snapshot: SecurityRuntimeAccessSnapshot,
-        code: String
-    ): SecurityRuntimeRuleActionDecision =
-        SecurityRuntimeRuleActionDecision(
-            outcome = SecurityRuntimeRuleActionOutcome.DENIED,
+        code: SecurityRuntimeDecisionCode
+    ): SecurityRuntimeOperationDecision =
+        SecurityRuntimeOperationDecision(
+            outcome = SecurityRuntimeOperationOutcome.DENIED,
             effectiveTrustState = snapshot.containment.effectiveTrustState,
             code = code
         )
 
-    private fun lockedRuleActionDecision(
+    private fun lockedOperationDecision(
         snapshot: SecurityRuntimeAccessSnapshot,
-        code: String
-    ): SecurityRuntimeRuleActionDecision =
-        SecurityRuntimeRuleActionDecision(
-            outcome = SecurityRuntimeRuleActionOutcome.LOCKED,
+        code: SecurityRuntimeDecisionCode
+    ): SecurityRuntimeOperationDecision =
+        SecurityRuntimeOperationDecision(
+            outcome = SecurityRuntimeOperationOutcome.LOCKED,
             effectiveTrustState = snapshot.containment.effectiveTrustState,
             code = code
         )
+
+    private fun SecurityRuntimeAuthorizationRequest.requiresVerifiedTrust(): Boolean =
+        authorizationPolicy.requiresVerifiedTrust
+
+    private fun SecurityRuntimeAuthorizationRequest.requiresTrustedBaseReadOnly(): Boolean =
+        authorizationPolicy.requiresTrustedBaseReadOnly
+
+    private fun SecurityRuntimeAuthorizationRequest.requiresSensitiveOperationsCapability(): Boolean =
+        operation.securityClass.requiresSensitiveOperationsCapability
+
+    private fun SecurityRuntimeAuthorizationRequest.allowsTrustedBaseReadOnly(): Boolean =
+        operation.securityClass.allowsTrustedBaseReadOnly
+
+    private fun DomainOperation.requiresSensitiveOperationsCapability(): Boolean =
+        securityClass.requiresSensitiveOperationsCapability
+
+    private fun SecurityRuntimeAccessSnapshot.isVerified(): Boolean =
+        containment.effectiveTrustState == TrustState.VERIFIED
+
+    private fun SecurityRuntimeAccessSnapshot.isDegraded(): Boolean =
+        containment.effectiveTrustState == TrustState.DEGRADED
+
+    private fun SecurityRuntimeAccessSnapshot.isEmergencyLimited(): Boolean =
+        containment.effectiveTrustState == TrustState.EMERGENCY_LIMITED
+
+    private fun SecurityRuntimeAccessSnapshot.isCompromised(): Boolean =
+        containment.effectiveTrustState == TrustState.COMPROMISED
+
+    private fun SecurityRuntimeAccessSnapshot.requiresRecovery(): Boolean =
+        containment.requireRecovery
+
+    private fun SecurityRuntimeAccessSnapshot.allowsProtectedRuntime(): Boolean =
+        containment.capabilityEnvelope.allowProtectedRuntime
+
+    private fun SecurityRuntimeAccessSnapshot.allowsSensitiveOperations(): Boolean =
+        containment.capabilityEnvelope.allowSensitiveOperations
 }
+
+internal fun SecurityRuntimeAccessDecision.toLockedReason(
+    detail: String
+): String? {
+    if (allowed) return null
+
+    return when (denialCode) {
+        SecurityRuntimeDecisionCode.COMPROMISED ->
+            SecurityLockedReason.COMPROMISED.withDetail(detail)
+
+        SecurityRuntimeDecisionCode.RECOVERY_REQUIRED ->
+            SecurityLockedReason.RECOVERY_REQUIRED.withDetail(detail)
+
+        SecurityRuntimeDecisionCode.PROTECTED_RUNTIME_BLOCKED ->
+            SecurityLockedReason.PROTECTED_RUNTIME_BLOCKED.withDetail(detail)
+
+        SecurityRuntimeDecisionCode.EMERGENCY_LIMITED ->
+            SecurityLockedReason.EMERGENCY_LIMITED.withDetail(detail)
+
+        SecurityRuntimeDecisionCode.AUTH_REQUIRED,
+        null ->
+            SecurityLockedReason.AUTH_REQUIRED.withDetail(detail)
+
+        else ->
+            SecurityLockedReason.AUTH_REQUIRED.withDetail(detail)
+    }
+}
+
+internal fun SecurityRuntimeAccessDecision.toFailureMessage(): String =
+    toStandardProtectedUserMessage()

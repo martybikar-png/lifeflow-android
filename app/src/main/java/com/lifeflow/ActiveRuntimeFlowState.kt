@@ -3,12 +3,10 @@ package com.lifeflow
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.StepsRecord
+import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.core.HealthConnectUiState
-import com.lifeflow.domain.core.TierState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.wellbeing.WellbeingAssessment
-
-internal const val NO_ACTION_RECORDED = "—"
 
 internal data class ActiveRuntimeScreenSnapshot(
     val uiState: UiState,
@@ -16,26 +14,24 @@ internal data class ActiveRuntimeScreenSnapshot(
     val healthState: HealthConnectUiState,
     val digitalTwinState: DigitalTwinState?,
     val wellbeingAssessment: WellbeingAssessment?,
-    val currentTier: TierState,
     val requiredPermissions: Set<String>,
     val grantedPermissions: Set<String>,
     val stepsGranted: Boolean,
     val hrGranted: Boolean,
-    val displayedLastAction: String,
-    val debugLines: List<String>
+    val boundarySnapshot: MainBoundarySnapshot,
+    val freeTierMessage: String
 )
 
 internal fun collectActiveRuntimeScreenSnapshot(
-    viewModel: ActiveRuntimeViewModelContract,
-    uiLastAction: String
+    viewModel: ActiveRuntimeViewModelContract
 ): ActiveRuntimeScreenSnapshot {
     val uiState = viewModel.uiState.value
     val isAuthenticating = viewModel.isSessionAuthorizedForUi()
     val healthState = viewModel.healthConnectState.value
     val digitalTwinState = viewModel.digitalTwinState.value
     val wellbeingAssessment = viewModel.wellbeingAssessment.value
-    val currentTier = viewModel.currentTier.value
-    val viewModelLastAction = viewModel.lastAction.value
+    val boundarySnapshot = viewModel.boundarySnapshot.value
+    val freeTierMessage = viewModel.freeTierMessage.value
     val requiredPermissions = viewModel.requiredHealthPermissions.value
     val grantedPermissions = viewModel.grantedHealthPermissions.value
     val stepsReadPerm = HealthPermission.getReadPermission(StepsRecord::class)
@@ -49,23 +45,11 @@ internal fun collectActiveRuntimeScreenSnapshot(
         healthState = healthState,
         digitalTwinState = digitalTwinState,
         wellbeingAssessment = wellbeingAssessment,
-        currentTier = currentTier,
         requiredPermissions = requiredPermissions,
         grantedPermissions = grantedPermissions,
         stepsGranted = stepsGranted,
         hrGranted = hrGranted,
-        displayedLastAction = resolveDisplayedLastAction(
-            uiAction = uiLastAction,
-            viewModelAction = viewModelLastAction
-        ),
-        debugLines = buildDebugLines(
-            uiState = uiState,
-            healthState = healthState,
-            requiredCount = requiredPermissions.size,
-            grantedCount = grantedPermissions.size,
-            stepsGranted = stepsGranted,
-            hrGranted = hrGranted,
-            digitalTwinState = digitalTwinState
-        )
+        boundarySnapshot = boundarySnapshot,
+        freeTierMessage = freeTierMessage
     )
 }

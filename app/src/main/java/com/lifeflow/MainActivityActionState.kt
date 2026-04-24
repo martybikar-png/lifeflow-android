@@ -41,6 +41,6 @@ internal fun resolveDisplayedLastAction(
 
 private fun normalizeAction(action: String): String? {
     return action.takeIf {
-        it.isNotBlank() && it != NO_ACTION_RECORDED
+        it.isNotBlank() && it != NO_ACTION_RECORDED_MESSAGE
     }
 }

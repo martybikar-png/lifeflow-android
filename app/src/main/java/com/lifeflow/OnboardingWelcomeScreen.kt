@@ -1,6 +1,5 @@
 package com.lifeflow
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,28 +33,21 @@ import androidx.compose.ui.unit.sp
 private val WelcomeTextPrimary = Color(0xFF1E2430)
 private val WelcomeTextSecondary = Color(0xFF667385)
 private val WelcomeTextTertiary = Color(0xFF526072)
-
 @Composable
 fun OnboardingWelcomeScreen(
-    lastAction: String = "Onboarding welcome shell active",
     onContinue: () -> Unit = {},
     onSkipToHome: () -> Unit = {},
-    debugLines: List<String> = emptyList()
 ) {
-    ScreenContainer(title = "", useBackdrop = false) {
+    ScreenContainer(title = "") {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(586.dp),
             contentAlignment = Alignment.TopCenter
         ) {
-            WelcomeHeroBackground(
-                modifier = Modifier.fillMaxSize()
-            )
-
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -69,7 +58,7 @@ fun OnboardingWelcomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "An intelligent life assistant with adaptive care",
+                    text = "Adaptive care",
                     color = WelcomeTextTertiary,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontSize = 11.sp,
@@ -110,7 +99,7 @@ fun OnboardingWelcomeScreen(
                 Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
-                    text = "A calmer way to live\nwith your health",
+                    text = "A calmer way to live",
                     color = WelcomeTextPrimary,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 20.sp,
@@ -124,7 +113,7 @@ fun OnboardingWelcomeScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Thoughtful guidance, gentle clarity,\nand a space designed around you.",
+                    text = "Gentle guidance around you.",
                     color = WelcomeTextSecondary,
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 11.sp,
@@ -144,6 +133,14 @@ fun OnboardingWelcomeScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LifeFlowSecondaryActionButton(
+            label = "Skip to Home",
+            onClick = onSkipToHome,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Box(
@@ -155,132 +152,6 @@ fun OnboardingWelcomeScreen(
                 pageCount = 10
             )
         }
-    }
-}
-
-@Composable
-private fun WelcomeHeroBackground(
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val hazeCenter = Offset(
-            x = size.width * 0.50f,
-            y = size.height * 0.36f
-        )
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFEAFBFF).copy(alpha = 0.34f),
-                    Color(0xFFDDF8FF).copy(alpha = 0.12f),
-                    Color.Transparent
-                ),
-                center = hazeCenter,
-                radius = size.minDimension * 0.40f
-            ),
-            radius = size.minDimension * 0.40f,
-            center = hazeCenter
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.50f),
-            startAngle = 198f,
-            sweepAngle = 124f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 1.02f, size.height * 0.04f),
-            size = Size(size.width * 2.40f, size.height * 0.46f),
-            style = Stroke(width = 3.05.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.38f),
-            startAngle = 314f,
-            sweepAngle = 138f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.34f, -size.height * 0.04f),
-            size = Size(size.width * 1.76f, size.height * 0.60f),
-            style = Stroke(width = 2.42.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFEAFBFF).copy(alpha = 0.21f),
-            startAngle = 22f,
-            sweepAngle = 88f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.46f, size.height * 0.82f),
-            size = Size(size.width * 1.18f, size.height * 0.14f),
-            style = Stroke(width = 2.00.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.34f),
-            startAngle = 154f,
-            sweepAngle = 154f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.58f, size.height * 0.26f),
-            size = Size(size.width * 1.68f, size.height * 0.34f),
-            style = Stroke(width = 1.75.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.28f),
-            startAngle = 338f,
-            sweepAngle = 146f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.08f, size.height * 0.18f),
-            size = Size(size.width * 1.30f, size.height * 0.40f),
-            style = Stroke(width = 1.55.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFEAFBFF).copy(alpha = 0.18f),
-            startAngle = 168f,
-            sweepAngle = 122f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.22f, size.height * 0.32f),
-            size = Size(size.width * 1.04f, size.height * 0.20f),
-            style = Stroke(width = 1.25.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.35f),
-            startAngle = 18f,
-            sweepAngle = 124f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 1.00f, size.height * 0.66f),
-            size = Size(size.width * 2.34f, size.height * 0.34f),
-            style = Stroke(width = 2.15.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.27f),
-            startAngle = 34f,
-            sweepAngle = 126f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.26f, size.height * 0.62f),
-            size = Size(size.width * 1.68f, size.height * 0.40f),
-            style = Stroke(width = 1.72.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFBFEFFF).copy(alpha = 0.24f),
-            startAngle = 52f,
-            sweepAngle = 118f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.54f, size.height * 0.58f),
-            size = Size(size.width * 1.56f, size.height * 0.26f),
-            style = Stroke(width = 1.45.dp.toPx())
-        )
-
-        drawArc(
-            color = Color(0xFFD7F6FF).copy(alpha = 0.20f),
-            startAngle = 8f,
-            sweepAngle = 102f,
-            useCenter = false,
-            topLeft = Offset(-size.width * 0.18f, size.height * 0.74f),
-            size = Size(size.width * 1.02f, size.height * 0.16f),
-            style = Stroke(width = 1.18.dp.toPx())
-        )
     }
 }
 
@@ -324,4 +195,3 @@ private fun WelcomePageIndicator(
         }
     }
 }
-

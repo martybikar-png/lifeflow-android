@@ -194,9 +194,8 @@ internal class BiometricAuthManager(
                     SecurityAccessSession.grantDefault(activity.applicationContext)
 
                     val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
-                    val runtimeAccessDecision = SecurityRuntimeAccessPolicy.decide(
-                        accessMode = SecurityRuntimeAccessMode.STANDARD_PROTECTED
-                    )
+                    val runtimeAccessDecision =
+                        SecurityRuntimeAccessPolicy.decideStandardProtectedEntry()
 
                     if (sessionOk && runtimeAccessDecision.allowed) {
                         SecurityAuditLog.info(
@@ -223,7 +222,7 @@ internal class BiometricAuthManager(
                                 "sessionOk" to sessionOk.toString(),
                                 "runtimeAllowed" to runtimeAccessDecision.allowed.toString(),
                                 "effectiveTrustState" to runtimeAccessDecision.effectiveTrustState.name,
-                                "denialCode" to (runtimeAccessDecision.denialCode ?: "none")
+                                "denialCode" to (runtimeAccessDecision.denialCode?.name ?: "none")
                             )
                         )
                         failClosed(
@@ -273,26 +272,7 @@ internal class BiometricAuthManager(
 
     private fun postAuthFailureMessage(
         runtimeAccessDecision: SecurityRuntimeAccessDecision
-    ): String =
-        when (runtimeAccessDecision.denialCode) {
-            "COMPROMISED" ->
-                "Security compromised. Reset vault is required before continuing."
-
-            "RECOVERY_REQUIRED" ->
-                "Recovery is required before protected access can continue."
-
-            "EMERGENCY_LIMITED" ->
-                "Emergency limited mode is active. Standard protected runtime remains blocked."
-
-            "PROTECTED_RUNTIME_BLOCKED" ->
-                "Protected runtime is blocked by current security policy."
-
-            "AUTH_REQUIRED" ->
-                "Biometric verified, but secure session could not be established."
-
-            else ->
-                "Biometric verified, but protected runtime access is not allowed under the current security posture."
-        }
+    ): String = runtimeAccessDecision.toFailureMessage()
 
     private fun resolveThrowableMessage(
         throwable: Throwable,
@@ -343,3 +323,13 @@ internal class BiometricAuthManager(
         }
     }
 }
+
+
+
+
+
+
+
+
+
+

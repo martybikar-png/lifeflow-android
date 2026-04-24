@@ -7,6 +7,8 @@ import com.google.android.gms.security.ProviderInstaller
 import io.grpc.ManagedChannel
 import io.grpc.okhttp.OkHttpChannelBuilder
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
 
 /**
  * gRPC transport scaffold for the external integrity trust verdict authority.
@@ -16,20 +18,25 @@ import java.util.concurrent.TimeUnit
  * - verdict RPC behavior lives in dedicated control client
  * - secure channel bootstrap installs the updated Android security provider first
  * - endpoint and channel policy values come from IntegrityTrustTransportConfig
+ * - mTLS material comes from IntegrityTrustTlsMaterialProvider
+ * - exact host verification remains owned by transport
  * - transport remains fail-closed until the real RPC contract and mTLS material are wired
  */
 internal class GrpcIntegrityTrustTransport private constructor(
     private val applicationContext: Context,
-    private val config: IntegrityTrustTransportConfig
+    private val config: IntegrityTrustTransportConfig,
+    private val tlsMaterialProvider: IntegrityTrustTlsMaterialProvider
 ) : IntegrityTrustTransport {
 
     companion object {
         fun create(
-            applicationContext: Context
+            applicationContext: Context,
+            tlsMaterialProvider: IntegrityTrustTlsMaterialProvider
         ): GrpcIntegrityTrustTransport {
             return GrpcIntegrityTrustTransport(
                 applicationContext = applicationContext.applicationContext,
-                config = IntegrityTrustTransportConfig.fromBuildConfig()
+                config = IntegrityTrustTransportConfig.fromBuildConfig(),
+                tlsMaterialProvider = tlsMaterialProvider
             )
         }
     }
@@ -80,9 +87,18 @@ internal class GrpcIntegrityTrustTransport private constructor(
         ensureUpdatedSecurityProvider()
         validateSecureEndpoint(endpoint)
 
+        val tlsMaterial = tlsMaterialProvider.materialFor(endpoint)
+        validateTlsMaterialPolicy(endpoint, tlsMaterial)
+
         val builder = OkHttpChannelBuilder
             .forAddress(endpoint.host, endpoint.port)
             .useTransportSecurity()
+            .sslSocketFactory(tlsMaterial.sslSocketFactory)
+            .hostnameVerifier(exactHostnameVerifier(endpoint.host))
+
+        tlsMaterial.hostnameVerifier?.let { hostnameVerifier ->
+            builder.hostnameVerifier(hostnameVerifier)
+        }
 
         applyChannelPolicy(
             builder = builder,
@@ -90,6 +106,17 @@ internal class GrpcIntegrityTrustTransport private constructor(
         )
 
         return builder.build()
+    }
+
+    private fun exactHostnameVerifier(
+        expectedHost: String
+    ): HostnameVerifier {
+        val defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
+
+        return HostnameVerifier { requestedHost, session ->
+            requestedHost.equals(expectedHost, ignoreCase = true) &&
+                defaultVerifier.verify(expectedHost, session)
+        }
     }
 
     private fun validateSecureEndpoint(
@@ -120,6 +147,19 @@ internal class GrpcIntegrityTrustTransport private constructor(
         if (!policy.allowIpLiteralHost && isIpLiteralHost(host)) {
             throw SecurityException(
                 "Integrity trust IP-literal host is not allowed for secure transport: $host"
+            )
+        }
+    }
+
+    private fun validateTlsMaterialPolicy(
+        endpoint: IntegrityTrustTransportConfig.EndpointConfig,
+        tlsMaterial: IntegrityTrustTlsMaterial
+    ) {
+        if (tlsMaterial.hostnameVerifier != null &&
+            !endpoint.securityPolicy.allowCustomHostnameVerifier
+        ) {
+            throw SecurityException(
+                "Custom hostname verifier is not allowed for integrity trust endpoint ${endpoint.host}."
             )
         }
     }

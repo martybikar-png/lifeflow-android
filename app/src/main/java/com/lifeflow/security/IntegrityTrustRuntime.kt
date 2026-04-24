@@ -29,6 +29,8 @@ internal class IntegrityTrustRuntime internal constructor(
                 cloudProjectNumber = projectNumber
             )
         },
+        captureRequestBoundKeyAttestationEvidence =
+            SecurityKeyAttestationBootstrap::captureRequestBoundEvidence,
         requestExternalVerdict = { request ->
             requireTransport().requestVerdict(request)
         }

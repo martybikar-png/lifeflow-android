@@ -1,6 +1,5 @@
 package com.lifeflow
 
-import com.lifeflow.security.IntegrityTrustRuntime
 import com.lifeflow.security.SecurityAuthPerUseCryptoProvider
 
 /**
@@ -14,7 +13,6 @@ internal interface StartupRuntimeEntryPoint {
     fun ensureStarted(): Boolean
     fun requireMainViewModelFactory(): MainViewModelFactory
     fun authPerUseCryptoProviderOrNull(): SecurityAuthPerUseCryptoProvider?
-    fun requireIntegrityTrustRuntime(): IntegrityTrustRuntime
     fun scheduleIntegrityTrustStartupCheck()
     fun readStartupFailureMessage(): String?
 }

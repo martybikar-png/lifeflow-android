@@ -3,7 +3,9 @@ package com.lifeflow.security.integrity
 import android.content.Context
 import android.util.Base64
 import com.google.android.play.core.integrity.IntegrityManagerFactory
+import com.google.android.play.core.integrity.StandardIntegrityException
 import com.google.android.play.core.integrity.StandardIntegrityManager
+import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -18,6 +20,7 @@ import kotlin.coroutines.resume
  * - keep token-provider preparation cached and reusable
  * - keep request payload binding explicit through requestHash
  * - remain fail-closed when cloud project is not configured
+ * - preserve Standard Integrity error semantics for callers
  */
 object PlayIntegrityVerifier {
 
@@ -76,8 +79,9 @@ object PlayIntegrityVerifier {
                         tokenProviderRef.set(null)
                         continuation.resume(
                             PreparationResult.Failure(
-                                error = exception.message ?: "Failed to prepare integrity token provider",
-                                errorCode = null
+                                error = exception.message
+                                    ?: "Failed to prepare integrity token provider",
+                                errorCode = resolveStandardIntegrityErrorCode(exception)
                             )
                         )
                     }
@@ -86,7 +90,7 @@ object PlayIntegrityVerifier {
                 continuation.resume(
                     PreparationResult.Failure(
                         error = e.message ?: "Failed to initialize standard integrity manager",
-                        errorCode = null
+                        errorCode = resolveStandardIntegrityErrorCode(e)
                     )
                 )
             }
@@ -114,6 +118,49 @@ object PlayIntegrityVerifier {
             PreparationResult.Prepared -> Unit
         }
 
+        val firstAttempt = requestPreparedIntegrityToken(requestHash)
+
+        if (shouldRefreshProvider(firstAttempt)) {
+            tokenProviderRef.set(null)
+
+            when (val retryPreparation = prepareTokenProvider(context, cloudProjectNumber)) {
+                is PreparationResult.NotConfigured -> return IntegrityResult.NotConfigured
+                is PreparationResult.Failure -> {
+                    return IntegrityResult.Failure(
+                        error = retryPreparation.error,
+                        errorCode = retryPreparation.errorCode
+                    )
+                }
+
+                PreparationResult.Prepared -> Unit
+            }
+
+            return requestPreparedIntegrityToken(requestHash)
+        }
+
+        return firstAttempt
+    }
+
+    fun clearPreparedProvider() {
+        tokenProviderRef.set(null)
+    }
+
+    fun generateRequestHash(payload: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(payload.toByteArray(Charsets.UTF_8))
+
+        return Base64.encodeToString(digest, Base64.NO_WRAP)
+    }
+
+    fun generateRandomNonce(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    }
+
+    private suspend fun requestPreparedIntegrityToken(
+        requestHash: String
+    ): IntegrityResult {
         val tokenProvider = tokenProviderRef.get()
             ?: return IntegrityResult.Failure(
                 error = "Standard integrity token provider is unavailable"
@@ -135,7 +182,7 @@ object PlayIntegrityVerifier {
                         continuation.resume(
                             IntegrityResult.Failure(
                                 error = exception.message ?: "Failed to request integrity token",
-                                errorCode = null
+                                errorCode = resolveStandardIntegrityErrorCode(exception)
                             )
                         )
                     }
@@ -143,27 +190,23 @@ object PlayIntegrityVerifier {
                 continuation.resume(
                     IntegrityResult.Failure(
                         error = e.message ?: "Failed to execute integrity token request",
-                        errorCode = null
+                        errorCode = resolveStandardIntegrityErrorCode(e)
                     )
                 )
             }
         }
     }
 
-    fun clearPreparedProvider() {
-        tokenProviderRef.set(null)
+    private fun shouldRefreshProvider(
+        result: IntegrityResult
+    ): Boolean {
+        return result is IntegrityResult.Failure &&
+            result.errorCode == StandardIntegrityErrorCode.INTEGRITY_TOKEN_PROVIDER_INVALID
     }
 
-    fun generateRequestHash(payload: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest(payload.toByteArray(Charsets.UTF_8))
-
-        return Base64.encodeToString(digest, Base64.NO_WRAP)
-    }
-
-    fun generateRandomNonce(): String {
-        val bytes = ByteArray(32)
-        SecureRandom().nextBytes(bytes)
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    private fun resolveStandardIntegrityErrorCode(
+        throwable: Throwable
+    ): Int? {
+        return (throwable as? StandardIntegrityException)?.errorCode
     }
 }

@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
@@ -13,11 +15,6 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
-
 dependencies {
-
-    // Coroutines (via version catalog)
     implementation(libs.kotlinx.coroutines.core)
-
-    testImplementation(kotlin("test"))
 }

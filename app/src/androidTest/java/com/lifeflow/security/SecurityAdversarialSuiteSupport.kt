@@ -1,5 +1,8 @@
 package com.lifeflow.security
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+
 internal const val SECURITY_ADVERSARIAL_SUITE_SESSION_MS = 30_000L
 
 internal fun prepareVerifiedBaselineForSecuritySuite(reason: String) {
@@ -7,7 +10,11 @@ internal fun prepareVerifiedBaselineForSecuritySuite(reason: String) {
         state = TrustState.VERIFIED,
         reason = reason
     )
-    SecurityAccessSession.grant(SECURITY_ADVERSARIAL_SUITE_SESSION_MS)
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    SecurityAccessSession.grant(
+        context = context,
+        durationMs = SECURITY_ADVERSARIAL_SUITE_SESSION_MS
+    )
 }
 
 internal fun prepareVerifiedNoSessionBaselineForSecuritySuite(reason: String) {

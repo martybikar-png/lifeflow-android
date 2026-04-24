@@ -1,8 +1,11 @@
 package com.lifeflow.security
 
 import android.content.Context
+import android.util.Log
 
 internal object EmergencyAuthorityBoundaryBootstrap {
+
+    private const val TAG = "EmergencyAuthorityBootstrap"
 
     fun start(
         applicationContext: Context,
@@ -15,11 +18,23 @@ internal object EmergencyAuthorityBoundaryBootstrap {
                 transport = null
             )
         } else {
-            val transport = GrpcEmergencyAuthorityTransport.create(applicationContext)
+            val grpcTransport = runCatching {
+                GrpcEmergencyAuthorityTransport.create(applicationContext)
+            }.onFailure { throwable ->
+                Log.w(
+                    TAG,
+                    "Emergency authority transport disabled: bootstrap failed. Break-glass remains fail-closed.",
+                    throwable
+                )
+            }.getOrNull()
+
+            val authorityTransport: EmergencyAuthorityTransport =
+                grpcTransport ?: UnconfiguredEmergencyAuthorityTransport
+
             EmergencyAuthorityRuntime(
-                emergencyAuditSink = ExternalEmergencyAuditSink(transport),
-                emergencyArtifactRegistry = ExternalEmergencyArtifactRegistry(transport),
-                transport = transport
+                emergencyAuditSink = ExternalEmergencyAuditSink(authorityTransport),
+                emergencyArtifactRegistry = ExternalEmergencyArtifactRegistry(authorityTransport),
+                transport = grpcTransport
             )
         }
 
