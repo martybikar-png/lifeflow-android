@@ -9,8 +9,8 @@ import io.grpc.ManagedChannel
  *
  * Purpose:
  * - keep control RPC behavior separate from transport/channel wiring
- * - make future generated stubs sit here, not inside transport
- * - remain fail-closed until the real RPC contract exists
+ * - keep future generated stubs behind this boundary
+ * - remain explicitly fail-closed until the real RPC contract exists
  */
 internal interface EmergencyAuthorityControlClient {
     fun registerIssuedArtifact(artifact: EmergencyActivationArtifact)
@@ -32,9 +32,8 @@ internal class GrpcEmergencyAuthorityControlClient(
 ) : EmergencyAuthorityControlClient {
 
     override fun registerIssuedArtifact(artifact: EmergencyActivationArtifact) {
-        channel
         throw SecurityException(
-            "gRPC emergency authority control RPC contract is not configured yet. Control channel remains fail-closed."
+            unavailableRpcContractMessage(operationName = "registerIssuedArtifact")
         )
     }
 
@@ -42,9 +41,8 @@ internal class GrpcEmergencyAuthorityControlClient(
         artifactId: String,
         consumedAtEpochMs: Long
     ): EmergencyArtifactConsumptionStatus {
-        channel
         throw SecurityException(
-            "gRPC emergency authority control RPC contract is not configured yet. Artifact consumption remains fail-closed."
+            unavailableRpcContractMessage(operationName = "consumeIssuedArtifact")
         )
     }
 
@@ -53,9 +51,20 @@ internal class GrpcEmergencyAuthorityControlClient(
         reason: String,
         expiredAtEpochMs: Long
     ) {
-        channel
         throw SecurityException(
-            "gRPC emergency authority control RPC contract is not configured yet. Expiration propagation remains fail-closed."
+            unavailableRpcContractMessage(operationName = "markArtifactExpiredUnused")
         )
     }
+
+    private fun unavailableRpcContractMessage(operationName: String): String {
+        return "gRPC emergency authority control RPC contract is not configured for " +
+            "$operationName on ${channel.safeAuthorityLabel()}. Control channel remains fail-closed."
+    }
+}
+
+private fun ManagedChannel.safeAuthorityLabel(): String {
+    return runCatching { authority() }
+        .getOrNull()
+        ?.takeIf { it.isNotBlank() }
+        ?: "unavailable-authority"
 }

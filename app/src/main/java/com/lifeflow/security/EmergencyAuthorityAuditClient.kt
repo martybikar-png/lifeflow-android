@@ -8,8 +8,8 @@ import io.grpc.ManagedChannel
  *
  * Purpose:
  * - keep audit RPC behavior separate from transport/channel wiring
- * - make future generated stubs sit here, not inside transport
- * - remain fail-closed until the real RPC contract exists
+ * - keep future generated stubs behind this boundary
+ * - remain explicitly fail-closed until the real RPC contract exists
  */
 internal interface EmergencyAuthorityAuditClient {
     fun appendAuditRecord(record: EmergencyAuditRecord): String
@@ -20,9 +20,20 @@ internal class GrpcEmergencyAuthorityAuditClient(
 ) : EmergencyAuthorityAuditClient {
 
     override fun appendAuditRecord(record: EmergencyAuditRecord): String {
-        channel
         throw SecurityException(
-            "gRPC emergency authority audit RPC contract is not configured yet. Audit channel remains fail-closed."
+            unavailableRpcContractMessage(operationName = "appendAuditRecord")
         )
     }
+
+    private fun unavailableRpcContractMessage(operationName: String): String {
+        return "gRPC emergency authority audit RPC contract is not configured for " +
+            "$operationName on ${channel.safeAuthorityLabel()}. Audit channel remains fail-closed."
+    }
+}
+
+private fun ManagedChannel.safeAuthorityLabel(): String {
+    return runCatching { authority() }
+        .getOrNull()
+        ?.takeIf { it.isNotBlank() }
+        ?: "unavailable-authority"
 }
