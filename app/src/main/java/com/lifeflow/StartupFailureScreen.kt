@@ -23,22 +23,21 @@ internal fun StartupFailureScreen(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            LifeFlowSignalPill(text = "Permissions")
+            LifeFlowSignalPill(text = "Recovery")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        LifeFlowSectionPanel(title = "Startup needs a calmer recovery step") {
+        LifeFlowCardShell(
+            title = "Startup paused",
+            summary = startupStatusLabel(message)
+        ) {
             Text(
-                text = "Startup is paused at a visible recovery boundary. The safest next action is kept first.",
+                text = startupRecoveryGuidance(message),
                 style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LifeFlowSectionPanel(title = "Recovery actions") {
             Text(
                 text = startupRecoveryActionHint(message),
                 style = lifeFlowCardSummaryStyle(),
@@ -58,52 +57,16 @@ internal fun StartupFailureScreen(
                 label = "Open App settings",
                 onClick = onOpenAppSettings
             )
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            if (lastAction.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
 
-        LifeFlowSectionPanel(title = "Startup snapshot") {
-            StartupFailureDetail(
-                label = "Status",
-                value = startupStatusLabel(message)
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            StartupFailureDetail(
-                label = "Next step",
-                value = startupRecoveryGuidance(message)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LifeFlowSectionPanel(title = "Last action") {
-            Text(
-                text = lastAction.ifBlank { "No recorded startup action yet." },
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Text(
+                    text = lastAction,
+                    style = lifeFlowCardSummaryStyle(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
-}
-
-@Composable
-private fun StartupFailureDetail(
-    label: String,
-    value: String
-) {
-    Text(
-        text = label,
-        style = lifeFlowCardRowLabelStyle(),
-        color = MaterialTheme.colorScheme.onSurface
-    )
-
-    Spacer(modifier = Modifier.height(2.dp))
-
-    Text(
-        text = value,
-        style = lifeFlowCardRowValueStyle(),
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 }

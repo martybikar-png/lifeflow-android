@@ -19,7 +19,7 @@ internal fun StartupFailureContent(
     var startupFailureMessage by remember {
         mutableStateOf(initialStartupFailureMessage)
     }
-    var lastAction by remember { mutableStateOf("Startup initialization failed") }
+    var lastAction by remember { mutableStateOf("Startup paused.") }
     var pendingSettingsRetry by remember { mutableStateOf(false) }
 
     fun retryStartupWithMessage(requestMessage: String) {
@@ -28,11 +28,11 @@ internal fun StartupFailureContent(
         val initialized = retryStartup()
 
         if (initialized) {
-            lastAction = "$requestMessage; startup recovered, recreating activity"
+            lastAction = "Startup recovered."
             onRecreateActivity()
         } else {
             startupFailureMessage = readStartupFailureMessage()
-            lastAction = "$requestMessage; startup still failing"
+            lastAction = "Startup still paused."
         }
     }
 
@@ -41,10 +41,10 @@ internal fun StartupFailureContent(
             onStartIntent(buildAppSettingsIntent(appPackageName))
         }.onSuccess {
             pendingSettingsRetry = true
-            lastAction = "Opened App settings"
+            lastAction = "Settings opened."
         }.onFailure {
             pendingSettingsRetry = false
-            lastAction = "Unable to open App settings: ${it::class.java.simpleName}"
+            lastAction = "Settings could not open."
         }
     }
 
@@ -52,7 +52,7 @@ internal fun StartupFailureContent(
         pending = pendingSettingsRetry,
         onConsumePending = { pendingSettingsRetry = false },
         onResumeAction = {
-            retryStartupWithMessage("Returned from settings; startup retry requested")
+            retryStartupWithMessage("Checking startup again.")
         }
     )
 
@@ -60,7 +60,7 @@ internal fun StartupFailureContent(
         message = startupFailureMessage,
         lastAction = lastAction,
         onRetryStartup = {
-            retryStartupWithMessage("Manual startup retry requested")
+            retryStartupWithMessage("Retrying startup.")
         },
         onOpenAppSettings = {
             openAppSettings()
