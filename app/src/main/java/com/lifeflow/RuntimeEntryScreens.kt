@@ -99,12 +99,6 @@ fun ErrorScreen(
         resetRequired = resetRequired
     )
 
-    val nextStepHint = if (resetRequired) {
-        "Reset is required before protected access can continue."
-    } else {
-        "Authenticate again when you are ready."
-    }
-
     ScreenContainer(title = "") {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -119,7 +113,7 @@ fun ErrorScreen(
 
         LifeFlowSectionPanel(title = content.guidanceTitle) {
             Text(
-                text = message,
+                text = content.guidanceMessage,
                 style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -129,7 +123,7 @@ fun ErrorScreen(
 
         LifeFlowSectionPanel(title = "Next step") {
             Text(
-                text = nextStepHint,
+                text = content.nextStepMessage,
                 style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

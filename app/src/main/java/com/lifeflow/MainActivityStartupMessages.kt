@@ -5,15 +5,15 @@ internal fun startupStatusLabel(message: String): String {
         message.contains("hardening", ignoreCase = true) ||
         message.contains("root", ignoreCase = true) ||
         message.contains("debugger", ignoreCase = true) ->
-            "Startup blocked by security hardening check."
+            "Startup blocked by device safety."
         message.contains("permission", ignoreCase = true) ->
-            "Startup blocked by missing or denied permissions."
+            "Startup needs permissions."
         message.contains("security", ignoreCase = true) ->
-            "Startup blocked by a security-related condition."
+            "Startup needs a security check."
         message.contains("initialize", ignoreCase = true) ->
-            "Startup did not finish initialization."
+            "Startup did not finish."
         else ->
-            "Startup is blocked and requires recovery before the app can continue."
+            "Startup needs recovery."
     }
 }
 
@@ -22,16 +22,15 @@ internal fun startupRecoveryGuidance(message: String): String {
         message.contains("hardening", ignoreCase = true) ||
         message.contains("root", ignoreCase = true) ||
         message.contains("debugger", ignoreCase = true) ->
-            "LifeFlow detected a security risk on this device. " +
-            "The app cannot run safely in this environment."
+            "Use a safe device without root or debugger."
         message.contains("permission", ignoreCase = true) ->
-            "Check app permissions in system settings, then retry startup."
+            "Check app permissions, then retry."
         message.contains("security", ignoreCase = true) ->
-            "A security-related startup issue was detected. Review access settings, then retry startup."
+            "Review access settings, then retry."
         message.contains("initialize", ignoreCase = true) ->
-            "Startup initialization did not complete. Retry first. If the problem repeats, open App settings and return."
+            "Retry startup first."
         else ->
-            "Retry startup first. If the error continues, open App settings, then return and try again."
+            "Retry startup first."
     }
 }
 
@@ -40,15 +39,14 @@ internal fun startupRecoveryActionHint(message: String): String {
         message.contains("hardening", ignoreCase = true) ||
         message.contains("root", ignoreCase = true) ||
         message.contains("debugger", ignoreCase = true) ->
-            "This device does not meet LifeFlow security requirements. " +
-            "Use a non-rooted device without active debugger."
+            "This device cannot run protected access safely."
         message.contains("permission", ignoreCase = true) ->
-            "Permissions-related startup failures usually need App settings before retrying."
+            "Open App settings if retry does not help."
         message.contains("security", ignoreCase = true) ->
-            "Security-related startup failures usually need settings review before retrying startup."
+            "Open settings if the issue repeats."
         message.contains("initialize", ignoreCase = true) ->
-            "Initialization failures usually recover with a retry first."
+            "Retry should be enough first."
         else ->
-            "Retry startup first. If that does not help, open App settings and then return here."
+            "Open settings if retry does not help."
     }
 }

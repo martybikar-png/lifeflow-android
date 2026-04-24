@@ -12,17 +12,6 @@ internal fun ActiveRuntimeScreenRouter(
     onResetVault: () -> Unit,
     onUpgradeToCore: () -> Unit = {}
 ) {
-    val forcePreviewErrorScreen = false
-
-    if (forcePreviewErrorScreen) {
-        ErrorScreen(
-            message = "Protected access is paused until a fresh authentication step is completed.",
-            resetRequired = false,
-            onRetry = onAuthenticate
-        )
-        return
-    }
-
     when (screen.uiState) {
         UiState.Loading -> {
             LoadingScreen(
