@@ -110,7 +110,7 @@ class MainViewModelSecurityAndErrorLanguageInstrumentedTest {
             resetRequired = false
         )
 
-        assertEquals("A calmer recovery step is needed", content.guidanceTitle)
+        assertEquals("Recovery needed", content.guidanceTitle)
         assertEquals("Reset vault", content.buttonLabel)
         assertTrue(
             content.nextStepMessage.contains("Reset the vault", ignoreCase = true)
@@ -124,7 +124,7 @@ class MainViewModelSecurityAndErrorLanguageInstrumentedTest {
             resetRequired = false
         )
 
-        assertEquals("Authentication is needed to continue", content.guidanceTitle)
+        assertEquals("Authentication needed", content.guidanceTitle)
         assertEquals("Authenticate again", content.buttonLabel)
         assertTrue(
             content.nextStepMessage.contains("Authenticate again", ignoreCase = true)
