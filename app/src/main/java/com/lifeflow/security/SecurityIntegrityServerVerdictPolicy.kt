@@ -25,6 +25,8 @@ internal class SecurityIntegrityServerVerdictPolicy(
 
     private val consumedServerVerdictRequestHashes = linkedSetOf<String>()
     private val claimsEnforcementPolicy = SecurityIntegrityClaimsEnforcementPolicy()
+    private val attestationPolicy = SecurityIntegrityServerAttestationPolicy()
+    private val rpcMapper = SecurityIntegrityServerRpcMapper()
 
     fun clear() {
         consumedServerVerdictRequestHashes.clear()
@@ -116,7 +118,7 @@ internal class SecurityIntegrityServerVerdictPolicy(
                     }
                 )
 
-                val responseWithAttestationPolicy = enforceAttestationVerification(
+                val responseWithAttestationPolicy = attestationPolicy.enforce(
                     responseWithMetadata
                 )
                 if (responseWithAttestationPolicy.verdictSource ==
@@ -142,246 +144,10 @@ internal class SecurityIntegrityServerVerdictPolicy(
             return metadataFailClosed("requestHash echo mismatch")
         }
 
-        val mappedVerdict = when (response.verdict) {
-            IntegrityTrustRpcVerdict.VERIFIED -> SecurityIntegrityTrustVerdict.VERIFIED
-            IntegrityTrustRpcVerdict.DEGRADED -> SecurityIntegrityTrustVerdict.DEGRADED
-            IntegrityTrustRpcVerdict.COMPROMISED -> SecurityIntegrityTrustVerdict.COMPROMISED
-        }
-
-        val mappedSource = when (response.verdictSource) {
-            IntegrityTrustRpcVerdictSource.PLAY_INTEGRITY_STANDARD_SERVER ->
-                IntegrityTrustVerdictSource.PLAY_INTEGRITY_STANDARD_SERVER
-        }
-
         return normalize(
-            response = IntegrityTrustVerdictResponse(
-                verdict = mappedVerdict,
-                reason = response.reason.trim(),
-                requestHashEcho = response.requestHashEcho,
-                requestBindingVerified = response.requestBindingVerified,
-                serverTimestampEpochMs = response.serverTimestampEpochMs,
-                policyVersion = response.policyVersion,
-                verdictSource = mappedSource,
-                claims = mapClaims(response.claims),
-                attestationVerification = mapAttestationVerification(
-                    response.attestationVerification
-                ),
-                decision = when (response.decision) {
-                    IntegrityTrustRpcDecision.ALLOW -> IntegrityTrustDecision.ALLOW
-                    IntegrityTrustRpcDecision.STEP_UP -> IntegrityTrustDecision.STEP_UP
-                    IntegrityTrustRpcDecision.DEGRADED -> IntegrityTrustDecision.DEGRADED
-                    IntegrityTrustRpcDecision.DENY -> IntegrityTrustDecision.DENY
-                    IntegrityTrustRpcDecision.LOCK -> IntegrityTrustDecision.LOCK
-                },
-                decisionReasonCode = response.decisionReasonCode
-            ),
+            response = rpcMapper.map(response),
             nowEpochMs = System.currentTimeMillis()
         )
-    }
-
-    private fun enforceAttestationVerification(
-        response: IntegrityTrustVerdictResponse
-    ): IntegrityTrustVerdictResponse {
-        val verification = response.attestationVerification
-            ?: return attestationFailClosed(
-                detail = "missing attestationVerification",
-                verification = null
-            )
-
-        if (verification.challengeVerdict !=
-            IntegrityTrustAttestationChallengeVerdict.MATCHED
-        ) {
-            return attestationFailClosed(
-                detail = "challenge verdict is ${verification.challengeVerdict}",
-                verification = verification
-            )
-        }
-
-        if (verification.chainVerdict !=
-            IntegrityTrustAttestationChainVerdict.VERIFIED
-        ) {
-            return attestationFailClosed(
-                detail = "chain verdict is ${verification.chainVerdict}",
-                verification = verification
-            )
-        }
-
-        if (verification.rootVerdict !=
-            IntegrityTrustAttestationRootVerdict.GOOGLE_TRUSTED
-        ) {
-            return attestationFailClosed(
-                detail = "root verdict is ${verification.rootVerdict}",
-                verification = verification
-            )
-        }
-
-        if (verification.revocationVerdict !=
-            IntegrityTrustAttestationRevocationVerdict.CLEAN
-        ) {
-            return attestationFailClosed(
-                detail = "revocation verdict is ${verification.revocationVerdict}",
-                verification = verification
-            )
-        }
-
-        if (verification.appBindingVerdict !=
-            IntegrityTrustAttestationAppBindingVerdict.MATCHED
-        ) {
-            return attestationFailClosed(
-                detail = "app binding verdict is ${verification.appBindingVerdict}",
-                verification = verification
-            )
-        }
-
-        return response.copy(
-            reason = buildString {
-                append(response.reason)
-                append(" | attestationChain=")
-                append(verification.chainVerdict)
-                append(" | attestationChallenge=")
-                append(verification.challengeVerdict)
-                append(" | attestationRoot=")
-                append(verification.rootVerdict)
-                append(" | attestationRevocation=")
-                append(verification.revocationVerdict)
-                append(" | attestationAppBinding=")
-                append(verification.appBindingVerdict)
-                verification.detail?.let {
-                    append(" | attestationDetail=")
-                    append(it)
-                }
-            }
-        )
-    }
-
-    private fun mapClaims(
-        claims: IntegrityTrustRpcClaims
-    ): SecurityIntegrityVerdictClaims {
-        return SecurityIntegrityVerdictClaims(
-            appRecognitionVerdict = claims.appRecognitionVerdict?.let { rpcValue ->
-                when (rpcValue) {
-                    IntegrityTrustRpcAppRecognitionVerdict.PLAY_RECOGNIZED ->
-                        SecurityIntegrityAppRecognitionVerdict.PLAY_RECOGNIZED
-
-                    IntegrityTrustRpcAppRecognitionVerdict.UNRECOGNIZED_VERSION ->
-                        SecurityIntegrityAppRecognitionVerdict.UNRECOGNIZED_VERSION
-
-                    IntegrityTrustRpcAppRecognitionVerdict.UNEVALUATED ->
-                        SecurityIntegrityAppRecognitionVerdict.UNEVALUATED
-                }
-            },
-            deviceRecognitionVerdicts = claims.deviceRecognitionVerdicts.mapTo(linkedSetOf()) { rpcValue ->
-                when (rpcValue) {
-                    IntegrityTrustRpcDeviceRecognitionVerdict.MEETS_BASIC_INTEGRITY ->
-                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_BASIC_INTEGRITY
-
-                    IntegrityTrustRpcDeviceRecognitionVerdict.MEETS_DEVICE_INTEGRITY ->
-                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_DEVICE_INTEGRITY
-
-                    IntegrityTrustRpcDeviceRecognitionVerdict.MEETS_STRONG_INTEGRITY ->
-                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_STRONG_INTEGRITY
-
-                    IntegrityTrustRpcDeviceRecognitionVerdict.MEETS_VIRTUAL_INTEGRITY ->
-                        SecurityIntegrityDeviceRecognitionVerdict.MEETS_VIRTUAL_INTEGRITY
-                }
-            },
-            appLicensingVerdict = claims.appLicensingVerdict?.let { rpcValue ->
-                when (rpcValue) {
-                    IntegrityTrustRpcAppLicensingVerdict.LICENSED ->
-                        SecurityIntegrityAppLicensingVerdict.LICENSED
-
-                    IntegrityTrustRpcAppLicensingVerdict.UNLICENSED ->
-                        SecurityIntegrityAppLicensingVerdict.UNLICENSED
-
-                    IntegrityTrustRpcAppLicensingVerdict.UNEVALUATED ->
-                        SecurityIntegrityAppLicensingVerdict.UNEVALUATED
-                }
-            },
-            playProtectVerdict = claims.playProtectVerdict?.let { rpcValue ->
-                when (rpcValue) {
-                    IntegrityTrustRpcPlayProtectVerdict.NO_ISSUES ->
-                        SecurityIntegrityPlayProtectVerdict.NO_ISSUES
-
-                    IntegrityTrustRpcPlayProtectVerdict.NO_DATA ->
-                        SecurityIntegrityPlayProtectVerdict.NO_DATA
-
-                    IntegrityTrustRpcPlayProtectVerdict.POSSIBLE_RISK ->
-                        SecurityIntegrityPlayProtectVerdict.POSSIBLE_RISK
-
-                    IntegrityTrustRpcPlayProtectVerdict.MEDIUM_RISK ->
-                        SecurityIntegrityPlayProtectVerdict.MEDIUM_RISK
-
-                    IntegrityTrustRpcPlayProtectVerdict.HIGH_RISK ->
-                        SecurityIntegrityPlayProtectVerdict.HIGH_RISK
-
-                    IntegrityTrustRpcPlayProtectVerdict.UNEVALUATED ->
-                        SecurityIntegrityPlayProtectVerdict.UNEVALUATED
-                }
-            }
-        )
-    }
-
-    private fun mapAttestationVerification(
-        verification: IntegrityTrustRpcAttestationVerification?
-    ): IntegrityTrustAttestationVerification? {
-        return verification?.let {
-            IntegrityTrustAttestationVerification(
-                chainVerdict = when (it.chainVerdict) {
-                    IntegrityTrustRpcAttestationChainVerdict.VERIFIED ->
-                        IntegrityTrustAttestationChainVerdict.VERIFIED
-
-                    IntegrityTrustRpcAttestationChainVerdict.FAILED ->
-                        IntegrityTrustAttestationChainVerdict.FAILED
-
-                    IntegrityTrustRpcAttestationChainVerdict.UNEVALUATED ->
-                        IntegrityTrustAttestationChainVerdict.UNEVALUATED
-                },
-                challengeVerdict = when (it.challengeVerdict) {
-                    IntegrityTrustRpcAttestationChallengeVerdict.MATCHED ->
-                        IntegrityTrustAttestationChallengeVerdict.MATCHED
-
-                    IntegrityTrustRpcAttestationChallengeVerdict.MISMATCHED ->
-                        IntegrityTrustAttestationChallengeVerdict.MISMATCHED
-
-                    IntegrityTrustRpcAttestationChallengeVerdict.UNEVALUATED ->
-                        IntegrityTrustAttestationChallengeVerdict.UNEVALUATED
-                },
-                rootVerdict = when (it.rootVerdict) {
-                    IntegrityTrustRpcAttestationRootVerdict.GOOGLE_TRUSTED ->
-                        IntegrityTrustAttestationRootVerdict.GOOGLE_TRUSTED
-
-                    IntegrityTrustRpcAttestationRootVerdict.UNTRUSTED ->
-                        IntegrityTrustAttestationRootVerdict.UNTRUSTED
-
-                    IntegrityTrustRpcAttestationRootVerdict.UNEVALUATED ->
-                        IntegrityTrustAttestationRootVerdict.UNEVALUATED
-                },
-                revocationVerdict = when (it.revocationVerdict) {
-                    IntegrityTrustRpcAttestationRevocationVerdict.CLEAN ->
-                        IntegrityTrustAttestationRevocationVerdict.CLEAN
-
-                    IntegrityTrustRpcAttestationRevocationVerdict.REVOKED ->
-                        IntegrityTrustAttestationRevocationVerdict.REVOKED
-
-                    IntegrityTrustRpcAttestationRevocationVerdict.UNCHECKED ->
-                        IntegrityTrustAttestationRevocationVerdict.UNCHECKED
-
-                    IntegrityTrustRpcAttestationRevocationVerdict.UNEVALUATED ->
-                        IntegrityTrustAttestationRevocationVerdict.UNEVALUATED
-                },
-                appBindingVerdict = when (it.appBindingVerdict) {
-                    IntegrityTrustRpcAttestationAppBindingVerdict.MATCHED ->
-                        IntegrityTrustAttestationAppBindingVerdict.MATCHED
-
-                    IntegrityTrustRpcAttestationAppBindingVerdict.MISMATCHED ->
-                        IntegrityTrustAttestationAppBindingVerdict.MISMATCHED
-
-                    IntegrityTrustRpcAttestationAppBindingVerdict.UNEVALUATED ->
-                        IntegrityTrustAttestationAppBindingVerdict.UNEVALUATED
-                },
-                detail = it.detail
-            )
-        }
     }
 
     private fun isDecisionCompatible(
@@ -429,20 +195,6 @@ internal class SecurityIntegrityServerVerdictPolicy(
             verdictSource = IntegrityTrustVerdictSource.CLIENT_FAILSAFE,
             decision = IntegrityTrustDecision.LOCK,
             decisionReasonCode = "SERVER_METADATA_INVALID"
-        )
-    }
-
-    private fun attestationFailClosed(
-        detail: String,
-        verification: IntegrityTrustAttestationVerification?
-    ): IntegrityTrustVerdictResponse {
-        return IntegrityTrustVerdictResponse(
-            verdict = SecurityIntegrityTrustVerdict.COMPROMISED,
-            reason = "SERVER_VERDICT_ATTESTATION_INVALID: $detail",
-            verdictSource = IntegrityTrustVerdictSource.CLIENT_FAILSAFE,
-            attestationVerification = verification,
-            decision = IntegrityTrustDecision.LOCK,
-            decisionReasonCode = "SERVER_ATTESTATION_INVALID"
         )
     }
 }
