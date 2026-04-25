@@ -39,22 +39,14 @@ internal object LifeFlowSecurityBootstrap {
         applicationContext: Context,
         isInstrumentation: Boolean
     ): LifeFlowSecurityBootstrapResult {
-        val hardeningReport = if (isInstrumentation) {
-            null
-        } else {
-            val report = SecurityHardeningGuard.assess(applicationContext)
-            if (report.isCritical) {
-                throw SecurityException(
-                    "Security hardening check failed: ${report.findings.joinToString("; ")}"
-                )
-            }
-            if (report.isDegraded) {
-                Log.w(TAG, "Security hardening: degraded environment detected. ${report.findings}")
-            }
-            report
-        }
+        val hardeningReport = createHardeningReport(
+            applicationContext = applicationContext,
+            isInstrumentation = isInstrumentation
+        )
 
-        val cryptoBindings = createCryptoBindings(isInstrumentation = isInstrumentation)
+        val cryptoBindings = createLifeFlowSecurityCryptoBindings(
+            isInstrumentation = isInstrumentation
+        )
 
         val deviceBindingStore = DeviceBindingStore(applicationContext)
         val deviceBindingManager = DeviceBindingManager(
@@ -130,115 +122,23 @@ internal object LifeFlowSecurityBootstrap {
         )
     }
 
-    private fun createCryptoBindings(
+    private fun createHardeningReport(
+        applicationContext: Context,
         isInstrumentation: Boolean
-    ): SecurityCryptoBindings {
-        val sessionKeyManager = if (isInstrumentation) {
-            KeyManager(
-                alias = TEST_KEY_ALIAS,
-                authenticationPolicy = KeyManager.AuthenticationPolicy.NONE
-            )
-        } else {
-            KeyManager(
-                alias = SESSION_KEY_ALIAS,
-                authenticationPolicy = KeyManager.AuthenticationPolicy.BIOMETRIC_TIME_BOUND
-            )
-        }
-
-        val sessionEncryptionService = EncryptionService(sessionKeyManager)
-
-        val authPerUseKeyManager = createAuthPerUseKeyManager(
-            isInstrumentation = isInstrumentation
-        )
-        val authPerUseEncryptionService = authPerUseKeyManager?.let(::EncryptionService)
-
-        return SecurityCryptoBindings(
-            sessionKeyManager = sessionKeyManager,
-            sessionEncryptionService = sessionEncryptionService,
-            authPerUseKeyManager = authPerUseKeyManager,
-            authPerUseEncryptionService = authPerUseEncryptionService
-        )
-    }
-
-    private fun createAuthPerUseKeyManager(
-        isInstrumentation: Boolean
-    ): KeyManager? {
+    ): SecurityHardeningGuard.HardeningReport? {
         if (isInstrumentation) return null
-        if (!KeyManager.supportsAuthPerUseBiometric()) return null
 
-        val keyManager = KeyManager(
-            alias = AUTH_PER_USE_KEY_ALIAS,
-            authenticationPolicy = KeyManager.AuthenticationPolicy.BIOMETRIC_AUTH_PER_USE
-        )
-
-        return runCatching {
-            keyManager.ensureKey()
-            keyManager
-        }.getOrElse { throwable ->
-            handleAuthPerUseBootstrapFailure(
-                keyManager = keyManager,
-                throwable = throwable
-            )
-            null
-        }
-    }
-
-    private fun handleAuthPerUseBootstrapFailure(
-        keyManager: KeyManager,
-        throwable: Throwable
-    ) {
-        when (throwable) {
-            is SecurityKeystorePostureException -> {
-                deleteAuthPerUseKeySilently(
-                    keyManager = keyManager,
-                    reason = "posture mismatch"
-                )
-                Log.w(
-                    TAG,
-                    "Auth-per-use crypto disabled: keystore posture mismatch.",
-                    throwable
-                )
-            }
-
-            is SecurityKeystoreOperationException -> {
-                if (throwable.code == SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE ||
-                    throwable.code == SecurityKeystoreFailureCode.KEY_UNRECOVERABLE
-                ) {
-                    deleteAuthPerUseKeySilently(
-                        keyManager = keyManager,
-                        reason = "invalid or unrecoverable key"
-                    )
-                }
-
-                Log.w(
-                    TAG,
-                    "Auth-per-use crypto disabled: keystore bootstrap failed (${throwable.code}).",
-                    throwable
-                )
-            }
-
-            else -> {
-                Log.w(
-                    TAG,
-                    "Auth-per-use crypto disabled: unexpected bootstrap failure.",
-                    throwable
-                )
-            }
-        }
-    }
-
-    private fun deleteAuthPerUseKeySilently(
-        keyManager: KeyManager,
-        reason: String
-    ) {
-        runCatching {
-            keyManager.deleteKey()
-        }.onFailure { deleteFailure ->
-            Log.w(
-                TAG,
-                "Auth-per-use key cleanup failed after $reason.",
-                deleteFailure
+        val report = SecurityHardeningGuard.assess(applicationContext)
+        if (report.isCritical) {
+            throw SecurityException(
+                "Security hardening check failed: ${report.findings.joinToString("; ")}"
             )
         }
+
+        if (report.isDegraded) {
+            Log.w(TAG, "Security hardening: degraded environment detected. ${report.findings}")
+        }
+
+        return report
     }
 }
