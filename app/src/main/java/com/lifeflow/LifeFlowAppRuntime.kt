@@ -3,27 +3,19 @@ package com.lifeflow
 import android.content.Context
 import com.lifeflow.security.IntegrityTrustVerdictResponse
 import com.lifeflow.security.SecurityAuthPerUseCryptoProvider
-import com.lifeflow.security.SecurityIntegrityTrustAuthority
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.hardening.SecurityHardeningGuard
-import kotlin.concurrent.thread
 
 internal class LifeFlowAppRuntime(
     private val applicationContext: Context,
     private val runtimeBindingsFactory: (Context, Boolean) -> LifeFlowAppRuntimeBindings =
-        { context, isInstrumentation ->
-            LifeFlowAppGraphFactory.createRuntimeBindings(
-                applicationContext = context,
-                isInstrumentation = isInstrumentation
-            )
-        },
-    private val launchBackgroundTask: (String, () -> Unit) -> Unit = { name, block ->
-        thread(start = true, isDaemon = true, name = name) { block() }
-    },
+        ::createDefaultLifeFlowAppRuntimeBindings,
+    private val launchBackgroundTask: (String, () -> Unit) -> Unit =
+        ::launchDefaultLifeFlowAppRuntimeBackgroundTask,
     private val reportIntegrityTrustVerdictResponse: (IntegrityTrustVerdictResponse) -> Unit =
-        { response -> SecurityIntegrityTrustAuthority.reportVerdictResponse(response) },
+        ::reportDefaultLifeFlowAppRuntimeIntegrityTrustVerdictResponse,
     private val startupIntegrityContextFactory: (Context) -> IntegrityStartupRequestContext =
-        { context -> buildLifeFlowAppRuntimeStartupIntegrityRequestContext(context) }
+        ::createDefaultLifeFlowAppRuntimeStartupIntegrityRequestContext
 ) : StartupRuntimeEntryPoint, AutoCloseable {
 
     @Volatile
