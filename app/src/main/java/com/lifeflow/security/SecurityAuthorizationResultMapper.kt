@@ -9,11 +9,9 @@ internal fun AuthorizationResult.toLockedReasonOrNull(
     detail: String
 ): String? =
     when (this) {
-        AuthorizationResult.Allowed ->
-            null
-
+        AuthorizationResult.Allowed,
         is AuthorizationResult.EmergencyAllowed ->
-            SecurityLockedReason.EMERGENCY_LIMITED.withDetail(detail)
+            null
 
         is AuthorizationResult.Denied ->
             deniedReasonToLockedReason(

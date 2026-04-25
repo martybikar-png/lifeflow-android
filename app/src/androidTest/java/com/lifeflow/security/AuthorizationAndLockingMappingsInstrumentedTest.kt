@@ -4,6 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lifeflow.domain.security.AuthorizationResult
 import com.lifeflow.domain.security.DenialReason
 import com.lifeflow.domain.security.ElevationReason
+import com.lifeflow.domain.security.EmergencyAccessReason
+import com.lifeflow.domain.security.EmergencyAccessWindow
 import com.lifeflow.domain.security.LockReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -18,6 +20,27 @@ class AuthorizationAndLockingMappingsInstrumentedTest {
     @Test
     fun authorizationResultMapper_allowed_returnsNull() {
         val lockedReason = AuthorizationResult.Allowed.toLockedReasonOrNull(
+            detail = "detail"
+        )
+
+        assertNull(lockedReason)
+    }
+
+
+    @Test
+    fun authorizationResultMapper_emergencyAllowed_returnsNull() {
+        val now = System.currentTimeMillis()
+        val window = EmergencyAccessWindow(
+            windowId = "test-window",
+            reason = EmergencyAccessReason.CRITICAL_HEALTH_ACCESS,
+            startedAtEpochMs = now,
+            expiresAtEpochMs = now + 10_000L,
+            trustedBaseOnly = true
+        )
+
+        val lockedReason = AuthorizationResult.EmergencyAllowed(
+            window = window
+        ).toLockedReasonOrNull(
             detail = "detail"
         )
 

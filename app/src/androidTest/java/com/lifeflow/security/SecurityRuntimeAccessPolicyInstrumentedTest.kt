@@ -2,6 +2,9 @@ package com.lifeflow.security
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.lifeflow.domain.security.DomainOperation
+import com.lifeflow.domain.security.EmergencyAccessReason
+import com.lifeflow.domain.security.EmergencyActivationRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,8 +19,18 @@ class SecurityRuntimeAccessPolicyInstrumentedTest {
     private val appContext
         get() = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
 
+    private val emergencySupport = EmergencyAuthorityBreakGlassTestSupport
+
     @After
     fun tearDown() {
+        runCatching {
+            if (SecurityEmergencyAccessAuthority.currentWindow() != null) {
+                SecurityEmergencyAccessAuthority.clear("androidTest teardown")
+            }
+        }
+
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
         SecurityAccessSession.clear()
         SecurityRuleEngine.clearAudit()
         SecurityRuleEngine.forceResetForAdversarialSuite(
@@ -97,6 +110,54 @@ class SecurityRuntimeAccessPolicyInstrumentedTest {
             SECURITY_EMERGENCY_LIMITED_USER_MESSAGE,
             decision.toFailureMessage()
         )
+    }
+
+    @Test
+    fun trustedBaseReadOnlyAuthorization_activeEmergencyWindow_allowsThroughBoundary() {
+        emergencySupport.initializeBoundary(appContext)
+        emergencySupport.resetTrust(
+            state = TrustState.DEGRADED,
+            reason = "trusted-base read-only emergency regression"
+        )
+        InstrumentationEmergencyAuditSink.clear()
+        InstrumentationEmergencyArtifactRegistry.clear()
+
+        val request = emergencySupport.freshRequest(
+            reason = EmergencyAccessReason.CRITICAL_HEALTH_ACCESS,
+            requestedDurationMs = 20_000L
+        )
+
+        val session = SecurityEmergencyAccessAuthority.createApprovalSession(
+            request = request,
+            degradedCauseSnapshotId = "snapshot-trusted-base-read",
+            firstApproverId = "approver-a",
+            secondApproverId = "approver-b"
+        )
+
+        val artifact = SecurityEmergencyAccessAuthority.issueActivationArtifact(
+            request = EmergencyActivationRequest(
+                approvalSession = session,
+                audience = "lifeflow-device",
+                nonce = "nonce-trusted-base-read",
+                requestedAtEpochMs = emergencySupport.nowEpochMs(),
+                artifactLifetimeMs = 30_000L,
+                keyBinding = emergencySupport.testKeyBinding(
+                    keyId = "key-trusted-base-read",
+                    thumbprint = "thumb-trusted-base-read"
+                )
+            )
+        )
+
+        SecurityEmergencyAccessAuthority.activate(artifact)
+        SecurityAccessSession.grantDefault(appContext)
+
+        val lockedReason =
+            SecurityAuthorizationGate.trustedBaseReadOnlyLockedReasonOrNull(
+                operation = DomainOperation.READ_TWIN_SNAPSHOT,
+                detail = "Trusted-base emergency read"
+            )
+
+        assertNull(lockedReason)
     }
 
     @Test

@@ -22,7 +22,9 @@ internal object SecurityAuthorizationContexts {
     fun trustedBaseReadOnlyCurrentSession(): AuthContext {
         return AuthContext(
             hasRecentAuthentication = SecurityAccessSession.isAuthorized(),
-            authorizationPolicy = AuthorizationPolicy.TRUSTED_BASE_READ_ONLY
+            authorizationPolicy = AuthorizationPolicy.TRUSTED_BASE_READ_ONLY,
+            emergencyRequest = SecurityEmergencyWindowStatePortAdapter
+                .activeTrustedBaseReadOnlyRequestOrNull()
         )
     }
 }
