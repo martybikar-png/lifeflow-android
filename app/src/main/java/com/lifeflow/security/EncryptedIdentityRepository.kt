@@ -22,26 +22,12 @@ import java.util.UUID
  * - We treat "no marker" as legacy and allow decrypt only in legacy mode
  * - Legacy blobs are NOT auto-migrated during read paths
  * - Migration to versioned storage happens only on explicit write/save paths
- *
- * Consistency hardening:
- * - Encrypt for the next version first
- * - Write blob first
- * - Commit vault version second
- * - If vault version commit fails, roll blob back best-effort and fail closed
  */
 class EncryptedIdentityRepository(
     private val blobStore: EncryptedIdentityBlobStore,
     private val encryptionService: EncryptionService,
     private val vault: AndroidDataSovereigntyVault
 ) : IdentityRepository {
-
-    private companion object {
-        private const val MARKER_VERSIONED: Int = 0xA1
-        private const val MARKER_LEGACY: Int = 0xA2
-
-        private val SCHEME_VERSIONED: Byte = MARKER_VERSIONED.toByte()
-        private val SCHEME_LEGACY: Byte = MARKER_LEGACY.toByte()
-    }
 
     private val mutex = Mutex()
 
@@ -55,10 +41,13 @@ class EncryptedIdentityRepository(
             val plain = serialize(identity)
 
             try {
-                writeVersionedBlob(
+                encryptedIdentityWriteVersionedBlob(
                     id = identity.id,
                     plain = plain,
-                    operation = "save()"
+                    operation = "save()",
+                    blobStore = blobStore,
+                    encryptionService = encryptionService,
+                    vault = vault
                 )
             } catch (t: Throwable) {
                 SecurityKeystoreFailureHandler.throwForFailure(
@@ -158,75 +147,6 @@ class EncryptedIdentityRepository(
         }
     }
 
-    /**
-     * Writes a versioned blob with best-effort consistency:
-     * 1) compute next version without mutating vault
-     * 2) encrypt for that next version
-     * 3) write blob
-     * 4) commit vault version
-     * 5) if step 4 fails, restore previous blob and fail closed
-     *
-     * NOTE:
-     * - This helper does not report to SecurityRuleEngine directly
-     * - The authoritative caller reports once at the boundary to avoid duplicate audit noise
-     */
-    private fun writeVersionedBlob(
-        id: UUID,
-        plain: ByteArray,
-        operation: String
-    ) {
-        val previousVersion = vault.getIdentityVersion(id)
-        val nextVersion = previousVersion + 1L
-        require(nextVersion > 0L) { "Version overflow for id=$id" }
-
-        val previousStored = blobStore.get(id)
-
-        val stored = try {
-            encryptedIdentityEncryptVersionedBlob(
-                id = id,
-                version = nextVersion,
-                plain = plain,
-                encryptionService = encryptionService
-            )
-        } catch (t: Throwable) {
-            throw SecurityException(
-                "EncryptedIdentityRepository: $operation encrypt failed for id=$id",
-                t
-            )
-        }
-
-        try {
-            blobStore.put(id, stored)
-
-            val committedVersion = vault.nextIdentityVersion(id)
-            check(committedVersion == nextVersion) {
-                "Vault version mismatch for id=$id: expected=$nextVersion actual=$committedVersion"
-            }
-        } catch (t: Throwable) {
-            restorePreviousBlob(id, previousStored, t)
-            throw SecurityException(
-                "EncryptedIdentityRepository: $operation consistency failure for id=$id",
-                t
-            )
-        }
-    }
-
-    private fun restorePreviousBlob(
-        id: UUID,
-        previousStored: ByteArray?,
-        original: Throwable
-    ) {
-        runCatching {
-            if (previousStored == null) {
-                blobStore.delete(id)
-            } else {
-                blobStore.put(id, previousStored)
-            }
-        }.onFailure { rollbackFailure ->
-            original.addSuppressed(rollbackFailure)
-        }
-    }
-
     // Compatibility bridge for existing reflection-based unit tests.
     private fun decryptStrict(
         id: UUID,
@@ -271,12 +191,3 @@ class EncryptedIdentityRepository(
         return encryptedIdentityDeserialize(bytes)
     }
 }
-
-
-
-
-
-
-
-
-
