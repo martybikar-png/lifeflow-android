@@ -1,6 +1,5 @@
 package com.lifeflow.security
 
-import android.util.Base64
 import java.security.KeyStore
 import java.security.SecureRandom
 import javax.net.ssl.KeyManagerFactory
@@ -12,6 +11,7 @@ import javax.net.ssl.X509TrustManager
 internal class AndroidKeystoreIntegrityTrustTlsMaterialProvider(
     private val clientAuthKeyAlias: String
 ) : IntegrityTrustTlsMaterialProvider {
+    private val secureRandom = SecureRandom()
 
     override fun materialFor(
         endpoint: IntegrityTrustTransportConfig.EndpointConfig
@@ -43,7 +43,7 @@ internal class AndroidKeystoreIntegrityTrustTlsMaterialProvider(
                 "Integrity trust client-auth key material is missing for alias=$clientAuthKeyAlias."
             )
 
-        val keyManagerPassword = temporaryPassword()
+        val keyManagerPassword = newInMemoryKeyStorePassword()
         try {
             val inMemoryKeyStore = KeyStore.getInstance(KeyStore.getDefaultType())
             inMemoryKeyStore.load(null, keyManagerPassword)
@@ -93,13 +93,17 @@ internal class AndroidKeystoreIntegrityTrustTlsMaterialProvider(
             )
     }
 
-    private fun temporaryPassword(): CharArray {
-        val bytes = ByteArray(24)
-        SecureRandom().nextBytes(bytes)
-        return Base64.encodeToString(bytes, Base64.NO_WRAP).toCharArray()
+    private fun newInMemoryKeyStorePassword(): CharArray {
+        val alphabet = IN_MEMORY_KEYSTORE_PASSWORD_ALPHABET
+        return CharArray(IN_MEMORY_KEYSTORE_PASSWORD_LENGTH) {
+            alphabet[secureRandom.nextInt(alphabet.size)]
+        }
     }
 
     private companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+        private const val IN_MEMORY_KEYSTORE_PASSWORD_LENGTH = 32
+        private val IN_MEMORY_KEYSTORE_PASSWORD_ALPHABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray()
     }
 }
