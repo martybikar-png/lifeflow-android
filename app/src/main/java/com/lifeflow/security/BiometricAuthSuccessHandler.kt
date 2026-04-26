@@ -54,10 +54,10 @@ internal class BiometricAuthSuccessHandler(
         SecurityAccessSession.grantDefault(activity.applicationContext)
 
         val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
-        val runtimeAccessDecision =
-            SecurityRuntimeAccessPolicy.decideStandardProtectedEntry()
+        val handoffDecision =
+            SecurityRuntimeAccessPolicy.decideBiometricAuthenticationHandoff()
 
-        if (sessionOk && runtimeAccessDecision.allowed) {
+        if (sessionOk && handoffDecision.allowed) {
             SecurityAuditLog.info(
                 EventType.AUTH_SUCCESS,
                 "Biometric authentication succeeded"
@@ -68,26 +68,26 @@ internal class BiometricAuthSuccessHandler(
             )
             SecurityAuditLog.info(
                 EventType.HARDENING_CHECK_PASSED,
-                "Post-auth runtime access allowed",
+                "Post-auth biometric handoff allowed",
                 mapOf(
-                    "effectiveTrustState" to runtimeAccessDecision.effectiveTrustState.name
+                    "effectiveTrustState" to handoffDecision.effectiveTrustState.name
                 )
             )
             onSuccess(result)
         } else {
             SecurityAuditLog.critical(
                 EventType.AUTH_FAILURE,
-                "Session establishment or runtime authorization failed post-auth",
+                "Session establishment or biometric handoff authorization failed post-auth",
                 mapOf(
                     "sessionOk" to sessionOk.toString(),
-                    "runtimeAllowed" to runtimeAccessDecision.allowed.toString(),
-                    "effectiveTrustState" to runtimeAccessDecision.effectiveTrustState.name,
-                    "denialCode" to (runtimeAccessDecision.denialCode?.name ?: "none")
+                    "handoffAllowed" to handoffDecision.allowed.toString(),
+                    "effectiveTrustState" to handoffDecision.effectiveTrustState.name,
+                    "denialCode" to (handoffDecision.denialCode?.name ?: "none")
                 )
             )
             failureHandler.failClosed(
                 onError = onError,
-                message = failureHandler.postAuthFailureMessage(runtimeAccessDecision)
+                message = failureHandler.postAuthFailureMessage(handoffDecision)
             )
         }
     }

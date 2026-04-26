@@ -3,6 +3,7 @@ package com.lifeflow.core
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
 import com.lifeflow.security.SecurityAccessSession
+import com.lifeflow.security.SecurityIdentityBootstrapAuthorization
 import com.lifeflow.security.SecurityLockedException
 import com.lifeflow.security.SecurityLockedReason
 import com.lifeflow.security.withDetail
@@ -28,20 +29,27 @@ internal suspend fun lifeflowOrchestratorBootstrapIdentityIfNeeded(
     authorizeBootstrapAccess(readAccessPolicy)?.let { return it }
 
     return try {
-        val active = identityRepository.getActiveIdentity()
+        SecurityIdentityBootstrapAuthorization.withFreshBootstrapAuthorization(
+            reason = "Identity bootstrap"
+        ) {
+            val active = identityRepository.getActiveIdentity()
 
-        if (active == null) {
-            authorizeBootstrapAccess(writeAccessPolicy)?.let { return it }
+            if (active == null) {
+                val writeLock = authorizeBootstrapAccess(writeAccessPolicy)
+                if (writeLock != null) {
+                    return@withFreshBootstrapAuthorization writeLock
+                }
 
-            val newIdentity = LifeFlowIdentity(
-                id = UUID.randomUUID(),
-                createdAtEpochMillis = System.currentTimeMillis(),
-                isActive = true
-            )
-            identityRepository.save(newIdentity)
+                val newIdentity = LifeFlowIdentity(
+                    id = UUID.randomUUID(),
+                    createdAtEpochMillis = System.currentTimeMillis(),
+                    isActive = true
+                )
+                identityRepository.save(newIdentity)
+            }
+
+            ActionResult.Success(Unit)
         }
-
-        ActionResult.Success(Unit)
     } catch (e: SecurityLockedException) {
         SecurityAccessSession.clear()
         ActionResult.Locked(e.lockedReason)

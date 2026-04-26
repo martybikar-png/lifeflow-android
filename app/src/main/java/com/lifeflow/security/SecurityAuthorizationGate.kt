@@ -50,4 +50,13 @@ internal object SecurityAuthorizationGate {
             detail = detail
         )
     }
+
+    fun biometricBootstrapLockedReasonOrNull(
+        operation: DomainOperation,
+        detail: String
+    ): String? {
+        return SecurityRuntimeAccessPolicy
+            .decideBiometricBootstrapOperation(operation)
+            .toLockedReason(detail)
+    }
 }

@@ -14,6 +14,14 @@ internal object SecurityRuntimeAccessPolicy {
     fun decideTrustedBaseReadEntry(): SecurityRuntimeAccessDecision =
         entryEvaluator.decideTrustedBaseReadEntry()
 
+    fun decideBiometricAuthenticationHandoff(): SecurityRuntimeAccessDecision =
+        entryEvaluator.decideBiometricAuthenticationHandoff()
+
+    fun decideBiometricBootstrapOperation(
+        operation: DomainOperation
+    ): SecurityRuntimeAccessDecision =
+        entryEvaluator.decideBiometricBootstrapOperation(operation)
+
     fun decideAuthorization(
         request: SecurityRuntimeAuthorizationRequest
     ): SecurityRuntimeAuthorizationDecision =

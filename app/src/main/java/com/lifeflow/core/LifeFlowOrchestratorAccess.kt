@@ -6,7 +6,8 @@ import com.lifeflow.security.SecurityAuthorizationGate
 internal enum class LifeFlowOrchestratorAuthContextKind {
     STANDARD_PROTECTED_CURRENT_SESSION,
     STRICT_PROTECTED_CURRENT_SESSION,
-    TRUSTED_BASE_READ_ONLY_CURRENT_SESSION
+    TRUSTED_BASE_READ_ONLY_CURRENT_SESSION,
+    BIOMETRIC_BOOTSTRAP_CURRENT_SESSION
 }
 
 internal fun lifeflowOrchestratorAuthorizeOperation(
@@ -29,6 +30,12 @@ internal fun lifeflowOrchestratorAuthorizeOperation(
 
         LifeFlowOrchestratorAuthContextKind.TRUSTED_BASE_READ_ONLY_CURRENT_SESSION ->
             SecurityAuthorizationGate.trustedBaseReadOnlyLockedReasonOrNull(
+                operation = operation,
+                detail = detail
+            )
+
+        LifeFlowOrchestratorAuthContextKind.BIOMETRIC_BOOTSTRAP_CURRENT_SESSION ->
+            SecurityAuthorizationGate.biometricBootstrapLockedReasonOrNull(
                 operation = operation,
                 detail = detail
             )

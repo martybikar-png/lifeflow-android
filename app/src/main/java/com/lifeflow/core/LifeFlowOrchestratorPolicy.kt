@@ -28,13 +28,13 @@ internal object LifeFlowOrchestratorPolicies {
     val bootstrapIdentityReadAccess = LifeFlowOrchestratorAccessPolicy(
         operation = DomainOperation.READ_ACTIVE_IDENTITY,
         detail = "Identity bootstrap",
-        contextKind = LifeFlowOrchestratorAuthContextKind.STRICT_PROTECTED_CURRENT_SESSION
+        contextKind = LifeFlowOrchestratorAuthContextKind.BIOMETRIC_BOOTSTRAP_CURRENT_SESSION
     )
 
     val bootstrapIdentityWriteAccess = LifeFlowOrchestratorAccessPolicy(
         operation = DomainOperation.SAVE_IDENTITY,
         detail = "Identity bootstrap",
-        contextKind = LifeFlowOrchestratorAuthContextKind.STRICT_PROTECTED_CURRENT_SESSION
+        contextKind = LifeFlowOrchestratorAuthContextKind.BIOMETRIC_BOOTSTRAP_CURRENT_SESSION
     )
 
     val refreshTwin = LifeFlowOrchestratorCoreOperationPolicy(

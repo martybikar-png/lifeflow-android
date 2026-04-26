@@ -25,6 +25,16 @@ internal class SecurityRuleEngineOperationEnforcer(
             }
 
             SecurityRuntimeOperationOutcome.DENIED -> {
+                if (SecurityIdentityBootstrapAuthorization.allowsOperation(operation)) {
+                    auditStore.record(
+                        SecurityRuleEngine.Decision.ALLOW,
+                        operation,
+                        "BIOMETRIC_BOOTSTRAP_SCOPE: $reason",
+                        state
+                    )
+                    return
+                }
+
                 val denialCode =
                     SecurityRuntimeOperationGate.denialCodeName(decision)
                 auditStore.record(

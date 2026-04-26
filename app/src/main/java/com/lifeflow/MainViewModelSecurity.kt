@@ -3,7 +3,6 @@ package com.lifeflow
 import com.lifeflow.domain.security.TrustState
 import com.lifeflow.security.AUTH_REQUIRED_USER_MESSAGE
 import com.lifeflow.security.SECURITY_COMPROMISED_USER_MESSAGE
-import com.lifeflow.security.SECURITY_DEGRADED_USER_MESSAGE
 import com.lifeflow.security.SECURITY_EMERGENCY_LIMITED_USER_MESSAGE
 import com.lifeflow.security.lockedReasonToUserMessage
 
@@ -19,8 +18,8 @@ private fun runtimeEntryTrustStateBlockMessage(
 ): String? =
     when (trustState) {
         TrustState.COMPROMISED -> SECURITY_COMPROMISED_USER_MESSAGE
-        TrustState.DEGRADED -> SECURITY_DEGRADED_USER_MESSAGE
         TrustState.EMERGENCY_LIMITED -> SECURITY_EMERGENCY_LIMITED_USER_MESSAGE
+        TrustState.DEGRADED,
         TrustState.VERIFIED -> null
     }
 
@@ -71,13 +70,6 @@ internal fun mainViewModelTrustStateMessageOrNull(
         TrustState.COMPROMISED ->
             SECURITY_COMPROMISED_USER_MESSAGE
 
-        TrustState.DEGRADED ->
-            if (isAuthenticatedUi) {
-                SECURITY_DEGRADED_USER_MESSAGE
-            } else {
-                null
-            }
-
         TrustState.EMERGENCY_LIMITED ->
             if (isAuthenticatedUi) {
                 SECURITY_EMERGENCY_LIMITED_USER_MESSAGE
@@ -85,6 +77,7 @@ internal fun mainViewModelTrustStateMessageOrNull(
                 null
             }
 
+        TrustState.DEGRADED,
         TrustState.VERIFIED ->
             null
     }

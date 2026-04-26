@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.innerShadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.text.TextStyle
@@ -20,41 +21,43 @@ internal enum class LifeFlowButtonVariant {
     Secondary
 }
 
-internal val LifeFlowButtonShape = RoundedCornerShape(14.dp)
-internal val LifeFlowButtonMinHeight = 52.dp
-internal val LifeFlowButtonOuterHorizontalPadding = 4.dp
+internal val LifeFlowButtonShape = RoundedCornerShape(24.dp)
+internal val LifeFlowButtonMinHeight = 46.dp
+internal val LifeFlowButtonOuterHorizontalPadding = 52.dp
 internal val LifeFlowButtonOuterVerticalPadding = 4.dp
 internal val LifeFlowButtonHorizontalPadding = 18.dp
-internal val LifeFlowButtonVerticalPadding = 13.dp
+internal val LifeFlowButtonVerticalPadding = 10.dp
 internal val LifeFlowButtonIconSize = 16.dp
 
 internal val LifeFlowButtonAccent = Color(0xFF22CDF7)
 
-internal val LifeFlowButtonIdleSurface = LifeFlowNeuSurfaceColor
-internal val LifeFlowButtonHoverSurface = Color(0xFFF7FBFF)
-internal val LifeFlowButtonPressedSurface = Color(0xFFEAF7FD)
+internal val LifeFlowButtonIdleSurface = Color(0xFFE8E8E8)
+internal val LifeFlowButtonHoverSurface = Color(0xFFF5FBFE)
+internal val LifeFlowButtonPressedSurface = Color(0xFFA6EAFF)
 internal val LifeFlowButtonDisabledSurface = Color(0xFFF0F2F6)
 
+private val LifeFlowButtonPressedSurfaceBottom = Color(0xFFB8F0FF)
+
 internal val LifeFlowButtonLiftLight = Color(0xFFFFFFFF).copy(alpha = 0.96f)
-internal val LifeFlowButtonLiftDark = Color(0xFF8994A3).copy(alpha = 0.38f)
-internal val LifeFlowButtonHoverDark = Color(0xFF7E8998).copy(alpha = 0.42f)
-internal val LifeFlowButtonDisabledDark = Color(0xFFBAC3CF).copy(alpha = 0.26f)
+internal val LifeFlowButtonLiftDark = Color(0xFF737B86).copy(alpha = 0.42f)
+internal val LifeFlowButtonHoverDark = Color(0xFF687482).copy(alpha = 0.44f)
+internal val LifeFlowButtonDisabledDark = Color(0xFFBAC3CF).copy(alpha = 0.24f)
 
-private val LifeFlowButtonInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.62f)
-private val LifeFlowButtonInnerShade = Color(0xFFD8DEE7).copy(alpha = 0.40f)
+private val LifeFlowButtonInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.70f)
+private val LifeFlowButtonInnerShade = Color(0xFFC9CDD3).copy(alpha = 0.42f)
 
-private val LifeFlowButtonPressedInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.78f)
-private val LifeFlowButtonPressedInnerShade = Color(0xFFC9D5E1).copy(alpha = 0.78f)
+private val LifeFlowButtonPressedInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.72f)
+private val LifeFlowButtonPressedInnerShade = Color(0xFF77CBE4).copy(alpha = 0.58f)
 
-internal val LifeFlowButtonIdleBorder = Color(0xFF9EA8B5).copy(alpha = 0.20f)
-internal val LifeFlowButtonHoverBorder = LifeFlowButtonAccent.copy(alpha = 0.28f)
-internal val LifeFlowButtonPressedBorder = LifeFlowButtonAccent.copy(alpha = 0.34f)
+internal val LifeFlowButtonIdleBorder = Color(0xFF7F8792).copy(alpha = 0.30f)
+internal val LifeFlowButtonHoverBorder = LifeFlowButtonAccent.copy(alpha = 0.32f)
+internal val LifeFlowButtonPressedBorder = LifeFlowButtonAccent.copy(alpha = 0.46f)
 internal val LifeFlowButtonDisabledBorder = Color(0xFFB9C3CF).copy(alpha = 0.18f)
 
-internal val LifeFlowButtonPrimaryText = Color(0xFF171A20)
-internal val LifeFlowButtonSecondaryText = Color(0xFF2D3641)
-internal val LifeFlowButtonInteractiveText = LifeFlowButtonAccent
-internal val LifeFlowButtonDisabledText = Color(0xFF8B94A1)
+internal val LifeFlowButtonPrimaryText = Color(0xFF090909)
+internal val LifeFlowButtonSecondaryText = Color(0xFF20242A)
+internal val LifeFlowButtonInteractiveText = Color(0xFF090909)
+internal val LifeFlowButtonDisabledText = Color(0xFF7F8792)
 
 @Composable
 internal fun lifeFlowButtonTextStyle(): TextStyle {
@@ -68,9 +71,9 @@ internal fun lifeFlowButtonIconTint(
     enabled: Boolean
 ): Color {
     return if (enabled) {
-        LifeFlowButtonAccent
+        LifeFlowButtonPrimaryText
     } else {
-        LifeFlowButtonAccent.copy(alpha = 0.58f)
+        LifeFlowButtonDisabledText
     }
 }
 
@@ -84,19 +87,19 @@ internal fun Modifier.lifeFlowRaisedButtonChrome(
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 18.dp,
+                radius = 20.dp,
                 spread = 1.dp,
                 color = LifeFlowButtonLiftLight,
-                offset = DpOffset(x = (-7).dp, y = (-7).dp)
+                offset = DpOffset(x = (-8).dp, y = (-8).dp)
             )
         )
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 18.dp,
+                radius = 20.dp,
                 spread = 1.dp,
                 color = darkShadowColor,
-                offset = DpOffset(x = 7.dp, y = 7.dp)
+                offset = DpOffset(x = 8.dp, y = 8.dp)
             )
         )
         .background(
@@ -115,14 +118,14 @@ internal fun Modifier.lifeFlowRaisedButtonChrome(
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 8.dp,
+                radius = 9.dp,
                 spread = 0.dp,
                 color = LifeFlowButtonInnerShade,
                 offset = DpOffset(x = 2.dp, y = 2.dp)
             )
         )
         .border(
-            width = 0.7.dp,
+            width = 0.8.dp,
             color = borderColor,
             shape = shape
         )
@@ -137,29 +140,34 @@ internal fun Modifier.lifeFlowPressedButtonChrome(
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 10.dp,
+                radius = 8.dp,
                 spread = 0.dp,
                 color = LifeFlowButtonLiftLight,
-                offset = DpOffset(x = (-3).dp, y = (-3).dp)
+                offset = DpOffset(x = (-2).dp, y = (-2).dp)
             )
         )
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 10.dp,
+                radius = 8.dp,
                 spread = 0.dp,
                 color = LifeFlowButtonLiftDark,
-                offset = DpOffset(x = 3.dp, y = 3.dp)
+                offset = DpOffset(x = 2.dp, y = 2.dp)
             )
         )
         .background(
-            color = surfaceColor,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    surfaceColor,
+                    LifeFlowButtonPressedSurfaceBottom
+                )
+            ),
             shape = shape
         )
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 12.dp,
+                radius = 14.dp,
                 spread = 0.dp,
                 color = LifeFlowButtonPressedInnerShade,
                 offset = DpOffset(x = 5.dp, y = 5.dp)
@@ -168,14 +176,14 @@ internal fun Modifier.lifeFlowPressedButtonChrome(
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 10.dp,
+                radius = 11.dp,
                 spread = 0.dp,
                 color = LifeFlowButtonPressedInnerHighlight,
                 offset = DpOffset(x = (-4).dp, y = (-4).dp)
             )
         )
         .border(
-            width = 0.8.dp,
+            width = 0.9.dp,
             color = borderColor,
             shape = shape
         )
