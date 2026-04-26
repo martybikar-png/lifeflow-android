@@ -24,10 +24,14 @@ internal suspend fun prepareStandardIntegrityTokenProvider(
                         .build()
                 )
                 .addOnSuccessListener { tokenProvider ->
+                    if (!continuation.isActive) return@addOnSuccessListener
+
                     onPrepared(tokenProvider)
                     continuation.resume(PlayIntegrityVerifier.PreparationResult.Prepared)
                 }
                 .addOnFailureListener { exception ->
+                    if (!continuation.isActive) return@addOnFailureListener
+
                     onFailed()
                     continuation.resume(
                         PlayIntegrityVerifier.PreparationResult.Failure(
@@ -37,12 +41,15 @@ internal suspend fun prepareStandardIntegrityTokenProvider(
                         )
                     )
                 }
-        } catch (e: Exception) {
+        } catch (exception: RuntimeException) {
+            if (!continuation.isActive) return@suspendCancellableCoroutine
+
             onFailed()
             continuation.resume(
                 PlayIntegrityVerifier.PreparationResult.Failure(
-                    error = e.message ?: "Failed to initialize standard integrity manager",
-                    errorCode = resolveStandardIntegrityErrorCode(e)
+                    error = exception.message
+                        ?: "Failed to initialize standard integrity manager",
+                    errorCode = resolveStandardIntegrityErrorCode(exception)
                 )
             )
         }

@@ -3,6 +3,7 @@ package com.lifeflow
 import android.content.Context
 import com.lifeflow.security.IntegrityTrustVerdictResponse
 import com.lifeflow.security.SecurityIntegrityTrustVerdict
+import kotlinx.coroutines.CancellationException
 
 internal data class StartupIntegrityLifecycleSnapshot(
     val restartReason: IntegrityRuntimeRestartReason?,
@@ -64,85 +65,83 @@ internal class StartupIntegrityCoordinator(
         val requestContext = bindRequestContext(request)
         val payload = requestContext.serializeIntegrityPayload()
 
-        return runCatching {
-            requestServerVerdict(payload)
-        }.fold(
-            onSuccess = { response ->
-                reportIntegrityTrustVerdictResponse(response)
+        return try {
+            val response = requestServerVerdict(payload)
+            reportIntegrityTrustVerdictResponse(response)
 
-                val recoveryDecision = classifyIntegrityStartupRecoveryAction(
-                    trigger = request.trigger,
-                    response = response
-                )
+            val recoveryDecision = classifyIntegrityStartupRecoveryAction(
+                trigger = request.trigger,
+                response = response
+            )
 
-                when (recoveryDecision.action) {
-                    IntegrityStartupRecoveryAction.NONE -> {
-                        StartupIntegrityExecutionResult(
-                            infoLogMessage = buildString {
-                                append("Startup integrity trust verdict applied for ")
-                                append(request.trigger.name)
-                                append(": ")
-                                append(response.verdict)
-                                append(" / ")
-                                append(response.decision)
-                                response.decisionReasonCode?.let {
-                                    append(" [")
-                                    append(it)
-                                    append(']')
-                                }
-                                append(" (")
-                                append(response.reason)
-                                append(')')
+            when (recoveryDecision.action) {
+                IntegrityStartupRecoveryAction.NONE -> {
+                    StartupIntegrityExecutionResult(
+                        infoLogMessage = buildString {
+                            append("Startup integrity trust verdict applied for ")
+                            append(request.trigger.name)
+                            append(": ")
+                            append(response.verdict)
+                            append(" / ")
+                            append(response.decision)
+                            response.decisionReasonCode?.let {
+                                append(" [")
+                                append(it)
+                                append(']')
                             }
-                        )
-                    }
-
-                    IntegrityStartupRecoveryAction.REQUEST_PROTECTED_RUNTIME_REBUILD -> {
-                        StartupIntegrityExecutionResult(
-                            recoveryDecision = recoveryDecision,
-                            recoveryRebuildSource =
-                                ProtectedRuntimeRebuildSource.STARTUP_INTEGRITY_POLICY,
-                            recoverySignal = "STARTUP_INTEGRITY_POLICY_REBUILD"
-                        )
-                    }
-                }
-            },
-            onFailure = { throwable ->
-                reportIntegrityTrustVerdictResponse(
-                    IntegrityTrustVerdictResponse(
-                        verdict = SecurityIntegrityTrustVerdict.DEGRADED,
-                        reason =
-                            "STARTUP_VERDICT_FAILURE: ${throwable::class.java.simpleName}: " +
-                                throwable.message
+                            append(" (")
+                            append(response.reason)
+                            append(')')
+                        }
                     )
-                )
+                }
 
-                val recoveryDecision = classifyIntegrityStartupFailureRecoveryAction(
-                    trigger = request.trigger,
-                    throwable = throwable
-                )
-
-                when (recoveryDecision.action) {
-                    IntegrityStartupRecoveryAction.NONE -> {
-                        StartupIntegrityExecutionResult(
-                            warningLogMessage =
-                                "Startup integrity trust verdict request failed for " +
-                                    "${request.trigger.name}.",
-                            warningThrowable = throwable
-                        )
-                    }
-
-                    IntegrityStartupRecoveryAction.REQUEST_PROTECTED_RUNTIME_REBUILD -> {
-                        StartupIntegrityExecutionResult(
-                            recoveryDecision = recoveryDecision,
-                            recoveryRebuildSource =
-                                ProtectedRuntimeRebuildSource.STARTUP_INTEGRITY_REQUEST_FAILURE,
-                            recoverySignal = "STARTUP_INTEGRITY_REQUEST_FAILURE_REBUILD"
-                        )
-                    }
+                IntegrityStartupRecoveryAction.REQUEST_PROTECTED_RUNTIME_REBUILD -> {
+                    StartupIntegrityExecutionResult(
+                        recoveryDecision = recoveryDecision,
+                        recoveryRebuildSource =
+                            ProtectedRuntimeRebuildSource.STARTUP_INTEGRITY_POLICY,
+                        recoverySignal = "STARTUP_INTEGRITY_POLICY_REBUILD"
+                    )
                 }
             }
-        )
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (exception: Exception) {
+            reportIntegrityTrustVerdictResponse(
+                IntegrityTrustVerdictResponse(
+                    verdict = SecurityIntegrityTrustVerdict.DEGRADED,
+                    reason =
+                        "STARTUP_VERDICT_FAILURE: ${exception::class.java.simpleName}: " +
+                            exception.message
+                )
+            )
+
+            val recoveryDecision = classifyIntegrityStartupFailureRecoveryAction(
+                trigger = request.trigger,
+                throwable = exception
+            )
+
+            when (recoveryDecision.action) {
+                IntegrityStartupRecoveryAction.NONE -> {
+                    StartupIntegrityExecutionResult(
+                        warningLogMessage =
+                            "Startup integrity trust verdict request failed for " +
+                                "${request.trigger.name}.",
+                        warningThrowable = exception
+                    )
+                }
+
+                IntegrityStartupRecoveryAction.REQUEST_PROTECTED_RUNTIME_REBUILD -> {
+                    StartupIntegrityExecutionResult(
+                        recoveryDecision = recoveryDecision,
+                        recoveryRebuildSource =
+                            ProtectedRuntimeRebuildSource.STARTUP_INTEGRITY_REQUEST_FAILURE,
+                        recoverySignal = "STARTUP_INTEGRITY_REQUEST_FAILURE_REBUILD"
+                    )
+                }
+            }
+        }
     }
 
     private fun bindRequestContext(

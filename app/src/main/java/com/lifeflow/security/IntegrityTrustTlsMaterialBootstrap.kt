@@ -5,6 +5,7 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
+import android.util.Log
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.MessageDigest
@@ -12,6 +13,7 @@ import java.security.SecureRandom
 import java.security.spec.ECGenParameterSpec
 
 internal object IntegrityTrustTlsMaterialBootstrap {
+    private const val TAG = "IntegrityTrustBootstrap"
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
     private const val EC_CURVE = "secp256r1"
     private const val CLIENT_AUTH_CHALLENGE_CONTEXT =
@@ -36,7 +38,7 @@ internal object IntegrityTrustTlsMaterialBootstrap {
             return
         }
 
-        deleteClientAuthKeySilently()
+        deleteClientAuthKeyIfPresent()
         generateClientAuthKeyPair(applicationContext)
     }
 
@@ -117,12 +119,18 @@ internal object IntegrityTrustTlsMaterialBootstrap {
         return digest.digest()
     }
 
-    private fun deleteClientAuthKeySilently() {
-        runCatching {
+    private fun deleteClientAuthKeyIfPresent() {
+        try {
             val keyStore = loadAndroidKeyStore()
             if (keyStore.containsAlias(INTEGRITY_CLIENT_AUTH_KEY_ALIAS)) {
                 keyStore.deleteEntry(INTEGRITY_CLIENT_AUTH_KEY_ALIAS)
             }
+        } catch (exception: Exception) {
+            Log.w(
+                TAG,
+                "Integrity client-auth key cleanup failed.",
+                exception
+            )
         }
     }
 

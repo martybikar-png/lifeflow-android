@@ -24,7 +24,7 @@ internal class SecurityKeyAttestationEvidenceCapturer {
     private fun captureEvidence(
         challenge: ByteArray
     ): SecurityKeyAttestationEvidence {
-        deleteExistingAliasSilently()
+        deleteExistingAliasIfPresent()
 
         return try {
             val strongBoxRequested = generateAttestedKeyPair(challenge)
@@ -42,10 +42,10 @@ internal class SecurityKeyAttestationEvidenceCapturer {
                     strongBoxRequested = strongBoxRequested
                 )
             }
-        } catch (throwable: Throwable) {
-            deleteExistingAliasSilently()
+        } catch (exception: Exception) {
+            deleteExistingAliasIfPresent()
             hardFailureEvidence(
-                reason = "${throwable::class.java.simpleName}: ${throwable.message ?: "unknown"}",
+                reason = "${exception::class.java.simpleName}: ${exception.message ?: "unknown"}",
                 strongBoxRequested = false
             )
         }
@@ -138,18 +138,18 @@ internal class SecurityKeyAttestationEvidenceCapturer {
         return keyStore.getCertificateChain(ATTESTATION_KEY_ALIAS) ?: emptyArray()
     }
 
-    private fun deleteExistingAliasSilently() {
-        runCatching {
+    private fun deleteExistingAliasIfPresent() {
+        try {
             val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
             keyStore.load(null)
             if (keyStore.containsAlias(ATTESTATION_KEY_ALIAS)) {
                 keyStore.deleteEntry(ATTESTATION_KEY_ALIAS)
             }
-        }.onFailure { throwable ->
+        } catch (exception: Exception) {
             Log.w(
                 TAG,
                 "Existing attestation alias cleanup failed.",
-                throwable
+                exception
             )
         }
     }

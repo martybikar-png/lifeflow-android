@@ -49,13 +49,13 @@ internal fun ensureLifeFlowAppRuntimeStarted(
 
                 triggerToSchedule = startPlan.trigger
                 started = true
-            } catch (throwable: Throwable) {
+            } catch (exception: Exception) {
                 runtimeSecuritySurveillanceCoordinator.stop()
-                onRuntimeStartFailed(throwable)
+                onRuntimeStartFailed(exception)
                 updateRuntimeBindings(null)
                 updateStartupInitialized(false)
                 updateStartupFailureMessage(
-                    buildLifeFlowAppRuntimeStartupFailureMessage(throwable)
+                    buildLifeFlowAppRuntimeStartupFailureMessage(exception)
                 )
 
                 restartLifecycle.markStartFailed()

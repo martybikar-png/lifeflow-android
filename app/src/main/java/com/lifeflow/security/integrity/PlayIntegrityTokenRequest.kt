@@ -23,11 +23,15 @@ internal suspend fun requestPreparedStandardIntegrityToken(
                         .build()
                 )
                 .addOnSuccessListener { response ->
+                    if (!continuation.isActive) return@addOnSuccessListener
+
                     continuation.resume(
                         PlayIntegrityVerifier.IntegrityResult.Success(response.token())
                     )
                 }
                 .addOnFailureListener { exception ->
+                    if (!continuation.isActive) return@addOnFailureListener
+
                     continuation.resume(
                         PlayIntegrityVerifier.IntegrityResult.Failure(
                             error = exception.message ?: "Failed to request integrity token",
@@ -35,11 +39,13 @@ internal suspend fun requestPreparedStandardIntegrityToken(
                         )
                     )
                 }
-        } catch (e: Exception) {
+        } catch (exception: RuntimeException) {
+            if (!continuation.isActive) return@suspendCancellableCoroutine
+
             continuation.resume(
                 PlayIntegrityVerifier.IntegrityResult.Failure(
-                    error = e.message ?: "Failed to execute integrity token request",
-                    errorCode = resolveStandardIntegrityErrorCode(e)
+                    error = exception.message ?: "Failed to execute integrity token request",
+                    errorCode = resolveStandardIntegrityErrorCode(exception)
                 )
             )
         }
