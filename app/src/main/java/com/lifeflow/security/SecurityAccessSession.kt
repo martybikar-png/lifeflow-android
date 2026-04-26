@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 object SecurityAccessSession {
 
-    private const val DEFAULT_SESSION_MS: Long = 30_000L
+    private const val DEFAULT_SESSION_MS: Long = 5 * 60_000L
     private const val MAX_SESSION_MS: Long = 5 * 60_000L
 
     private val validUntilElapsedMs = AtomicLong(0L)
