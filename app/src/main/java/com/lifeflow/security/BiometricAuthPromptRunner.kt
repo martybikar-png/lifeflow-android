@@ -23,6 +23,33 @@ internal class BiometricAuthPromptRunner(
         onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
         onError: (String) -> Unit
     ) {
+        authenticateWithSuccessMode(
+            successMode = BiometricAuthSuccessMode.STANDARD_PROTECTED_HANDOFF,
+            cryptoObject = cryptoObject,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    fun authenticateVaultReset(
+        cryptoObject: BiometricPrompt.CryptoObject?,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        authenticateWithSuccessMode(
+            successMode = BiometricAuthSuccessMode.VAULT_RESET_AUTHORIZATION,
+            cryptoObject = cryptoObject,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    private fun authenticateWithSuccessMode(
+        successMode: BiometricAuthSuccessMode,
+        cryptoObject: BiometricPrompt.CryptoObject?,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
         val biometricManager = BiometricManager.from(activity)
         val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
@@ -50,6 +77,7 @@ internal class BiometricAuthPromptRunner(
                     result: BiometricPrompt.AuthenticationResult
                 ) {
                     successHandler.handleSuccess(
+                        successMode = successMode,
                         cryptoObject = cryptoObject,
                         result = result,
                         onSuccess = onSuccess,

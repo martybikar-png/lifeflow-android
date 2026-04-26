@@ -97,21 +97,6 @@ internal object SecurityVaultResetAuthorization {
                 )
             }
 
-            if (!SecurityAccessSession.isAuthorized()) {
-                if (activeGrant.compareAndSet(grant, null)) {
-                    SecurityAuditLog.warning(
-                        EventType.VAULT_RESET_AUTH_DENIED,
-                        "Vault reset denied: active auth session expired before consume",
-                        metadata = mapOf(
-                            "reason" to reason,
-                            "grantedTrustState" to grant.grantedTrustState.name,
-                            "currentTrustState" to currentTrustState.name,
-                            "grantSource" to grant.grantSource.name
-                        )
-                    )
-                }
-                throw SecurityException("Vault reset denied: active auth session is required. $reason")
-            }
 
             if (activeGrant.compareAndSet(grant, null)) {
                 SecurityAuditLog.info(

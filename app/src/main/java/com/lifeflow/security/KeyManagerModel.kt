@@ -28,7 +28,7 @@ internal const val KEY_MANAGER_ANDROID_KEYSTORE = "AndroidKeyStore"
 internal const val KEY_MANAGER_DEFAULT_ALIAS = SESSION_KEY_ALIAS
 internal const val KEY_MANAGER_KEY_SIZE_BITS = 256
 internal const val KEY_MANAGER_AUTH_VALIDITY_SECONDS = 30
-internal const val KEY_MANAGER_AUTH_PER_USE_VALIDITY_SECONDS = -1
+internal const val KEY_MANAGER_AUTH_PER_USE_VALIDITY_SECONDS = 0
 
 internal fun supportsKeystoreAuthPerUseBiometric(): Boolean {
     return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R

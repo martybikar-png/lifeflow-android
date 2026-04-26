@@ -2,6 +2,7 @@ package com.lifeflow
 
 import android.content.Context
 import androidx.datastore.core.DataMigration
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -18,19 +19,11 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 
 internal class TierPreferencesStore(
-    private val context: Context
+    context: Context
 ) : TierTruthSource {
 
     private val appContext = context.applicationContext
-
-    private val dataStore by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        PreferenceDataStoreFactory.create(
-            migrations = listOf(SharedPreferencesTierMigration(appContext)),
-            produceFile = {
-                File(appContext.filesDir.parentFile, "datastore/lifeflow_tier_truth.preferences_pb")
-            }
-        )
-    }
+    private val dataStore: DataStore<Preferences> = dataStoreFor(appContext)
 
     override fun currentSnapshotOrNull(): TierTruthSnapshot? = runBlocking {
         val prefs = runCatching { dataStore.data.firstOrNull() ?: emptyPreferences() }
@@ -132,6 +125,9 @@ internal class TierPreferencesStore(
     }
 
     private companion object {
+        @Volatile
+        private var sharedDataStore: DataStore<Preferences>? = null
+
         private const val LEGACY_PREFS_NAME = "lifeflow_tier_truth"
         private const val LEGACY_KEY_CURRENT_TIER = "current_tier"
 
@@ -141,5 +137,27 @@ internal class TierPreferencesStore(
         private val IS_REVOKED_KEY = booleanPreferencesKey("is_revoked")
         private val IS_LOCKED_KEY = booleanPreferencesKey("is_locked")
         private val AUDIT_TAG_KEY = stringPreferencesKey("audit_tag")
+
+        private fun dataStoreFor(appContext: Context): DataStore<Preferences> {
+            sharedDataStore?.let { return it }
+
+            return synchronized(this) {
+                sharedDataStore ?: PreferenceDataStoreFactory.create(
+                    migrations = listOf(SharedPreferencesTierMigration(appContext)),
+                    produceFile = {
+                        tierTruthDataStoreFile(appContext)
+                    }
+                ).also { created ->
+                    sharedDataStore = created
+                }
+            }
+        }
+
+        private fun tierTruthDataStoreFile(appContext: Context): File {
+            return File(
+                appContext.filesDir.parentFile,
+                "datastore/lifeflow_tier_truth.preferences_pb"
+            )
+        }
     }
 }

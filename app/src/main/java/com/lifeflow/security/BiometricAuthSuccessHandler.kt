@@ -5,12 +5,18 @@ import androidx.fragment.app.FragmentActivity
 import com.lifeflow.security.audit.SecurityAuditLog
 import com.lifeflow.security.audit.SecurityAuditLog.EventType
 
+internal enum class BiometricAuthSuccessMode {
+    STANDARD_PROTECTED_HANDOFF,
+    VAULT_RESET_AUTHORIZATION
+}
+
 internal class BiometricAuthSuccessHandler(
     private val activity: FragmentActivity,
     private val authPerUseCryptoProvider: SecurityAuthPerUseCryptoProvider?,
     private val failureHandler: BiometricAuthFailureHandler
 ) {
     fun handleSuccess(
+        successMode: BiometricAuthSuccessMode,
         cryptoObject: BiometricPrompt.CryptoObject?,
         result: BiometricPrompt.AuthenticationResult,
         onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
@@ -53,6 +59,28 @@ internal class BiometricAuthSuccessHandler(
 
         SecurityAccessSession.grantDefault(activity.applicationContext)
 
+        when (successMode) {
+            BiometricAuthSuccessMode.STANDARD_PROTECTED_HANDOFF ->
+                completeStandardProtectedHandoff(
+                    result = result,
+                    onSuccess = onSuccess,
+                    onError = onError
+                )
+
+            BiometricAuthSuccessMode.VAULT_RESET_AUTHORIZATION ->
+                completeVaultResetAuthorization(
+                    result = result,
+                    onSuccess = onSuccess,
+                    onError = onError
+                )
+        }
+    }
+
+    private fun completeStandardProtectedHandoff(
+        result: BiometricPrompt.AuthenticationResult,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
         val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
         val handoffDecision =
             SecurityRuntimeAccessPolicy.decideBiometricAuthenticationHandoff()
@@ -88,6 +116,35 @@ internal class BiometricAuthSuccessHandler(
             failureHandler.failClosed(
                 onError = onError,
                 message = failureHandler.postAuthFailureMessage(handoffDecision)
+            )
+        }
+    }
+
+    private fun completeVaultResetAuthorization(
+        result: BiometricPrompt.AuthenticationResult,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val sessionOk = SecurityAccessSession.isAuthorized(activity.applicationContext)
+
+        if (sessionOk) {
+            SecurityAuditLog.info(
+                EventType.AUTH_SUCCESS,
+                "Vault reset biometric authorization succeeded"
+            )
+            SecurityAuditLog.info(
+                EventType.SESSION_CREATED,
+                "Security session established for vault reset authorization"
+            )
+            onSuccess(result)
+        } else {
+            SecurityAuditLog.critical(
+                EventType.AUTH_FAILURE,
+                "Vault reset session establishment failed post-auth"
+            )
+            failureHandler.failClosed(
+                onError = onError,
+                message = "Vault reset authentication succeeded, but secure session could not be established."
             )
         }
     }

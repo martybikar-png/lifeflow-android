@@ -93,29 +93,28 @@ internal class SecurityRuntimeEntryAccessEvaluator(
     private fun decideBiometricAuthenticationHandoff(
         snapshot: SecurityRuntimeAccessSnapshot
     ): SecurityRuntimeDecisionCode? {
-        when (snapshot.containment.effectiveTrustState) {
-            TrustState.COMPROMISED ->
-                return SecurityRuntimeDecisionCode.COMPROMISED
+        if (!snapshot.sessionAuthorized) {
+            return SecurityRuntimeDecisionCode.AUTH_REQUIRED
+        }
 
-            TrustState.EMERGENCY_LIMITED ->
-                return SecurityRuntimeDecisionCode.EMERGENCY_LIMITED
+        if (snapshot.isEmergencyLimited()) {
+            return SecurityRuntimeDecisionCode.EMERGENCY_LIMITED
+        }
 
-            TrustState.DEGRADED,
-            TrustState.VERIFIED -> Unit
+        if (snapshot.containment.capabilityEnvelope.allowRecoveryFlow) {
+            return null
+        }
+
+        if (snapshot.containment.effectiveTrustState == TrustState.COMPROMISED) {
+            return SecurityRuntimeDecisionCode.COMPROMISED
         }
 
         if (snapshot.containment.requireRecovery) {
             return SecurityRuntimeDecisionCode.RECOVERY_REQUIRED
         }
 
-        if (snapshot.isVerified() &&
-            !snapshot.containment.capabilityEnvelope.allowProtectedRuntime
-        ) {
+        if (!snapshot.containment.capabilityEnvelope.allowProtectedRuntime) {
             return SecurityRuntimeDecisionCode.PROTECTED_RUNTIME_BLOCKED
-        }
-
-        if (!snapshot.sessionAuthorized) {
-            return SecurityRuntimeDecisionCode.AUTH_REQUIRED
         }
 
         return null

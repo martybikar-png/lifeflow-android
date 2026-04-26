@@ -30,20 +30,72 @@ internal class BiometricAuthManager(
         )
     }
 
+    fun authenticateForVaultReset(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        promptRunner.authenticateVaultReset(
+            cryptoObject = null,
+            onSuccess = { onSuccess() },
+            onError = onError
+        )
+    }
+
     fun authenticateForAuthPerUseCrypto(
         onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
         onError: (String) -> Unit
     ) {
+        val cryptoObject = createAuthPerUseCryptoObjectOrFail(
+            onError = onError
+        ) ?: return
+
+        authenticateWithCryptoObject(
+            cryptoObject = cryptoObject,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    fun authenticateForVaultResetAuthPerUseCrypto(
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val cryptoObject = createAuthPerUseCryptoObjectOrFail(
+            onError = onError
+        ) ?: return
+
+        promptRunner.authenticateVaultReset(
+            cryptoObject = cryptoObject,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    fun authenticateWithCryptoObject(
+        cryptoObject: BiometricPrompt.CryptoObject,
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        promptRunner.authenticate(
+            cryptoObject = cryptoObject,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
+    private fun createAuthPerUseCryptoObjectOrFail(
+        onError: (String) -> Unit
+    ): BiometricPrompt.CryptoObject? {
         val provider = authPerUseCryptoProvider
         if (provider == null) {
             failureHandler.failClosed(
                 onError = onError,
                 message = "Auth-per-use crypto is not available on this device."
             )
-            return
+            return null
         }
 
-        val cryptoObject = runCatching {
+        return runCatching {
             provider.createEncryptCryptoObject()
         }.getOrElse { throwable ->
             val resolvedMessage = failureHandler.resolveThrowableMessage(
@@ -62,25 +114,7 @@ internal class BiometricAuthManager(
                 onError = onError,
                 message = resolvedMessage
             )
-            return
+            null
         }
-
-        authenticateWithCryptoObject(
-            cryptoObject = cryptoObject,
-            onSuccess = onSuccess,
-            onError = onError
-        )
-    }
-
-    fun authenticateWithCryptoObject(
-        cryptoObject: BiometricPrompt.CryptoObject,
-        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
-        onError: (String) -> Unit
-    ) {
-        promptRunner.authenticate(
-            cryptoObject = cryptoObject,
-            onSuccess = onSuccess,
-            onError = onError
-        )
     }
 }

@@ -84,7 +84,7 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
     setLastAction("Vault reset authentication requested")
 
     if (biometricAuthManager.hasAuthPerUseCrypto()) {
-        biometricAuthManager.authenticateForAuthPerUseCrypto(
+        biometricAuthManager.authenticateForVaultResetAuthPerUseCrypto(
             onSuccess = {
                 completeActiveRuntimeVaultResetAuthorization(
                     grantAuthorization = {
@@ -105,7 +105,7 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
         return
     }
 
-    biometricAuthManager.authenticate(
+    biometricAuthManager.authenticateForVaultReset(
         onSuccess = {
             completeActiveRuntimeVaultResetAuthorization(
                 grantAuthorization = {
