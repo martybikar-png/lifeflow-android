@@ -166,21 +166,19 @@ internal class BiometricAuthSuccessHandler(
             return false
         }
 
-        val proofResult = runCatching {
+        val proof = try {
             provider.completeEncryptProof(result)
-        }
-
-        val proof = proofResult.getOrElse { throwable ->
+        } catch (exception: Exception) {
             val resolvedMessage = failureHandler.resolveThrowableMessage(
-                throwable = throwable,
+                throwable = exception,
                 fallbackMessage = "Biometric verified, but auth-per-use crypto proof failed."
             )
             SecurityAuditLog.critical(
                 EventType.AUTH_FAILURE,
                 "Auth-per-use crypto proof failed",
                 mapOf(
-                    "errorType" to throwable::class.java.simpleName,
-                    "errorMessage" to (throwable.message ?: "unknown")
+                    "errorType" to exception::class.java.simpleName,
+                    "errorMessage" to (exception.message ?: "unknown")
                 )
             )
             failureHandler.failClosed(

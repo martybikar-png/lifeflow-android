@@ -12,13 +12,12 @@ internal fun requestActiveRuntimeRefreshWithUiFeedback(
     requestMessage: String,
     setLastAction: (String) -> Unit
 ) {
-    runCatching {
+    try {
         viewModel.refreshMetricsAndTwinNow()
-    }.onSuccess {
         setLastAction(requestMessage)
-    }.onFailure {
+    } catch (exception: Exception) {
         setLastAction(
-            "Refresh trigger failed: ${it::class.java.simpleName}: ${it.message}"
+            "Refresh trigger failed: ${exception::class.java.simpleName}: ${exception.message}"
         )
     }
 }
@@ -35,20 +34,18 @@ internal fun openActiveRuntimeHealthConnectSettingsWithFallback(
         data = Uri.fromParts("package", appPackageName, null)
     }
 
-    runCatching {
+    try {
         onStartIntent(hcSettingsIntent)
-    }.onSuccess {
         onSettingsOpened()
         setLastAction("Opened Health Connect settings")
-    }.onFailure { primaryError ->
-        runCatching {
+    } catch (primaryError: Exception) {
+        try {
             onStartIntent(appSettingsIntent)
-        }.onSuccess {
             onSettingsOpened()
             setLastAction(
                 "HC settings unavailable (${primaryError::class.java.simpleName}). Opened App settings instead."
             )
-        }.onFailure { fallbackError ->
+        } catch (fallbackError: Exception) {
             onSettingsOpenFailed()
             setLastAction(
                 "Unable to open settings: ${primaryError::class.java.simpleName} / ${fallbackError::class.java.simpleName}"
@@ -131,13 +128,13 @@ internal fun completeActiveRuntimeVaultResetAuthorization(
     viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
-    runCatching {
+    try {
         grantAuthorization()
         setLastAction(successMessage)
         viewModel.resetVault()
-    }.onFailure { throwable ->
+    } catch (exception: Exception) {
         SecurityVaultResetAuthorization.clear()
-        val resolvedMessage = throwable.message?.takeIf { it.isNotBlank() }
+        val resolvedMessage = exception.message?.takeIf { it.isNotBlank() }
             ?: "Vault reset authorization failed"
         setLastAction("Vault reset authentication failed: $resolvedMessage")
         viewModel.onAuthenticationError(resolvedMessage)

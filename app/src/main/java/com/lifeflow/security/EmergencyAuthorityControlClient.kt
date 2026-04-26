@@ -4,14 +4,6 @@ import com.lifeflow.domain.security.EmergencyActivationArtifact
 import com.lifeflow.domain.security.EmergencyArtifactConsumptionStatus
 import io.grpc.ManagedChannel
 
-/**
- * Control-side client boundary for external emergency authority RPCs.
- *
- * Purpose:
- * - keep control RPC behavior separate from transport/channel wiring
- * - keep future generated stubs behind this boundary
- * - remain explicitly fail-closed until the real RPC contract exists
- */
 internal interface EmergencyAuthorityControlClient {
     fun registerIssuedArtifact(artifact: EmergencyActivationArtifact)
 
@@ -63,8 +55,13 @@ internal class GrpcEmergencyAuthorityControlClient(
 }
 
 private fun ManagedChannel.safeAuthorityLabel(): String {
-    return runCatching { authority() }
-        .getOrNull()
+    val label = try {
+        authority()
+    } catch (_: Exception) {
+        null
+    }
+
+    return label
         ?.takeIf { it.isNotBlank() }
         ?: "unavailable-authority"
 }

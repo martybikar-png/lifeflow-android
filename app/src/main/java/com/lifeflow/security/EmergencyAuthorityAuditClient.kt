@@ -3,14 +3,6 @@ package com.lifeflow.security
 import com.lifeflow.domain.security.EmergencyAuditRecord
 import io.grpc.ManagedChannel
 
-/**
- * Audit-side client boundary for external emergency authority RPCs.
- *
- * Purpose:
- * - keep audit RPC behavior separate from transport/channel wiring
- * - keep future generated stubs behind this boundary
- * - remain explicitly fail-closed until the real RPC contract exists
- */
 internal interface EmergencyAuthorityAuditClient {
     fun appendAuditRecord(record: EmergencyAuditRecord): String
 }
@@ -32,8 +24,13 @@ internal class GrpcEmergencyAuthorityAuditClient(
 }
 
 private fun ManagedChannel.safeAuthorityLabel(): String {
-    return runCatching { authority() }
-        .getOrNull()
+    val label = try {
+        authority()
+    } catch (_: Exception) {
+        null
+    }
+
+    return label
         ?.takeIf { it.isNotBlank() }
         ?: "unavailable-authority"
 }

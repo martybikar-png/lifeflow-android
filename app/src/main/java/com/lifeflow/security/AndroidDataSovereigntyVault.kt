@@ -17,9 +17,12 @@ class AndroidDataSovereigntyVault(
         val flag = prefs.getBoolean(KEY_VAULT_INITIALIZED, false)
         if (!flag) return false
 
-        return runCatching {
+        return try {
             keyManager.requireOperationalKeyPosture()
-        }.isSuccess
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     override fun ensureInitialized() {
@@ -35,18 +38,10 @@ class AndroidDataSovereigntyVault(
         if (!ok) throw IllegalStateException("Vault initialization commit failed")
     }
 
-    /**
-     * Returns current monotonic version for the identity.
-     * 0 means "unknown / legacy".
-     */
     fun getIdentityVersion(id: UUID): Long {
         return prefs.getLong(versionKey(id), 0L)
     }
 
-    /**
-     * Increments and persists identity version (monotonic).
-     * Returns the new version (>= 1).
-     */
     @Synchronized
     fun nextIdentityVersion(id: UUID): Long {
         val current = getIdentityVersion(id)
@@ -59,19 +54,11 @@ class AndroidDataSovereigntyVault(
         return next
     }
 
-    /**
-     * Clears identity version tracking (e.g., delete).
-     */
     fun clearIdentityVersion(id: UUID) {
         val ok = prefs.edit().remove(versionKey(id)).commit()
         if (!ok) throw IllegalStateException("Vault version clear failed for id=$id")
     }
 
-    /**
-     * Vault reset:
-     * - deletes keystore master key
-     * - clears vault prefs (including initialized + all identity versions)
-     */
     @Synchronized
     fun resetVault() {
         keyManager.deleteKey()
