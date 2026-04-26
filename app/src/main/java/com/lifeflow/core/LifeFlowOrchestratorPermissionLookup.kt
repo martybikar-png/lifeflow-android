@@ -2,14 +2,17 @@ package com.lifeflow.core
 
 import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
+import kotlinx.coroutines.CancellationException
 
 internal fun lifeflowOrchestratorLookupRequiredHealthPermissions(
     getHealthPermissions: GetHealthPermissionsUseCase
 ): ActionResult<Set<String>> =
     try {
         ActionResult.Success(getHealthPermissions())
-    } catch (t: Throwable) {
-        ActionResult.Error("${t::class.java.simpleName}: ${t.message ?: "unknown error"}")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error("${exception::class.java.simpleName}: ${exception.message ?: "unknown error"}")
     }
 
 internal suspend fun lifeflowOrchestratorLookupGrantedHealthPermissions(
@@ -17,6 +20,8 @@ internal suspend fun lifeflowOrchestratorLookupGrantedHealthPermissions(
 ): ActionResult<Set<String>> =
     try {
         ActionResult.Success(getGrantedHealthPermissions())
-    } catch (_: Throwable) {
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: Exception) {
         ActionResult.Success(emptySet())
     }

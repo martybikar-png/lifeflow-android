@@ -2,6 +2,7 @@ package com.lifeflow.core
 
 import com.lifeflow.domain.security.DomainOperation
 import com.lifeflow.security.SecurityAuthorizationGate
+import kotlinx.coroutines.CancellationException
 
 internal enum class LifeFlowOrchestratorAuthContextKind {
     STANDARD_PROTECTED_CURRENT_SESSION,
@@ -73,8 +74,10 @@ internal suspend fun <T> lifeflowOrchestratorRunAccessControlledCatchingOperatio
     ) {
         try {
             ActionResult.Success(block())
-        } catch (t: Throwable) {
-            ActionResult.Error(t.message ?: defaultErrorMessage)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (exception: Exception) {
+            ActionResult.Error(exception.message ?: defaultErrorMessage)
         }
     }
 }

@@ -8,6 +8,7 @@ import com.lifeflow.security.SecurityLockedException
 import com.lifeflow.security.SecurityLockedReason
 import com.lifeflow.security.withDetail
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 
 /**
  * Bootstrap/auth boundary for orchestrator-sensitive identity initialization.
@@ -60,9 +61,11 @@ internal suspend fun lifeflowOrchestratorBootstrapIdentityIfNeeded(
                 e.message ?: "Security denied"
             )
         )
-    } catch (t: Throwable) {
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
         SecurityAccessSession.clear()
-        ActionResult.Error(t.message ?: "Bootstrap failed")
+        ActionResult.Error(exception.message ?: "Bootstrap failed")
     }
 }
 

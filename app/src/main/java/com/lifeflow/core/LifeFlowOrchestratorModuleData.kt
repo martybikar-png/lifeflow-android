@@ -16,6 +16,7 @@ import com.lifeflow.domain.memory.SecondBrainState
 import com.lifeflow.domain.shopping.PredictiveShoppingEngine
 import com.lifeflow.domain.shopping.ShoppingState
 import com.lifeflow.domain.shopping.TrackedItem
+import kotlinx.coroutines.CancellationException
 
 /**
  * Module data access layer — pure repository and derivation operations.
@@ -34,8 +35,10 @@ internal suspend fun lifeflowOrchestratorLoadDiaryState(
         ActionResult.Success(
             ShadowDiaryCoreEngine().compute(entries, identityInitialized)
         )
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Diary load failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Diary load failed")
     }
 }
 
@@ -46,8 +49,10 @@ internal suspend fun lifeflowOrchestratorSaveDiaryEntry(
     return try {
         diaryRepository.saveEntry(entry)
         ActionResult.Success(Unit)
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Diary save failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Diary save failed")
     }
 }
 
@@ -62,8 +67,10 @@ internal suspend fun lifeflowOrchestratorLoadMemoryState(
         ActionResult.Success(
             SecondBrainEngine().compute(entries, identityInitialized)
         )
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Memory load failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Memory load failed")
     }
 }
 
@@ -74,8 +81,10 @@ internal suspend fun lifeflowOrchestratorSaveMemoryEntry(
     return try {
         memoryRepository.saveEntry(entry)
         ActionResult.Success(Unit)
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Memory save failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Memory save failed")
     }
 }
 
@@ -90,8 +99,10 @@ internal suspend fun lifeflowOrchestratorLoadConnectionState(
         ActionResult.Success(
             IntimacyConnectionEngine().compute(entries, identityInitialized)
         )
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Connection load failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Connection load failed")
     }
 }
 
@@ -102,8 +113,10 @@ internal suspend fun lifeflowOrchestratorSaveConnectionEntry(
     return try {
         connectionRepository.saveEntry(entry)
         ActionResult.Success(Unit)
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Connection save failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Connection save failed")
     }
 }
 
@@ -118,8 +131,10 @@ internal suspend fun lifeflowOrchestratorLoadShoppingState(
         ActionResult.Success(
             PredictiveShoppingEngine().compute(items, identityInitialized)
         )
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Shopping load failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Shopping load failed")
     }
 }
 
@@ -130,7 +145,9 @@ internal suspend fun lifeflowOrchestratorSaveShoppingItem(
     return try {
         shoppingRepository.saveItem(item)
         ActionResult.Success(Unit)
-    } catch (t: Throwable) {
-        ActionResult.Error(t.message ?: "Shopping save failed")
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Shopping save failed")
     }
 }

@@ -10,6 +10,7 @@ import com.lifeflow.domain.wellbeing.usecase.GetGrantedHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetHealthPermissionsUseCase
 import com.lifeflow.domain.wellbeing.usecase.GetStepsLast24hUseCase
 import kotlin.math.roundToLong
+import kotlinx.coroutines.CancellationException
 
 internal data class LifeFlowOrchestratorRefreshPermissionBundle(
     val requiredPermissions: Set<String>,
@@ -193,7 +194,9 @@ internal suspend fun lifeflowOrchestratorReadMetricsBestEffort(
     if (permissionSnapshot.stepsPermissionGranted == true) {
         try {
             steps = getStepsLast24h()
-        } catch (_: Throwable) {
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
             // keep null; engine will classify deterministically
         }
     }
@@ -201,7 +204,9 @@ internal suspend fun lifeflowOrchestratorReadMetricsBestEffort(
     if (permissionSnapshot.heartRatePermissionGranted == true) {
         try {
             heartRate = getAvgHeartRateLast24h()?.roundToLong()
-        } catch (_: Throwable) {
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
             // keep null; engine will classify deterministically
         }
     }
