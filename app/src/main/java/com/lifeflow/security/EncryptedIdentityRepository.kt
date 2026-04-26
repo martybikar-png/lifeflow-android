@@ -4,9 +4,10 @@ import com.lifeflow.data.repository.EncryptedIdentityBlobStore
 import com.lifeflow.domain.core.IdentityRepository
 import com.lifeflow.domain.model.LifeFlowIdentity
 import com.lifeflow.domain.security.DomainOperation
+import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.UUID
 
 /**
  * Authoritative encrypted-at-rest identity repository.
@@ -49,12 +50,14 @@ class EncryptedIdentityRepository(
                     encryptionService = encryptionService,
                     vault = vault
                 )
-            } catch (t: Throwable) {
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (exception: Exception) {
                 SecurityKeystoreFailureHandler.throwForFailure(
                     operation = DomainOperation.SAVE_IDENTITY,
                     failureReason = "save failed for id=${identity.id}",
                     genericMessage = "EncryptedIdentityRepository: save() crypto failure",
-                    throwable = t
+                    throwable = exception
                 )
             }
         }
@@ -75,12 +78,14 @@ class EncryptedIdentityRepository(
                 val identity = deserialize(plain)
                 require(identity.id == id) { "Identity id mismatch for requested id=$id" }
                 identity
-            } catch (t: Throwable) {
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (exception: Exception) {
                 SecurityKeystoreFailureHandler.throwForFailure(
                     operation = DomainOperation.READ_IDENTITY_BY_ID,
                     failureReason = "decrypt/deserialize failed for id=$id",
                     genericMessage = "EncryptedIdentityRepository: getById() integrity failure",
-                    throwable = t
+                    throwable = exception
                 )
             }
         }
@@ -106,12 +111,14 @@ class EncryptedIdentityRepository(
                     if (identity.isActive) return@withLock identity
                 }
                 null
-            } catch (t: Throwable) {
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (exception: Exception) {
                 SecurityKeystoreFailureHandler.throwForFailure(
                     operation = DomainOperation.READ_ACTIVE_IDENTITY,
                     failureReason = "decrypt/deserialize failed during scan",
                     genericMessage = "EncryptedIdentityRepository: getActiveIdentity() integrity failure",
-                    throwable = t
+                    throwable = exception
                 )
             }
         }
@@ -136,18 +143,19 @@ class EncryptedIdentityRepository(
 
                 blobStore.delete(identity.id)
                 vault.clearIdentityVersion(identity.id)
-            } catch (t: Throwable) {
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (exception: Exception) {
                 SecurityKeystoreFailureHandler.throwForFailure(
                     operation = DomainOperation.DELETE_IDENTITY,
                     failureReason = "delete failed for id=${identity.id}",
                     genericMessage = "EncryptedIdentityRepository: delete() failure",
-                    throwable = t
+                    throwable = exception
                 )
             }
         }
     }
 
-    // Compatibility bridge for existing reflection-based unit tests.
     private fun decryptStrict(
         id: UUID,
         version: Long,

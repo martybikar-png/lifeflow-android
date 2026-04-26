@@ -27,21 +27,9 @@ internal object IntegrityTrustBoundaryBootstrap {
         val transport = if (isInstrumentation) {
             null
         } else {
-            runCatching {
-                val tlsMaterialProvider = IntegrityTrustTlsMaterialBootstrap.create(
-                    applicationContext = applicationContext
-                )
-                GrpcIntegrityTrustTransport.create(
-                    applicationContext = applicationContext,
-                    tlsMaterialProvider = tlsMaterialProvider
-                )
-            }.onFailure { throwable ->
-                Log.w(
-                    TAG,
-                    "Integrity trust transport disabled: TLS bootstrap is unavailable. External verdict transport remains fail-closed.",
-                    throwable
-                )
-            }.getOrNull()
+            createIntegrityTrustTransportOrNull(
+                applicationContext = applicationContext
+            )
         }
 
         return IntegrityTrustRuntime(
@@ -50,5 +38,26 @@ internal object IntegrityTrustBoundaryBootstrap {
             bootstrapHandle = bootstrapHandle,
             transport = transport
         )
+    }
+
+    private fun createIntegrityTrustTransportOrNull(
+        applicationContext: Context
+    ): IntegrityTrustTransport? {
+        return try {
+            val tlsMaterialProvider = IntegrityTrustTlsMaterialBootstrap.create(
+                applicationContext = applicationContext
+            )
+            GrpcIntegrityTrustTransport.create(
+                applicationContext = applicationContext,
+                tlsMaterialProvider = tlsMaterialProvider
+            )
+        } catch (exception: Exception) {
+            Log.w(
+                TAG,
+                "Integrity trust transport disabled: TLS bootstrap is unavailable. External verdict transport remains fail-closed.",
+                exception
+            )
+            null
+        }
     }
 }

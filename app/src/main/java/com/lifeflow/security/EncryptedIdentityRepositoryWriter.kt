@@ -34,10 +34,10 @@ internal fun encryptedIdentityWriteVersionedBlob(
             plain = plain,
             encryptionService = encryptionService
         )
-    } catch (t: Throwable) {
+    } catch (exception: Exception) {
         throw SecurityException(
             "EncryptedIdentityRepository: $operation encrypt failed for id=$id",
-            t
+            exception
         )
     }
 
@@ -48,16 +48,16 @@ internal fun encryptedIdentityWriteVersionedBlob(
         check(committedVersion == nextVersion) {
             "Vault version mismatch for id=$id: expected=$nextVersion actual=$committedVersion"
         }
-    } catch (t: Throwable) {
+    } catch (exception: Exception) {
         encryptedIdentityRestorePreviousBlob(
             id = id,
             previousStored = previousStored,
-            original = t,
+            original = exception,
             blobStore = blobStore
         )
         throw SecurityException(
             "EncryptedIdentityRepository: $operation consistency failure for id=$id",
-            t
+            exception
         )
     }
 }
@@ -65,16 +65,16 @@ internal fun encryptedIdentityWriteVersionedBlob(
 private fun encryptedIdentityRestorePreviousBlob(
     id: UUID,
     previousStored: ByteArray?,
-    original: Throwable,
+    original: Exception,
     blobStore: EncryptedIdentityBlobStore
 ) {
-    runCatching {
+    try {
         if (previousStored == null) {
             blobStore.delete(id)
         } else {
             blobStore.put(id, previousStored)
         }
-    }.onFailure { rollbackFailure ->
+    } catch (rollbackFailure: Exception) {
         original.addSuppressed(rollbackFailure)
     }
 }

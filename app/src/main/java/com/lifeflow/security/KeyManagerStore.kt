@@ -21,8 +21,8 @@ internal fun readKeyInfo(
             KEY_MANAGER_ANDROID_KEYSTORE
         )
         secretKeyFactory.getKeySpec(secretKey, KeyInfo::class.java) as KeyInfo
-    } catch (t: Throwable) {
-        throw (keystoreOperationFailure(alias, "read-key-info", t) ?: t)
+    } catch (exception: Exception) {
+        throw (keystoreOperationFailure(alias, "read-key-info", exception) ?: exception)
     }
 }
 
@@ -40,8 +40,8 @@ internal fun loadSecretKeyOrNull(
             )
         }
         key
-    } catch (t: Throwable) {
-        throw (keystoreOperationFailure(alias, operation, t) ?: t)
+    } catch (exception: Exception) {
+        throw (keystoreOperationFailure(alias, operation, exception) ?: exception)
     }
 }
 
@@ -68,43 +68,43 @@ internal fun loadAndroidKeyStore(
         val keyStore = KeyStore.getInstance(KEY_MANAGER_ANDROID_KEYSTORE)
         keyStore.load(null)
         keyStore
-    } catch (t: Throwable) {
-        throw (keystoreOperationFailure(alias, "load-keystore", t) ?: t)
+    } catch (exception: Exception) {
+        throw (keystoreOperationFailure(alias, "load-keystore", exception) ?: exception)
     }
 }
 
 private fun keystoreOperationFailure(
     alias: String,
     operation: String,
-    throwable: Throwable
+    exception: Exception
 ): SecurityKeystoreOperationException? {
-    return when (throwable) {
-        is SecurityKeystoreOperationException -> throwable
+    return when (exception) {
+        is SecurityKeystoreOperationException -> exception
 
         is UnrecoverableKeyException -> SecurityKeystoreOperationException(
             code = SecurityKeystoreFailureCode.KEY_UNRECOVERABLE,
             message = "Keystore key is unrecoverable during $operation for alias=$alias.",
-            cause = throwable
+            cause = exception
         )
 
         is InvalidKeySpecException -> SecurityKeystoreOperationException(
             code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
             message = "Keystore key material could not be inspected during $operation for alias=$alias.",
-            cause = throwable
+            cause = exception
         )
 
         is IOException,
         is CertificateException,
         is ProviderException -> SecurityKeystoreOperationException(
             code = SecurityKeystoreFailureCode.KEYSTORE_ACCESS_FAILED,
-            message = "Keystore access failed during $operation for alias=$alias: ${throwable::class.java.simpleName}.",
-            cause = throwable
+            message = "Keystore access failed during $operation for alias=$alias: ${exception::class.java.simpleName}.",
+            cause = exception
         )
 
         is GeneralSecurityException -> SecurityKeystoreOperationException(
             code = SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE,
-            message = "Keystore operation failed during $operation for alias=$alias: ${throwable::class.java.simpleName}.",
-            cause = throwable
+            message = "Keystore operation failed during $operation for alias=$alias: ${exception::class.java.simpleName}.",
+            cause = exception
         )
 
         else -> null

@@ -13,12 +13,12 @@ internal class SecurityAuthPerUseCryptoProvider(
             BiometricPrompt.CryptoObject(
                 authPerUseEncryptionService.createEncryptCipher()
             )
-        } catch (t: Throwable) {
+        } catch (exception: Exception) {
             SecurityKeystoreFailureHandler.throwForFailure(
                 operation = null,
                 failureReason = "auth-per-use encrypt cipher creation failed",
                 genericMessage = "Auth-per-use crypto is not available.",
-                throwable = t
+                throwable = exception
             )
         }
     }
@@ -37,12 +37,12 @@ internal class SecurityAuthPerUseCryptoProvider(
                 plainText = challenge,
                 aad = PROOF_AAD
             )
-        } catch (t: Throwable) {
+        } catch (exception: Exception) {
             SecurityKeystoreFailureHandler.throwForFailure(
                 operation = null,
                 failureReason = "auth-per-use proof encryption failed",
                 genericMessage = "Auth-per-use crypto proof failed.",
-                throwable = t
+                throwable = exception
             )
         }
     }

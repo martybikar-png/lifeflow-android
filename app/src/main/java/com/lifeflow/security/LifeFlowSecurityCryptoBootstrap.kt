@@ -45,13 +45,13 @@ private fun createLifeFlowSecurityAuthPerUseKeyManager(
         authenticationPolicy = KeyManager.AuthenticationPolicy.BIOMETRIC_AUTH_PER_USE
     )
 
-    return runCatching {
+    return try {
         keyManager.ensureKey()
         keyManager
-    }.getOrElse { throwable ->
+    } catch (exception: Exception) {
         handleLifeFlowSecurityAuthPerUseBootstrapFailure(
             keyManager = keyManager,
-            throwable = throwable
+            exception = exception
         )
         null
     }
@@ -59,26 +59,26 @@ private fun createLifeFlowSecurityAuthPerUseKeyManager(
 
 private fun handleLifeFlowSecurityAuthPerUseBootstrapFailure(
     keyManager: KeyManager,
-    throwable: Throwable
+    exception: Exception
 ) {
-    when (throwable) {
+    when (exception) {
         is SecurityKeystorePostureException -> {
-            deleteLifeFlowSecurityAuthPerUseKeySilently(
+            deleteLifeFlowSecurityAuthPerUseKeyIfPresent(
                 keyManager = keyManager,
                 reason = "posture mismatch"
             )
             Log.w(
                 SECURITY_CRYPTO_BOOTSTRAP_TAG,
                 "Auth-per-use crypto disabled: keystore posture mismatch.",
-                throwable
+                exception
             )
         }
 
         is SecurityKeystoreOperationException -> {
-            if (throwable.code == SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE ||
-                throwable.code == SecurityKeystoreFailureCode.KEY_UNRECOVERABLE
+            if (exception.code == SecurityKeystoreFailureCode.KEY_INVALID_OR_UNAVAILABLE ||
+                exception.code == SecurityKeystoreFailureCode.KEY_UNRECOVERABLE
             ) {
-                deleteLifeFlowSecurityAuthPerUseKeySilently(
+                deleteLifeFlowSecurityAuthPerUseKeyIfPresent(
                     keyManager = keyManager,
                     reason = "invalid or unrecoverable key"
                 )
@@ -86,8 +86,8 @@ private fun handleLifeFlowSecurityAuthPerUseBootstrapFailure(
 
             Log.w(
                 SECURITY_CRYPTO_BOOTSTRAP_TAG,
-                "Auth-per-use crypto disabled: keystore bootstrap failed (${throwable.code}).",
-                throwable
+                "Auth-per-use crypto disabled: keystore bootstrap failed (${exception.code}).",
+                exception
             )
         }
 
@@ -95,23 +95,23 @@ private fun handleLifeFlowSecurityAuthPerUseBootstrapFailure(
             Log.w(
                 SECURITY_CRYPTO_BOOTSTRAP_TAG,
                 "Auth-per-use crypto disabled: unexpected bootstrap failure.",
-                throwable
+                exception
             )
         }
     }
 }
 
-private fun deleteLifeFlowSecurityAuthPerUseKeySilently(
+private fun deleteLifeFlowSecurityAuthPerUseKeyIfPresent(
     keyManager: KeyManager,
     reason: String
 ) {
-    runCatching {
+    try {
         keyManager.deleteKey()
-    }.onFailure { deleteFailure ->
+    } catch (exception: Exception) {
         Log.w(
             SECURITY_CRYPTO_BOOTSTRAP_TAG,
             "Auth-per-use key cleanup failed after $reason.",
-            deleteFailure
+            exception
         )
     }
 }
