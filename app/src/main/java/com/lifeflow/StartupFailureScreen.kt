@@ -23,7 +23,6 @@ internal fun StartupFailureScreen(
             message = message,
             lastAction = lastAction
         ),
-        actionTopGap = 188.dp,
         showGoldEdge = true
     ) {
         PublicShellActionPanel {

@@ -20,7 +20,7 @@ private val PublicShellHorizontalPadding = 20.dp
 private val PublicShellInfoTopGap = 44.dp
 private val PublicShellInfoBodyGap = 8.dp
 private val PublicShellInfoNoteGap = 10.dp
-private val PublicShellActionTopGap = 176.dp
+private val PublicShellActionTopGap = 208.dp
 private val PublicShellActionHorizontalPadding = 12.dp
 
 @Composable

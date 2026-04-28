@@ -3,7 +3,6 @@ package com.lifeflow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.lifeflow.core.HealthConnectUiState
 
 @Composable
@@ -40,7 +39,6 @@ fun FreeTierScreen(
         infoTitle = "Free mode",
         infoBody = visibleMessage,
         infoNote = "Core features stay locked until you upgrade.",
-        actionTopGap = 208.dp,
         showGoldEdge = true
     ) {
         PublicShellActionPanel {
@@ -70,7 +68,6 @@ fun ErrorScreen(
         infoTitle = content.guidanceTitle,
         infoBody = content.guidanceMessage,
         infoNote = content.nextStepMessage,
-        actionTopGap = 208.dp,
         showGoldEdge = true
     ) {
         PublicShellActionPanel {
