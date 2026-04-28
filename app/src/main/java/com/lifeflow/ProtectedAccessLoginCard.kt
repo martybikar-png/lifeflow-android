@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,15 +138,17 @@ private fun PremiumLoginGoldDivider(
             quadraticBezierTo(size.width - inset, inset, size.width - inset, radius)
         }
 
-        drawPath(
-            path = path,
-            brush = PremiumLoginGoldDividerBrush,
-            style = Stroke(
-                width = strokeWidth,
-                cap = StrokeCap.Round
+        translate(left = -2f) {
+            drawPath(
+                path = path,
+                brush = PremiumLoginGoldDividerBrush,
+                style = Stroke(
+                    width = strokeWidth,
+                    cap = StrokeCap.Round
+                )
             )
-        )
-    }
+        }
+}
 }
 
 @Composable

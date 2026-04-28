@@ -229,8 +229,8 @@ private fun IntroSplashScreen() {
                         )
 
                         Image(
-                            painter = painterResource(id = R.drawable.lifeflow_core_in_hands_softer),
-                            contentDescription = "LifeFlow living core in caring hands",
+                            painter = painterResource(id = R.drawable.lifeflow_splash_icon),
+                            contentDescription = "LifeFlow app icon",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
