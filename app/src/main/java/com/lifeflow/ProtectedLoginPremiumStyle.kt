@@ -21,7 +21,7 @@ internal val PremiumLoginBlueTop = Color(0xFF22CDF7)
 internal val PremiumLoginBlueBottom = Color(0xFF2F8FFF)
 internal val PremiumLoginWhite = Color(0xFFFFFFFF)
 
-internal const val PremiumLoginWhiteStartRatio = 0.25f
+internal const val PremiumLoginWhiteStartRatio = 0.20f
 internal val PremiumLoginCenterCircleLift = 72.dp
 internal val PremiumLoginRowPressedSurface = Color(0xFFFFFFFF)
 

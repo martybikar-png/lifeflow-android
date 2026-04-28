@@ -50,10 +50,10 @@ private val LifeFlowButtonInnerShade = Color(0xFFDDEAF5).copy(alpha = 0.24f)
 private val LifeFlowButtonPressedInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.82f)
 private val LifeFlowButtonPressedInnerShade = Color(0xFF9DDEEF).copy(alpha = 0.36f)
 
-internal val LifeFlowButtonIdleBorder = Color(0xFFFFFFFF).copy(alpha = 0.72f)
-internal val LifeFlowButtonHoverBorder = LifeFlowButtonAccent.copy(alpha = 0.22f)
-internal val LifeFlowButtonPressedBorder = LifeFlowButtonAccent.copy(alpha = 0.26f)
-internal val LifeFlowButtonDisabledBorder = Color(0xFFFFFFFF).copy(alpha = 0.48f)
+internal val LifeFlowButtonIdleBorder = LifeFlowButtonAccent.copy(alpha = 0.26f)
+internal val LifeFlowButtonHoverBorder = LifeFlowButtonAccent.copy(alpha = 0.36f)
+internal val LifeFlowButtonPressedBorder = LifeFlowButtonAccent.copy(alpha = 0.44f)
+internal val LifeFlowButtonDisabledBorder = LifeFlowButtonAccent.copy(alpha = 0.14f)
 
 internal val LifeFlowButtonPrimaryText = Color(0xFF35415C)
 internal val LifeFlowButtonSecondaryText = Color(0xFF35415C)
@@ -126,7 +126,7 @@ internal fun Modifier.lifeFlowRaisedButtonChrome(
             )
         )
         .border(
-            width = 0.7.dp,
+            width = 0.55.dp,
             color = borderColor,
             shape = shape
         )
@@ -184,7 +184,7 @@ internal fun Modifier.lifeFlowPressedButtonChrome(
             )
         )
         .border(
-            width = 0.8.dp,
+            width = 0.55.dp,
             color = borderColor,
             shape = shape
         )

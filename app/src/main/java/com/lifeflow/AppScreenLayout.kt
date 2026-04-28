@@ -39,7 +39,8 @@ private val ScreenContentMaxWidth = 580.dp
 private val ScreenHeaderSpacing = 14.dp
 private val ScreenHeaderTextSpacing = 4.dp
 private val ScreenTopBandContentSpacing = 22.dp
-private const val ScreenWhiteStartRatio = 0.25f
+private const val ScreenWhiteStartRatio = 0.20f
+internal const val ScreenSplashWhiteStartRatio = 0.25f
 
 private val ScreenSurfaceTone = Color(0xFFFFFFFF)
 private val ScreenTopBlueStart = Color(0xFF22CDF7)
@@ -77,6 +78,7 @@ internal fun ScreenContainer(
     showBottomAura: Boolean = false,
     centerHeader: Boolean = false,
     showGoldEdge: Boolean = false,
+    whiteStartRatio: Float = ScreenWhiteStartRatio,
     content: @Composable () -> Unit
 ) {
     val showHeader = (showBackButton && onBack != null) || title.isNotBlank() || subtitle.isNotBlank()
@@ -93,7 +95,7 @@ internal fun ScreenContainer(
                 )
             )
     ) {
-        val whiteStart = maxHeight * ScreenWhiteStartRatio
+        val whiteStart = maxHeight * whiteStartRatio
 
         Box(
             modifier = Modifier

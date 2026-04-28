@@ -42,7 +42,8 @@ fun OnboardingWelcomeScreen(
     ScreenContainer(
         title = "Welcome to LifeFlow",
         centerHeader = true,
-        showGoldEdge = true
+        showGoldEdge = true,
+        whiteStartRatio = ScreenSplashWhiteStartRatio
     ) {
         Box(
             modifier = Modifier

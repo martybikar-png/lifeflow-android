@@ -1,20 +1,32 @@
 package com.lifeflow
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.boundary.isLockedLike
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.wellbeing.WellbeingAssessment
+
+private val DashboardHorizontalPadding = 20.dp
+private val DashboardInfoTopGap = 44.dp
+private val DashboardInfoBodyGap = 8.dp
+private val DashboardLineGap = 4.dp
+private val DashboardActionTopGap = 92.dp
+private val DashboardActionHorizontalPadding = 12.dp
 
 @Composable
 internal fun AuthenticatedDashboardScreen(
@@ -51,7 +63,26 @@ internal fun AuthenticatedDashboardScreen(
         subtitle = "Protected wellbeing overview.",
         showGoldEdge = true
     ) {
-        LifeFlowSectionPanel(title = dashboardTitle(dashboardState)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DashboardHorizontalPadding),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Spacer(modifier = Modifier.height(DashboardInfoTopGap))
+
+            Text(
+                text = dashboardTitle(dashboardState),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 17.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
+
             Text(
                 text = dashboardMessage(
                     dashboardState = dashboardState,
@@ -61,7 +92,7 @@ internal fun AuthenticatedDashboardScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
 
             Text(
                 text = "Tap Authenticate again if snapshot stays preparing.",
@@ -69,13 +100,15 @@ internal fun AuthenticatedDashboardScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             DashboardValueLine(
                 label = "Health",
                 value = healthStateDisplayLabel(healthState),
                 valueColor = healthStateValueColor(healthState)
             )
+
+            Spacer(modifier = Modifier.height(DashboardLineGap))
 
             DashboardValueLine(
                 label = "Access",
@@ -86,11 +119,15 @@ internal fun AuthenticatedDashboardScreen(
                 )
             )
 
+            Spacer(modifier = Modifier.height(DashboardLineGap))
+
             DashboardValueLine(
                 label = "Steps",
                 value = grantedLabel(stepsGranted),
                 valueColor = grantedValueColor(stepsGranted)
             )
+
+            Spacer(modifier = Modifier.height(DashboardLineGap))
 
             DashboardValueLine(
                 label = "Heart",
@@ -98,44 +135,55 @@ internal fun AuthenticatedDashboardScreen(
                 valueColor = grantedValueColor(hrGranted)
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            if (lastAction.isNotBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = lastAction,
-                style = lifeFlowCardRowLabelStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Text(
+                    text = lastAction,
+                    style = lifeFlowCardRowLabelStyle(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(DashboardActionTopGap))
 
-            LifeFlowPrimaryActionButton(
-                label = primaryDashboardActionLabel(
-                    dashboardState = dashboardState,
-                    isSessionAuthorized = isSessionAuthorized
-                ),
-                onClick = {
-                    if (!isSessionAuthorized) {
-                        onReAuthenticate()
-                        return@LifeFlowPrimaryActionButton
-                    }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DashboardActionHorizontalPadding),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                LifeFlowPrimaryActionButton(
+                    label = primaryDashboardActionLabel(
+                        dashboardState = dashboardState,
+                        isSessionAuthorized = isSessionAuthorized
+                    ),
+                    onClick = {
+                        if (!isSessionAuthorized) {
+                            onReAuthenticate()
+                            return@LifeFlowPrimaryActionButton
+                        }
 
-                    when (dashboardState) {
-                        DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
-                        DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
-                        DashboardState.LOADING,
-                        DashboardState.NO_DATA,
-                        DashboardState.ATTENTION,
-                        DashboardState.READY -> onRefreshNow()
-                    }
-                }
-            )
+                        when (dashboardState) {
+                            DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
+                            DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
+                            DashboardState.LOADING,
+                            DashboardState.NO_DATA,
+                            DashboardState.ATTENTION,
+                            DashboardState.READY -> onRefreshNow()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            LifeFlowSecondaryActionButton(
-                label = "Authenticate again",
-                onClick = onReAuthenticate
-            )
+                LifeFlowSecondaryActionButton(
+                    label = "Authenticate again",
+                    onClick = onReAuthenticate,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
