@@ -1,13 +1,9 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -18,55 +14,45 @@ internal fun StartupFailureScreen(
     onRetryStartup: () -> Unit,
     onOpenAppSettings: () -> Unit
 ) {
-    ScreenContainer(title = "", showGoldEdge = true) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LifeFlowSignalPill(text = "Recovery")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LifeFlowCardShell(
-            title = "Startup paused",
-            summary = startupStatusLabel(message)
-        ) {
-            Text(
-                text = startupRecoveryGuidance(message),
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Text(
-                text = startupRecoveryActionHint(message),
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
+    PublicShellInfoActionScreen(
+        screenTitle = "Recovery",
+        screenSubtitle = "Startup paused.",
+        infoTitle = "Startup paused",
+        infoBody = startupRecoveryGuidance(message),
+        infoNote = startupFailureInfoNote(
+            message = message,
+            lastAction = lastAction
+        ),
+        actionTopGap = 188.dp,
+        showGoldEdge = true
+    ) {
+        PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = "Retry startup",
-                onClick = onRetryStartup
+                onClick = onRetryStartup,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             LifeFlowSecondaryActionButton(
                 label = "Open App settings",
-                onClick = onOpenAppSettings
+                onClick = onOpenAppSettings,
+                modifier = Modifier.fillMaxWidth()
             )
-
-            if (lastAction.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = lastAction,
-                    style = lifeFlowCardSummaryStyle(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
+    }
+}
+
+private fun startupFailureInfoNote(
+    message: String,
+    lastAction: String
+): String {
+    val actionHint = startupRecoveryActionHint(message)
+
+    return if (lastAction.isBlank()) {
+        actionHint
+    } else {
+        "$actionHint\n$lastAction"
     }
 }

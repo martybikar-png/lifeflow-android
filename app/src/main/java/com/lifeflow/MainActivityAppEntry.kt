@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.lifeflow.navigation.PublicShellNavHost
 
-private const val EnablePublicShellVisualReview = true
+private const val EnablePublicShellVisualReview = false
 
 @Composable
 internal fun AppEntry(

@@ -1,13 +1,9 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lifeflow.core.HealthConnectUiState
@@ -22,24 +18,15 @@ fun LoadingScreen(
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit
 ) {
-    val currentStateMessage = loadingMessage(
+    ProtectedLoginScreen(
         isAuthenticating = isAuthenticating,
         healthState = healthState,
         requiredCount = requiredCount,
-        grantedCount = grantedCount
+        grantedCount = grantedCount,
+        onAuthenticate = onAuthenticate,
+        onGrantHealthPermissions = onGrantHealthPermissions,
+        onOpenHealthConnectSettings = onOpenHealthConnectSettings
     )
-
-    ScreenContainer(title = "", showGoldEdge = true) {
-        LoadingTransitionContent(
-            isAuthenticating = isAuthenticating,
-            currentStateMessage = currentStateMessage,
-            requiredCount = requiredCount,
-            grantedCount = grantedCount,
-            onAuthenticate = onAuthenticate,
-            onGrantHealthPermissions = onGrantHealthPermissions,
-            onOpenHealthConnectSettings = onOpenHealthConnectSettings
-        )
-    }
 }
 
 @Composable
@@ -49,31 +36,20 @@ fun FreeTierScreen(
 ) {
     val visibleMessage = message.ifBlank { "Free mode is active." }
 
-    ScreenContainer(title = "", showGoldEdge = true) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LifeFlowSignalPill(text = "Free mode")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LifeFlowCardShell(
-            title = "Free mode",
-            summary = visibleMessage
-        ) {
-            Text(
-                text = "Upgrade to Core to unlock protected access.",
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
+    PublicShellInfoActionScreen(
+        screenTitle = "Free",
+        screenSubtitle = "Core stays protected.",
+        infoTitle = "Free mode",
+        infoBody = visibleMessage,
+        infoNote = "Core features stay locked until you upgrade.",
+        actionTopGap = 208.dp,
+        showGoldEdge = true
+    ) {
+        PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = "Upgrade to Core",
-                onClick = onUpgradeToCore
+                onClick = onUpgradeToCore,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -90,33 +66,20 @@ fun ErrorScreen(
         resetRequired = resetRequired
     )
 
-    ScreenContainer(title = "", showGoldEdge = true) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LifeFlowSignalPill(
-                text = if (resetRequired) "Reset" else "Recovery"
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LifeFlowCardShell(
-            title = content.guidanceTitle,
-            summary = content.guidanceMessage
-        ) {
-            Text(
-                text = content.nextStepMessage,
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
+    PublicShellInfoActionScreen(
+        screenTitle = if (resetRequired) "Reset" else "Recovery",
+        screenSubtitle = if (resetRequired) "Protected reset needed." else "Safe recovery path.",
+        infoTitle = content.guidanceTitle,
+        infoBody = content.guidanceMessage,
+        infoNote = content.nextStepMessage,
+        actionTopGap = 208.dp,
+        showGoldEdge = true
+    ) {
+        PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = content.buttonLabel,
-                onClick = onRetry
+                onClick = onRetry,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

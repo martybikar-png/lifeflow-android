@@ -1,13 +1,9 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -25,49 +21,28 @@ internal fun LoadingTransitionContent(
     val hasAuthAction = !isAuthenticating
     val shouldShowActions = hasAuthAction || hasPermissionGap
 
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+    PublicShellInfoActionScreen(
+        screenTitle = "Starting",
+        screenSubtitle = "Preparing LifeFlow.",
+        infoTitle = if (isAuthenticating) "Secure check" else "Starting LifeFlow",
+        infoBody = loadingTransitionMessage(
+            isAuthenticating = isAuthenticating,
+            currentStateMessage = currentStateMessage
+        ),
+        infoNote = "Health access $grantedCount/$requiredCount",
+        actionTopGap = if (shouldShowActions) 188.dp else 0.dp,
+        showGoldEdge = true
     ) {
-        LifeFlowSignalPill(text = "Starting")
-    }
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    LifeFlowSectionPanel(
-        title = if (isAuthenticating) "Secure check" else "Starting LifeFlow"
-    ) {
-        Text(
-            text = loadingTransitionMessage(
-                isAuthenticating = isAuthenticating,
-                currentStateMessage = currentStateMessage
-            ),
-            style = lifeFlowCardSummaryStyle(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Health access $grantedCount/$requiredCount",
-            style = lifeFlowCardSummaryStyle(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-
-    if (shouldShowActions) {
-        Spacer(modifier = Modifier.height(10.dp))
-
-        LifeFlowSectionPanel(
-            title = if (hasAuthAction) "Next step" else "Health access"
-        ) {
-            LoadingTransitionActions(
-                hasAuthAction = hasAuthAction,
-                hasPermissionGap = hasPermissionGap,
-                onAuthenticate = onAuthenticate,
-                onGrantHealthPermissions = onGrantHealthPermissions,
-                onOpenHealthConnectSettings = onOpenHealthConnectSettings
-            )
+        if (shouldShowActions) {
+            PublicShellActionPanel {
+                LoadingTransitionActions(
+                    hasAuthAction = hasAuthAction,
+                    hasPermissionGap = hasPermissionGap,
+                    onAuthenticate = onAuthenticate,
+                    onGrantHealthPermissions = onGrantHealthPermissions,
+                    onOpenHealthConnectSettings = onOpenHealthConnectSettings
+                )
+            }
         }
     }
 }
@@ -94,7 +69,8 @@ private fun LoadingTransitionActions(
     if (hasAuthAction) {
         LifeFlowPrimaryActionButton(
             label = "Authenticate",
-            onClick = onAuthenticate
+            onClick = onAuthenticate,
+            modifier = Modifier.fillMaxWidth()
         )
         return
     }
@@ -102,14 +78,16 @@ private fun LoadingTransitionActions(
     if (hasPermissionGap) {
         LifeFlowPrimaryActionButton(
             label = "Grant Health access",
-            onClick = onGrantHealthPermissions
+            onClick = onGrantHealthPermissions,
+            modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        LifeFlowPrimaryActionButton(
+        LifeFlowSecondaryActionButton(
             label = "Open Health settings",
-            onClick = onOpenHealthConnectSettings
+            onClick = onOpenHealthConnectSettings,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
