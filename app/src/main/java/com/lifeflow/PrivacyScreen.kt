@@ -14,7 +14,7 @@ fun PrivacyScreen(
     onBackToSettings: () -> Unit = {},
     onBackToHome: () -> Unit = {},
 ) {
-    ScreenContainer(title = "Privacy") {
+    ScreenContainer(title = "Privacy", showGoldEdge = true) {
         LifeFlowSectionPanel(title = "Privacy") {
             Text(
                 text = "Clear privacy and calm boundaries.",

@@ -1,5 +1,6 @@
 package com.lifeflow
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
@@ -46,6 +50,16 @@ private val ScreenBoundaryBlueMidFade = Color(0xFF075FE0).copy(alpha = 0.24f)
 private val ScreenBoundaryBlueDeepFade = Color(0xFF0646B9).copy(alpha = 0.22f)
 private val ScreenBoundaryBlueSoftGlow = Color(0xFF22CDF7).copy(alpha = 0.10f)
 
+private val ScreenGoldDividerBrush = Brush.horizontalGradient(
+    colors = listOf(
+        Color(0xFFE4B94D),
+        Color(0xFFFFE9A8),
+        Color(0xFFFFF6C8),
+        Color(0xFFD49A2E),
+        Color(0xFFE4B94D)
+    )
+)
+
 private val ScreenWhiteForegroundShape = RoundedCornerShape(
     topStart = 44.dp,
     topEnd = 44.dp,
@@ -62,6 +76,7 @@ internal fun ScreenContainer(
     useBackdrop: Boolean = true,
     showBottomAura: Boolean = false,
     centerHeader: Boolean = false,
+    showGoldEdge: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val showHeader = (showBackButton && onBack != null) || title.isNotBlank() || subtitle.isNotBlank()
@@ -123,6 +138,14 @@ internal fun ScreenContainer(
                 .clip(ScreenWhiteForegroundShape)
                 .background(ScreenSurfaceTone)
         )
+
+        if (showGoldEdge) {
+            ScreenGoldDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = whiteStart)
+            )
+        }
 
         if (showHeader) {
             Row(
@@ -201,6 +224,35 @@ internal fun ScreenContainer(
                 content()
             }
         }
+    }
+}
+
+@Composable
+private fun ScreenGoldDivider(
+    modifier: Modifier = Modifier
+) {
+    Canvas(
+        modifier = modifier.height(48.dp)
+    ) {
+        val strokeWidth = 2.dp.toPx()
+        val inset = strokeWidth / 2f
+        val radius = 44.dp.toPx()
+
+        val path = Path().apply {
+            moveTo(inset, radius)
+            quadraticTo(inset, inset, radius, inset)
+            lineTo(size.width - radius, inset)
+            quadraticTo(size.width - inset, inset, size.width - inset, radius)
+        }
+
+        drawPath(
+            path = path,
+            brush = ScreenGoldDividerBrush,
+            style = Stroke(
+                width = strokeWidth,
+                cap = StrokeCap.Round
+            )
+        )
     }
 }
 

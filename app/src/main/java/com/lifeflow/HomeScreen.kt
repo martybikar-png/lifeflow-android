@@ -16,7 +16,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit = {},
     onOpenTrust: () -> Unit = {},
 ) {
-    ScreenContainer(title = "Home") {
+    ScreenContainer(title = "Home", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

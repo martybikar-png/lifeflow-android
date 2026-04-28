@@ -29,7 +29,7 @@ fun LoadingScreen(
         grantedCount = grantedCount
     )
 
-    ScreenContainer(title = "") {
+    ScreenContainer(title = "", showGoldEdge = true) {
         LoadingTransitionContent(
             isAuthenticating = isAuthenticating,
             currentStateMessage = currentStateMessage,
@@ -49,7 +49,7 @@ fun FreeTierScreen(
 ) {
     val visibleMessage = message.ifBlank { "Free mode is active." }
 
-    ScreenContainer(title = "") {
+    ScreenContainer(title = "", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
@@ -90,7 +90,7 @@ fun ErrorScreen(
         resetRequired = resetRequired
     )
 
-    ScreenContainer(title = "") {
+    ScreenContainer(title = "", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

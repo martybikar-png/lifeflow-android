@@ -28,7 +28,7 @@ fun QuickCaptureScreen(
 ) {
     val enrichedCaptureLocked = enrichedCapturePresentation.isLockedLike()
 
-    ScreenContainer(title = "Quick Capture") {
+    ScreenContainer(title = "Quick Capture", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

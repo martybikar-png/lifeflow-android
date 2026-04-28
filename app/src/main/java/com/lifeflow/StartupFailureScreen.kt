@@ -18,7 +18,7 @@ internal fun StartupFailureScreen(
     onRetryStartup: () -> Unit,
     onOpenAppSettings: () -> Unit
 ) {
-    ScreenContainer(title = "") {
+    ScreenContainer(title = "", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

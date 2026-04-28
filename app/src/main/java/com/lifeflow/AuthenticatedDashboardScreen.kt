@@ -48,7 +48,8 @@ internal fun AuthenticatedDashboardScreen(
 
     ScreenContainer(
         title = "LifeFlow Dashboard",
-        subtitle = "Protected wellbeing overview."
+        subtitle = "Protected wellbeing overview.",
+        showGoldEdge = true
     ) {
         LifeFlowSectionPanel(title = dashboardTitle(dashboardState)) {
             Text(

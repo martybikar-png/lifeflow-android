@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 fun CaptureEntryScreen(
     onBackToQuickCapture: () -> Unit = {},
 ) {
-    ScreenContainer(title = "Capture Entry") {
+    ScreenContainer(title = "Capture Entry", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

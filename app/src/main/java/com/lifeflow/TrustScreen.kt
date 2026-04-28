@@ -15,7 +15,7 @@ fun TrustScreen(
     onOpenSettings: () -> Unit = {},
     onBackToHome: () -> Unit = {},
 ) {
-    ScreenContainer(title = "Trust") {
+    ScreenContainer(title = "Trust", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

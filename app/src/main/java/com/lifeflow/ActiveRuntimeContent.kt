@@ -185,7 +185,7 @@ internal fun ActiveRuntimeContent(
 
 @Composable
 private fun IntroSplashScreen() {
-    ScreenContainer(title = "Welcome to LifeFlow", centerHeader = true) {
+    ScreenContainer(title = "Welcome to LifeFlow", centerHeader = true, showGoldEdge = true) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

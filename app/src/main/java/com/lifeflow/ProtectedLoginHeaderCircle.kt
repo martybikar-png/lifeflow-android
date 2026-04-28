@@ -1,5 +1,6 @@
 package com.lifeflow
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -88,6 +89,11 @@ internal fun PremiumCenterCircle(
             modifier = Modifier
                 .size(146.dp)
                 .premiumLoginFloatingPhotoSurface(CircleShape)
+                .border(
+                    width = 1.4.dp,
+                    brush = PremiumLoginGoldCircleBrush,
+                    shape = CircleShape
+                )
                 .clip(CircleShape),
             contentAlignment = Alignment.Center
         ) {

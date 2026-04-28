@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 fun CaptureLibraryScreen(
     onBackToQuickCapture: () -> Unit = {},
 ) {
-    ScreenContainer(title = "Capture Library") {
+    ScreenContainer(title = "Capture Library", showGoldEdge = true) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
