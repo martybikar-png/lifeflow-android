@@ -38,8 +38,7 @@ fun FreeTierScreen(
         screenSubtitle = "Core stays protected.",
         infoTitle = "Free mode",
         infoBody = visibleMessage,
-        infoNote = "Core features stay locked until you upgrade.",
-        showGoldEdge = true
+        infoNote = "Core features stay locked until you upgrade."
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
@@ -67,8 +66,7 @@ fun ErrorScreen(
         screenSubtitle = if (resetRequired) "Protected reset needed." else "Safe recovery path.",
         infoTitle = content.guidanceTitle,
         infoBody = content.guidanceMessage,
-        infoNote = content.nextStepMessage,
-        showGoldEdge = true
+        infoNote = content.nextStepMessage
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

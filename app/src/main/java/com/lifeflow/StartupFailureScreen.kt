@@ -22,8 +22,7 @@ internal fun StartupFailureScreen(
         infoNote = startupFailureInfoNote(
             message = message,
             lastAction = lastAction
-        ),
-        showGoldEdge = true
+        )
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
