@@ -28,7 +28,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -127,28 +126,41 @@ private fun PremiumLoginGoldDivider(
     Canvas(
         modifier = modifier.height(48.dp)
     ) {
-        val strokeWidth = 2.dp.toPx()
-        val inset = strokeWidth / 2f
+        val strokeWidth = 3.dp.toPx()
         val radius = 44.dp.toPx()
+        val curve = 0.55228475f
+        val cornerControl = radius * curve
 
         val path = Path().apply {
-            moveTo(inset, radius)
-            quadraticBezierTo(inset, inset, radius, inset)
-            lineTo(size.width - radius, inset)
-            quadraticBezierTo(size.width - inset, inset, size.width - inset, radius)
-        }
-
-        translate(left = -2f) {
-            drawPath(
-                path = path,
-                brush = PremiumLoginGoldDividerBrush,
-                style = Stroke(
-                    width = strokeWidth,
-                    cap = StrokeCap.Round
-                )
+            moveTo(0f, radius)
+            cubicTo(
+                0f,
+                radius - cornerControl,
+                radius - cornerControl,
+                0f,
+                radius,
+                0f
+            )
+            lineTo(size.width - radius, 0f)
+            cubicTo(
+                size.width - radius + cornerControl,
+                0f,
+                size.width,
+                radius - cornerControl,
+                size.width,
+                radius
             )
         }
-}
+
+        drawPath(
+            path = path,
+            brush = PremiumLoginGoldDividerBrush,
+            style = Stroke(
+                width = strokeWidth,
+                cap = StrokeCap.Round
+            )
+        )
+    }
 }
 
 @Composable

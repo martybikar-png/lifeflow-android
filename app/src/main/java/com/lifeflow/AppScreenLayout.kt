@@ -236,16 +236,32 @@ private fun ScreenGoldDivider(
     Canvas(
         modifier = modifier.height(48.dp)
     ) {
-        val strokeWidth = 2.dp.toPx()
-        val inset = strokeWidth / 2f
+        val strokeWidth = 3.dp.toPx()
         val radius = 44.dp.toPx()
+        val curve = 0.55228475f
+        val cornerControl = radius * curve
 
         val path = Path().apply {
-            moveTo(inset, radius)
-            quadraticTo(inset, inset, radius, inset)
-            lineTo(size.width - radius, inset)
-            quadraticTo(size.width - inset, inset, size.width - inset, radius)
+            moveTo(0f, radius)
+            cubicTo(
+                0f,
+                radius - cornerControl,
+                radius - cornerControl,
+                0f,
+                radius,
+                0f
+            )
+            lineTo(size.width - radius, 0f)
+            cubicTo(
+                size.width - radius + cornerControl,
+                0f,
+                size.width,
+                radius - cornerControl,
+                size.width,
+                radius
+            )
         }
+
         drawPath(
             path = path,
             brush = ScreenGoldDividerBrush,
