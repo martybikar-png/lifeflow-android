@@ -41,7 +41,10 @@ internal fun mainViewModelSecurityEvaluation(
     val canExposeProtectedUiData =
         isAuthenticatedUi &&
             isAuthorized &&
-            trustState == TrustState.VERIFIED || trustState == TrustState.DEGRADED
+            (
+                trustState == TrustState.VERIFIED ||
+                    trustState == TrustState.DEGRADED
+            )
 
     val runtimeEntryBlockMessage =
         if (!isAuthorized) {
