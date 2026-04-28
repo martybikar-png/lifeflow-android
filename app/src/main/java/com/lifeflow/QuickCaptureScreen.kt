@@ -1,12 +1,8 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.lifeflow.boundary.BoundaryEntitlementSource
 import com.lifeflow.boundary.BoundaryPresentation
 import com.lifeflow.boundary.BoundaryPresentationState
@@ -25,51 +21,39 @@ fun QuickCaptureScreen(
 ) {
     val enrichedCaptureLocked = enrichedCapturePresentation.isLockedLike()
 
-    ScreenContainer(
-        title = "Quick Capture",
-        showBackButton = true,
-        onBack = onBackToHome,
-        showGoldEdge = true
+    PublicShellInfoActionScreen(
+        screenTitle = "Quick Capture",
+        screenSubtitle = "Save one thing quickly.",
+        infoTitle = "Capture",
+        infoBody = "Save one small thing.",
+        infoNote = if (enrichedCaptureLocked) { enrichedCapturePresentation?.detailMessage ?: "Core required." } else { "" }
     ) {
-        LifeFlowSectionPanel(title = "Capture") {
-            Text(
-                text = "Save one small thing.",
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = "Start Capture",
-                onClick = onPrimaryCapture
+                onClick = onPrimaryCapture,
+                modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             LifeFlowSecondaryActionButton(
                 label = "Library",
-                onClick = onOpenCaptureLibrary
+                onClick = onOpenCaptureLibrary,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            if (enrichedCaptureLocked) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = enrichedCapturePresentation?.detailMessage ?: "Core required.",
-                    style = lifeFlowCardSummaryStyle(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (enrichedCapturePresentation?.shouldShowUpgradeAction() == true) {
+                LifeFlowSecondaryActionButton(
+                    label = "Upgrade to Core",
+                    onClick = onUpgradeToCore,
+                    modifier = Modifier.fillMaxWidth()
                 )
-
-                if (enrichedCapturePresentation?.shouldShowUpgradeAction() == true) {
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    LifeFlowSecondaryActionButton(
-                        label = "Upgrade to Core",
-                        onClick = onUpgradeToCore
-                    )
-                }
             }
+
+            LifeFlowSecondaryActionButton(
+                label = "Back",
+                onClick = onBackToHome,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

@@ -1,12 +1,8 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun SettingsScreen(
@@ -14,31 +10,29 @@ fun SettingsScreen(
     onOpenTrust: () -> Unit = {},
     onBackToHome: () -> Unit = {},
 ) {
-    ScreenContainer(
-        title = "Settings",
-        showBackButton = true,
-        onBack = onBackToHome,
-        showGoldEdge = true
+    PublicShellInfoActionScreen(
+        screenTitle = "Settings",
+        screenSubtitle = "Controls for privacy and trust.",
+        infoTitle = "Controls",
+        infoBody = "Privacy and trust controls."
     ) {
-        LifeFlowSectionPanel(title = "Controls") {
-            Text(
-                text = "Privacy and trust controls.",
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = "Privacy",
-                onClick = onOpenPrivacy
+                onClick = onOpenPrivacy,
+                modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             LifeFlowSecondaryActionButton(
                 label = "Trust",
-                onClick = onOpenTrust
+                onClick = onOpenTrust,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            LifeFlowSecondaryActionButton(
+                label = "Back",
+                onClick = onBackToHome,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

@@ -1,35 +1,30 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun CaptureEntryScreen(
     onBackToQuickCapture: () -> Unit = {},
 ) {
-    ScreenContainer(
-        title = "Capture Entry",
-        showBackButton = true,
-        onBack = onBackToQuickCapture,
-        showGoldEdge = true
+    PublicShellInfoActionScreen(
+        screenTitle = "Capture Entry",
+        screenSubtitle = "Finish a simple capture.",
+        infoTitle = "New capture",
+        infoBody = "Capture entry is ready."
     ) {
-        LifeFlowSectionPanel(title = "New capture") {
-            Text(
-                text = "Capture entry is ready.",
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = "Done",
-                onClick = onBackToQuickCapture
+                onClick = onBackToQuickCapture,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            LifeFlowSecondaryActionButton(
+                label = "Back",
+                onClick = onBackToQuickCapture,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

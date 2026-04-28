@@ -6,10 +6,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -185,7 +184,11 @@ internal fun ActiveRuntimeContent(
 
 @Composable
 private fun IntroSplashScreen() {
-    ScreenContainer(title = "Welcome to LifeFlow", centerHeader = true, showGoldEdge = true) {
+    ScreenContainer(
+        title = "Welcome to LifeFlow",
+        centerHeader = true,
+        showGoldEdge = true
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -200,7 +203,7 @@ private fun IntroSplashScreen() {
             ) {
                 Text(
                     text = "Adaptive care",
-                    color = androidx.compose.ui.graphics.Color(0xFF526072),
+                    color = Color(0xFF526072),
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontSize = 11.sp,
                         lineHeight = 15.sp,
@@ -216,32 +219,19 @@ private fun IntroSplashScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.96f)
-                            .height(300.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        WelcomeLivingCore(
-                            modifier = Modifier
-                                .size(196.dp)
-                                .offset(y = (-18).dp)
-                        )
-
-                        Image(
-                            painter = painterResource(id = R.drawable.lifeflow_splash_icon),
-                            contentDescription = "LifeFlow app icon",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.lifeflow_splash_icon),
+                        contentDescription = "LifeFlow app icon",
+                        modifier = Modifier.size(196.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
                     text = "A calmer way to live",
-                    color = androidx.compose.ui.graphics.Color(0xFF1E2430),
+                    color = Color(0xFF1E2430),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 20.sp,
                         lineHeight = 24.sp,
@@ -255,7 +245,7 @@ private fun IntroSplashScreen() {
 
                 Text(
                     text = "Gentle guidance around you.",
-                    color = androidx.compose.ui.graphics.Color(0xFF667385),
+                    color = Color(0xFF667385),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 11.sp,
                         lineHeight = 15.sp

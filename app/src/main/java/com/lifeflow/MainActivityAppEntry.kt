@@ -7,6 +7,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.lifeflow.navigation.PublicShellNavHost
 
+private const val EnablePublicShellVisualReview = true
+
 @Composable
 internal fun AppEntry(
     startupRuntimeEntryPoint: StartupRuntimeEntryPoint,
@@ -21,12 +23,18 @@ internal fun AppEntry(
         mutableStateOf(initialOnboardingCompleted)
     }
 
-    if (!onboardingCompleted) {
+    val showPublicShellVisualReview =
+        BuildConfig.DEBUG && EnablePublicShellVisualReview
+
+    if (showPublicShellVisualReview || !onboardingCompleted) {
         PublicShellNavHost(
             onOnboardingCompleted = {
-                onMarkOnboardingCompleted()
-                onboardingCompleted = true
-            }
+                if (!showPublicShellVisualReview) {
+                    onMarkOnboardingCompleted()
+                    onboardingCompleted = true
+                }
+            },
+            completeOnboardingLocally = showPublicShellVisualReview
         )
         return
     }

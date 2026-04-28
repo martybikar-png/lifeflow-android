@@ -70,11 +70,8 @@ internal fun PublicShellNavHost(
         when (activeRoute) {
             LifeFlowScreenMap.onboardingWelcome.route -> {
                 OnboardingWelcomeScreen(
-                    onContinue = {
+                    onSplashFinished = {
                         currentRoute = LifeFlowScreenMap.onboardingPermissions.route
-                    },
-                    onSkipToHome = {
-                        completeOnboarding()
                     }
                 )
             }
@@ -85,7 +82,7 @@ internal fun PublicShellNavHost(
                         currentRoute = LifeFlowScreenMap.onboardingPrivacy.route
                     },
                     onBack = {
-                        currentRoute = LifeFlowScreenMap.onboardingWelcome.route
+                        completeOnboarding()
                     }
                 )
             }
