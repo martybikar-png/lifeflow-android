@@ -33,12 +33,13 @@ internal fun mainViewModelFailClosedUiUpdate(): MainViewModelWellbeingUiUpdate {
 internal fun mainViewModelPublicHealthStateOnlyUiUpdate(
     healthConnectState: HealthConnectUiState,
     requiredHealthPermissions: Set<String>,
+    grantedHealthPermissions: Set<String>,
     healthPermissionsInitError: String?
 ): MainViewModelWellbeingUiUpdate {
     return MainViewModelWellbeingUiUpdate(
         healthConnectState = healthConnectState,
         requiredHealthPermissions = requiredHealthPermissions,
-        grantedHealthPermissions = emptySet(),
+        grantedHealthPermissions = grantedHealthPermissions,
         healthPermissionsInitError = healthPermissionsInitError,
         digitalTwinState = null,
         wellbeingAssessment = null,

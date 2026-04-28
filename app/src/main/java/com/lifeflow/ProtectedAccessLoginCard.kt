@@ -1,20 +1,29 @@
 package com.lifeflow
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,6 +31,7 @@ import com.lifeflow.core.HealthConnectUiState
 
 @Composable
 internal fun ProtectedAccessLoginCard(
+    modifier: Modifier = Modifier,
     isAuthenticating: Boolean,
     healthState: HealthConnectUiState,
     requiredCount: Int,
@@ -30,18 +40,16 @@ internal fun ProtectedAccessLoginCard(
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit
 ) {
+    var selectedMethod by rememberSaveable {
+        mutableStateOf(LoginMethod.FACE_ID)
+    }
+
     val hasMissingPermissions = hasMissingHealthPermissions(
         requiredCount = requiredCount,
         grantedCount = grantedCount
     )
 
-    val sessionValue = if (isAuthenticating) {
-        "Protected session active"
-    } else {
-        "Go to sign in"
-    }
-
-    val readinessValue = when {
+    val accessStatus = when {
         healthState != HealthConnectUiState.Available ->
             "Health Connect needs attention"
         hasMissingPermissions ->
@@ -50,174 +58,176 @@ internal fun ProtectedAccessLoginCard(
             "All health access ready"
     }
 
-    val utilityLabel = if (healthState != HealthConnectUiState.Available) {
-        "Open settings"
-    } else {
-        "Review access"
-    }
-
-    val utilityAction = if (healthState != HealthConnectUiState.Available) {
+    val reviewAccessAction = if (healthState != HealthConnectUiState.Available) {
         onOpenHealthConnectSettings
     } else {
         onGrantHealthPermissions
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        PremiumLoginBlueTop,
+                        PremiumLoginBlueBottom
+                    )
+                )
+            ),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Box(
+        val whiteStart = maxHeight * PremiumLoginWhiteStartRatio
+
+        PremiumLoginTopPanel(
             modifier = Modifier
-                .size(70.dp)
-                .lifeFlowRaisedPanelChrome(ProtectedLoginIconShape),
-            contentAlignment = Alignment.Center
-        ) {
-            ProtectedBiometricAccessIcon(
-                modifier = Modifier.size(30.dp)
-            )
-        }
-
-        ProtectedLoginHeader()
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        ProtectedLoginInfoRow(
-            label = "Biometric sign in",
-            value = sessionValue,
-            iconResId = R.drawable.lf_ic_authenticate,
-            useBiometricIcon = true
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(whiteStart)
         )
 
-        ProtectedLoginInfoRow(
-            label = "Health readiness",
-            value = readinessValue,
-            iconResId = R.drawable.lf_ic_permissions,
-            useBiometricIcon = false
+        PremiumLoginBody(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxSize()
+                .padding(top = whiteStart),
+            selectedMethod = selectedMethod,
+            onSelectMethod = { selectedMethod = it },
+            isAuthenticating = isAuthenticating,
+            accessStatus = accessStatus,
+            onReviewAccess = reviewAccessAction,
+            onAuthenticate = onAuthenticate
+        )
+
+        PremiumCenterCircle(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = whiteStart - PremiumLoginCenterCircleLift)
+        )
+    }
+}
+
+@Composable
+private fun PremiumLoginBody(
+    modifier: Modifier = Modifier,
+    selectedMethod: LoginMethod,
+    onSelectMethod: (LoginMethod) -> Unit,
+    isAuthenticating: Boolean,
+    accessStatus: String,
+    onReviewAccess: () -> Unit,
+    onAuthenticate: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .premiumLoginBodyCardSurface(PremiumLoginBodyShape)
+            .navigationBarsPadding()
+            .padding(start = 18.dp, end = 18.dp, top = 108.dp, bottom = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Log in",
+            color = PremiumLoginTextPrimary,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        ProtectedLoginUtilityRow(
-            label = utilityLabel,
-            onClick = utilityAction
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        ProtectedLoginActions(
-            isAuthenticating = isAuthenticating,
-            hasMissingPermissions = hasMissingPermissions,
-            healthState = healthState,
-            onAuthenticate = onAuthenticate,
-            onGrantHealthPermissions = onGrantHealthPermissions,
-            onOpenHealthConnectSettings = onOpenHealthConnectSettings
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-    }
-}
-
-@Composable
-private fun ProtectedLoginHeader() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(
-            text = "Protected login",
-            color = ProtectedLoginCardTitle,
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 17.sp,
-                lineHeight = 21.sp,
-                fontWeight = FontWeight.SemiBold
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PremiumLoginMethodRow(
+                title = "Face ID",
+                subtitle = "Face recognition",
+                iconResId = R.drawable.lf_ic_authenticate,
+                selected = selectedMethod == LoginMethod.FACE_ID,
+                onClick = { onSelectMethod(LoginMethod.FACE_ID) },
+                modifier = Modifier.weight(1f)
             )
-        )
 
-        Text(
-            text = "Face ID, iris ID, and fingerprint ID keep your\nLifeFlow access calm and private.",
-            color = ProtectedLoginCardSubtitle,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 10.sp,
-                lineHeight = 14.sp
-            )
-        )
-    }
-}
-
-@Composable
-private fun ProtectedLoginUtilityRow(
-    label: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Device-bound access only",
-            color = ProtectedLoginOption,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 9.sp,
-                lineHeight = 11.sp
-            )
-        )
-
-        Text(
-            text = label,
-            color = ProtectedLoginAccent,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 9.sp,
-                lineHeight = 11.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            modifier = Modifier.clickable(onClick = onClick)
-        )
-    }
-}
-
-@Composable
-private fun ProtectedLoginActions(
-    isAuthenticating: Boolean,
-    hasMissingPermissions: Boolean,
-    healthState: HealthConnectUiState,
-    onAuthenticate: () -> Unit,
-    onGrantHealthPermissions: () -> Unit,
-    onOpenHealthConnectSettings: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        LifeFlowPrimaryActionButton(
-            label = if (isAuthenticating) {
-                "Protected session active"
-            } else {
-                "Authenticate securely"
-            },
-            onClick = onAuthenticate,
-            enabled = !isAuthenticating,
-            iconResId = R.drawable.lf_ic_authenticate
-        )
-
-        if (hasMissingPermissions) {
-            LifeFlowSecondaryActionButton(
-                label = "Review health access",
-                onClick = onGrantHealthPermissions,
-                iconResId = R.drawable.lf_ic_permissions
+            PremiumLoginMethodRow(
+                title = "Iris ID",
+                subtitle = "Iris recognition",
+                iconResId = R.drawable.lf_ic_authenticate,
+                selected = selectedMethod == LoginMethod.IRIS_ID,
+                onClick = { onSelectMethod(LoginMethod.IRIS_ID) },
+                modifier = Modifier.weight(1f)
             )
         }
 
-        if (healthState != HealthConnectUiState.Available) {
-            LifeFlowSecondaryActionButton(
-                label = "Open Health Connect settings",
-                onClick = onOpenHealthConnectSettings,
-                iconResId = R.drawable.lf_ic_settings
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PremiumLoginMethodRow(
+                title = "Fingerprint",
+                subtitle = "Fingerprint login",
+                iconResId = R.drawable.lf_ic_authenticate,
+                selected = selectedMethod == LoginMethod.FINGERPRINT,
+                onClick = { onSelectMethod(LoginMethod.FINGERPRINT) },
+                modifier = Modifier.weight(1f)
             )
+
+            PremiumLoginMethodRow(
+                title = "Device ID",
+                subtitle = "Local access",
+                iconResId = R.drawable.lf_ic_permissions,
+                selected = selectedMethod == LoginMethod.DEVICE_BOUND,
+                onClick = { onSelectMethod(LoginMethod.DEVICE_BOUND) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            LifeFlowPrimaryActionButton(
+                label = if (isAuthenticating) "Signing in…" else "Enter",
+                onClick = onAuthenticate,
+                enabled = !isAuthenticating,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                iconResId = R.drawable.lf_ic_authenticate
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 0.dp)
+                    .offset(y = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = accessStatus,
+                    color = PremiumLoginTextSecondary,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+
+                Text(
+                    text = "Review access",
+                    color = PremiumLoginTextPrimary,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    modifier = Modifier.clickable(onClick = onReviewAccess)
+                )
+            }
         }
     }
 }

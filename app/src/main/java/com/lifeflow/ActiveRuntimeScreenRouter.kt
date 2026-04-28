@@ -14,8 +14,8 @@ internal fun ActiveRuntimeScreenRouter(
 ) {
     when (screen.uiState) {
         UiState.Loading -> {
-            LoadingScreen(
-                isAuthenticating = screen.isAuthenticating,
+            ProtectedLoginScreen(
+                isAuthenticating = false,
                 healthState = screen.healthState,
                 requiredCount = screen.requiredPermissions.size,
                 grantedCount = screen.grantedPermissions.size,
@@ -39,7 +39,9 @@ internal fun ActiveRuntimeScreenRouter(
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
                 onReAuthenticate = onAuthenticate,
-                onUpgradeToCore = onUpgradeToCore
+                onUpgradeToCore = onUpgradeToCore,
+                lastAction = screen.lastAction,
+                isSessionAuthorized = screen.isAuthenticating
             )
         }
 

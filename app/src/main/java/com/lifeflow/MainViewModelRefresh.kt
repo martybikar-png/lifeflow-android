@@ -47,6 +47,7 @@ internal fun refreshMainViewModelPublicHealthStateOnly(
     val update = mainViewModelPublicHealthStateOnlyUiUpdate(
         healthConnectState = wellbeingState.healthConnectState.value,
         requiredHealthPermissions = wellbeingState.requiredHealthPermissions.value,
+        grantedHealthPermissions = wellbeingState.grantedHealthPermissions.value,
         healthPermissionsInitError = wellbeingState.healthPermissionsInitError.value
     )
 

@@ -29,10 +29,19 @@ import com.lifeflow.publicShellEnrichedCapturePresentation
 @Composable
 internal fun PublicShellNavHost(
     modifier: Modifier = Modifier,
-    onOnboardingCompleted: () -> Unit = {}
+    onOnboardingCompleted: () -> Unit = {},
+    completeOnboardingLocally: Boolean = false
 ) {
     var currentRoute by rememberSaveable {
         mutableStateOf(LifeFlowScreenMap.onboardingWelcome.route)
+    }
+
+    val completeOnboarding: () -> Unit = {
+        if (completeOnboardingLocally) {
+            currentRoute = LifeFlowScreenMap.home.route
+        } else {
+            onOnboardingCompleted()
+        }
     }
 
     val activeRoute = when (currentRoute) {
@@ -65,7 +74,7 @@ internal fun PublicShellNavHost(
                         currentRoute = LifeFlowScreenMap.onboardingPermissions.route
                     },
                     onSkipToHome = {
-                        onOnboardingCompleted()
+                        completeOnboarding()
                     }
                 )
             }
@@ -161,10 +170,10 @@ internal fun PublicShellNavHost(
             LifeFlowScreenMap.onboardingVoice.route -> {
                 OnboardingVoiceScreen(
                     onContinue = {
-                        onOnboardingCompleted()
+                        completeOnboarding()
                     },
                     onStayQuiet = {
-                        onOnboardingCompleted()
+                        completeOnboarding()
                     }
                 )
             }

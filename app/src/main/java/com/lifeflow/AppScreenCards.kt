@@ -1,14 +1,12 @@
 package com.lifeflow
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -83,14 +81,7 @@ internal fun HealthSummaryCard(
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LifeFlowSignalPill(text = "Health Connect view")
-        }
-
-        LifeFlowSectionPanel(title = "Health Connect") {
+LifeFlowSectionPanel(title = "Health Connect") {
             Text(
                 text = healthCompactSummary(
                     healthState = healthState,
@@ -145,8 +136,16 @@ internal fun HealthSummaryCard(
         }
 
         LifeFlowSectionPanel(title = "Health details") {
-            KeyValueLine("Required", requiredCount.toString())
-            KeyValueLine("Granted", grantedCount.toString())
+            KeyValueStatusLine(
+                label = "Required",
+                value = requiredCount.toString(),
+                valueColor = Color(0xFF22CDF7)
+            )
+            KeyValueStatusLine(
+                label = "Granted",
+                value = grantedCount.toString(),
+                valueColor = Color(0xFF22CDF7)
+            )
             KeyValueStatusLine(
                 label = "Steps",
                 value = if (stepsGranted) "Granted" else "Missing",

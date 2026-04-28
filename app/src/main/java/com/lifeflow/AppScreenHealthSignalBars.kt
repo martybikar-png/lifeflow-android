@@ -31,8 +31,8 @@ private val HealthBarShape = RoundedCornerShape(20.dp)
 private val HealthBarFillShape = RoundedCornerShape(14.dp)
 
 private val HealthCyan = Color(0xFF22CDF7)
-private val HealthLavender = Color(0xFF9EA7FF)
-private val HealthPeach = Color(0xFFF2B7A6)
+private val HealthLavender = Color(0xFF22CDF7)
+private val HealthPeach = Color(0xFF22CDF7)
 private val HealthSlot = Color(0xFFF4F6FA)
 
 @Composable
@@ -99,8 +99,8 @@ private fun HealthSignalBar(
         Text(
             text = metric.label,
             style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 11.sp,
-                lineHeight = 13.sp
+                fontSize = 10.sp,
+                lineHeight = 12.sp
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

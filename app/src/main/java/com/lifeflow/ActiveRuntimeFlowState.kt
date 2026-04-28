@@ -19,7 +19,8 @@ internal data class ActiveRuntimeScreenSnapshot(
     val stepsGranted: Boolean,
     val hrGranted: Boolean,
     val boundarySnapshot: MainBoundarySnapshot,
-    val freeTierMessage: String
+    val freeTierMessage: String,
+    val lastAction: String
 )
 
 internal fun collectActiveRuntimeScreenSnapshot(
@@ -32,6 +33,7 @@ internal fun collectActiveRuntimeScreenSnapshot(
     val wellbeingAssessment = viewModel.wellbeingAssessment.value
     val boundarySnapshot = viewModel.boundarySnapshot.value
     val freeTierMessage = viewModel.freeTierMessage.value
+    val lastAction = viewModel.lastAction.value
     val requiredPermissions = viewModel.requiredHealthPermissions.value
     val grantedPermissions = viewModel.grantedHealthPermissions.value
     val stepsReadPerm = HealthPermission.getReadPermission(StepsRecord::class)
@@ -50,6 +52,7 @@ internal fun collectActiveRuntimeScreenSnapshot(
         stepsGranted = stepsGranted,
         hrGranted = hrGranted,
         boundarySnapshot = boundarySnapshot,
-        freeTierMessage = freeTierMessage
+        freeTierMessage = freeTierMessage,
+        lastAction = lastAction
     )
 }

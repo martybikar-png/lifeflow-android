@@ -238,8 +238,10 @@ class MainViewModel(
 
     override fun refreshMetricsAndTwinNow() = launchRuntimeRefresh("Manual dashboard refresh requested.")
 
-    override fun onHealthPermissionsResult(granted: Set<String>) =
+    override fun onHealthPermissionsResult(granted: Set<String>) {
+        wellbeingState.grantedHealthPermissions.value = granted
         launchRuntimeRefresh("Health permission result received (${granted.size} granted).")
+    }
 
     override fun onAuthenticationSuccess() {
         beginAuthenticationSuccessFlow(

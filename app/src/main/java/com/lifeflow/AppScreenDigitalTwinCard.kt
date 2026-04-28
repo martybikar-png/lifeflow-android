@@ -31,8 +31,8 @@ private val DigitalTwinBarShape = RoundedCornerShape(20.dp)
 private val DigitalTwinBarFillShape = RoundedCornerShape(14.dp)
 
 private val DigitalTwinCyan = Color(0xFF22CDF7)
-private val DigitalTwinLavender = Color(0xFF9EA7FF)
-private val DigitalTwinPeach = Color(0xFFF2B7A6)
+private val DigitalTwinLavender = Color(0xFF22CDF7)
+private val DigitalTwinPeach = Color(0xFF22CDF7)
 private val DigitalTwinSlot = Color(0xFFF4F6FA)
 
 @Composable
@@ -147,8 +147,8 @@ private fun DigitalTwinSignalBar(
         Text(
             text = metric.label,
             style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 11.sp,
-                lineHeight = 13.sp
+                fontSize = 10.sp,
+                lineHeight = 12.sp
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -240,4 +240,3 @@ private fun digitalTwinFreshnessRatio(
         else -> 0.18f
     }
 }
-

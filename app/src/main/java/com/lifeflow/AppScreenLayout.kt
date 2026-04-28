@@ -1,225 +1,183 @@
 package com.lifeflow
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 private val ScreenOuterHorizontalPadding = 20.dp
 private val ScreenOuterVerticalPadding = 12.dp
-private val SectionSpacing = 20.dp
 private val ScreenContentMaxWidth = 580.dp
 private val ScreenHeaderSpacing = 14.dp
+private val ScreenHeaderTextSpacing = 4.dp
+private val ScreenTopBandContentSpacing = 22.dp
+private const val ScreenWhiteStartRatio = 0.25f
 
-private val ScreenSurfaceTone = Color(0xFFF2F3F7)
+private val ScreenSurfaceTone = Color(0xFFFFFFFF)
+private val ScreenTopBlueStart = Color(0xFF22CDF7)
+private val ScreenTopBlueEnd = Color(0xFF2F8FFF)
 
-private val ScreenAuraCore = Color(0xFF22CDF7).copy(alpha = 0.18f)
-private val ScreenAuraSoft = Color(0xFF22CDF7).copy(alpha = 0.10f)
-private val ScreenAuraWhite = Color(0xFFFFFFFF).copy(alpha = 0.28f)
-private val ScreenAuraLavender = Color(0xFFC9D4FF).copy(alpha = 0.10f)
+private val ScreenBoundaryBlueWideFade = Color(0xFF0A75E8).copy(alpha = 0.18f)
+private val ScreenBoundaryBlueMidFade = Color(0xFF075FE0).copy(alpha = 0.24f)
+private val ScreenBoundaryBlueDeepFade = Color(0xFF0646B9).copy(alpha = 0.22f)
+private val ScreenBoundaryBlueSoftGlow = Color(0xFF22CDF7).copy(alpha = 0.10f)
 
-private val ScreenOrbitLine = Color(0xFF22CDF7).copy(alpha = 0.14f)
-private val ScreenOrbitSoft = Color(0xFFFFFFFF).copy(alpha = 0.16f)
-
-private val ScreenLowerAuraCore = Color(0xFF22CDF7).copy(alpha = 0.08f)
-private val ScreenLowerAuraSoft = Color(0xFF22CDF7).copy(alpha = 0.04f)
-
-@Composable
-private fun LifeFlowScreenBackdropLayer(
-    modifier: Modifier = Modifier,
-    includeLowerAura: Boolean = false
-) {
-    val transition = rememberInfiniteTransition(label = "lifeFlowScreenBackdrop")
-
-    val driftXFactor = transition.animateFloat(
-        initialValue = -0.018f,
-        targetValue = 0.022f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 16000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "lifeFlowBackdropDriftX"
-    )
-
-    val driftYFactor = transition.animateFloat(
-        initialValue = -0.016f,
-        targetValue = 0.020f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 18000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "lifeFlowBackdropDriftY"
-    )
-
-    val radiusPulse = transition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 14000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "lifeFlowBackdropRadiusPulse"
-    )
-
-    Canvas(modifier = modifier) {
-        val minDim = minOf(size.width, size.height)
-
-        val auraCenter = Offset(
-            x = size.width * (0.14f + driftXFactor.value),
-            y = size.height * (0.11f + driftYFactor.value)
-        )
-
-        val outerRadius = minDim * 0.42f * radiusPulse.value
-        val midRadius = minDim * 0.28f * radiusPulse.value
-        val innerRadius = minDim * 0.15f * radiusPulse.value
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    ScreenAuraWhite,
-                    ScreenAuraCore,
-                    ScreenAuraSoft,
-                    Color.Transparent
-                ),
-                center = auraCenter,
-                radius = outerRadius
-            ),
-            radius = outerRadius,
-            center = auraCenter
-        )
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    ScreenAuraLavender,
-                    ScreenAuraSoft,
-                    Color.Transparent
-                ),
-                center = Offset(
-                    x = auraCenter.x + minDim * 0.03f,
-                    y = auraCenter.y + minDim * 0.02f
-                ),
-                radius = midRadius
-            ),
-            radius = midRadius,
-            center = Offset(
-                x = auraCenter.x + minDim * 0.03f,
-                y = auraCenter.y + minDim * 0.02f
-            )
-        )
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    ScreenAuraWhite,
-                    Color.Transparent
-                ),
-                center = Offset(
-                    x = auraCenter.x - minDim * 0.02f,
-                    y = auraCenter.y - minDim * 0.015f
-                ),
-                radius = innerRadius
-            ),
-            radius = innerRadius,
-            center = Offset(
-                x = auraCenter.x - minDim * 0.02f,
-                y = auraCenter.y - minDim * 0.015f
-            )
-        )
-
-        drawCircle(
-            color = ScreenOrbitSoft,
-            radius = minDim * 0.19f * radiusPulse.value,
-            center = auraCenter,
-            style = Stroke(width = 1.2.dp.toPx())
-        )
-
-        drawCircle(
-            color = ScreenOrbitLine,
-            radius = minDim * 0.27f * radiusPulse.value,
-            center = auraCenter,
-            style = Stroke(width = 1.0.dp.toPx())
-        )
-
-        if (includeLowerAura) {
-            val lowerCenter = Offset(
-                x = size.width * 0.50f,
-                y = size.height * 0.94f
-            )
-
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        ScreenLowerAuraCore,
-                        ScreenLowerAuraSoft,
-                        Color.Transparent
-                    ),
-                    center = lowerCenter,
-                    radius = size.width * 0.62f
-                ),
-                radius = size.width * 0.62f,
-                center = lowerCenter
-            )
-        }
-    }
-}
+private val ScreenWhiteForegroundShape = RoundedCornerShape(
+    topStart = 44.dp,
+    topEnd = 44.dp,
+    bottomStart = 0.dp,
+    bottomEnd = 0.dp
+)
 
 @Composable
 internal fun ScreenContainer(
     title: String,
+    subtitle: String = "",
     showBackButton: Boolean = false,
     onBack: (() -> Unit)? = null,
     useBackdrop: Boolean = true,
     showBottomAura: Boolean = false,
+    centerHeader: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val showHeader = (showBackButton && onBack != null) || title.isNotBlank()
+    val showHeader = (showBackButton && onBack != null) || title.isNotBlank() || subtitle.isNotBlank()
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenSurfaceTone)
-    ) {
-        if (useBackdrop) {
-            LifeFlowScreenBackdropLayer(
-                modifier = Modifier.fillMaxSize(),
-                includeLowerAura = showBottomAura
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        ScreenTopBlueStart,
+                        ScreenTopBlueEnd
+                    )
+                )
             )
+    ) {
+        val whiteStart = maxHeight * ScreenWhiteStartRatio
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = whiteStart)
+                .dropShadow(
+                    shape = ScreenWhiteForegroundShape,
+                    shadow = Shadow(
+                        radius = 120.dp,
+                        spread = 0.dp,
+                        color = ScreenBoundaryBlueWideFade,
+                        offset = DpOffset(x = 0.dp, y = (-42).dp)
+                    )
+                )
+                .dropShadow(
+                    shape = ScreenWhiteForegroundShape,
+                    shadow = Shadow(
+                        radius = 90.dp,
+                        spread = 0.dp,
+                        color = ScreenBoundaryBlueMidFade,
+                        offset = DpOffset(x = 0.dp, y = (-30).dp)
+                    )
+                )
+                .dropShadow(
+                    shape = ScreenWhiteForegroundShape,
+                    shadow = Shadow(
+                        radius = 64.dp,
+                        spread = 0.dp,
+                        color = ScreenBoundaryBlueDeepFade,
+                        offset = DpOffset(x = 0.dp, y = (-18).dp)
+                    )
+                )
+                .dropShadow(
+                    shape = ScreenWhiteForegroundShape,
+                    shadow = Shadow(
+                        radius = 42.dp,
+                        spread = 0.dp,
+                        color = ScreenBoundaryBlueSoftGlow,
+                        offset = DpOffset(x = 0.dp, y = (-8).dp)
+                    )
+                )
+                .clip(ScreenWhiteForegroundShape)
+                .background(ScreenSurfaceTone)
+        )
+
+        if (showHeader) {
+            Row(
+                modifier = if (centerHeader) {
+                    Modifier
+                        .fillMaxWidth()
+                        .height(whiteStart)
+                        .padding(horizontal = ScreenOuterHorizontalPadding)
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = ScreenOuterHorizontalPadding,
+                            vertical = ScreenOuterVerticalPadding + 10.dp
+                        )
+                },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (centerHeader) Arrangement.Center else Arrangement.spacedBy(ScreenHeaderSpacing)
+            ) {
+                if (showBackButton && onBack != null) {
+                    LifeFlowPrimaryActionButton(
+                        label = "Back",
+                        onClick = onBack
+                    )
+                }
+
+                Column(
+                    modifier = if (centerHeader) Modifier.fillMaxWidth() else Modifier,
+                    horizontalAlignment = if (centerHeader) Alignment.CenterHorizontally else Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(ScreenHeaderTextSpacing)
+                ) {
+                    if (title.isNotBlank()) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 19.sp,
+                                lineHeight = 22.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Color.White
+                        )
+                    }
+
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                lineHeight = 13.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.92f)
+                        )
+                    }
+                }
+            }
         }
 
         Box(
@@ -227,8 +185,10 @@ internal fun ScreenContainer(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(
-                    horizontal = ScreenOuterHorizontalPadding,
-                    vertical = ScreenOuterVerticalPadding
+                    start = ScreenOuterHorizontalPadding,
+                    end = ScreenOuterHorizontalPadding,
+                    top = whiteStart + ScreenTopBandContentSpacing,
+                    bottom = ScreenOuterVerticalPadding
                 )
         ) {
             Column(
@@ -238,30 +198,6 @@ internal fun ScreenContainer(
                     .align(Alignment.TopCenter),
                 verticalArrangement = Arrangement.Top
             ) {
-                if (showHeader) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(ScreenHeaderSpacing)
-                    ) {
-                        if (showBackButton && onBack != null) {
-                            LifeFlowPrimaryActionButton(
-                                label = "Back",
-                                onClick = onBack
-                            )
-                        }
-
-                        if (title.isNotBlank()) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.headlineMedium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(SectionSpacing))
-                }
-
                 content()
             }
         }
