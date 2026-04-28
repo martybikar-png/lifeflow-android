@@ -22,32 +22,16 @@ fun PrivacyScreen(
     ) {
         LifeFlowSectionPanel(title = "Privacy") {
             Text(
-                text = "Clear privacy and calm boundaries.",
+                text = "Data boundaries stay clear.",
                 style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        LifeFlowSectionPanel(title = "Next step") {
             LifeFlowPrimaryActionButton(
                 label = "Trust",
                 onClick = onOpenTrust
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            LifeFlowPrimaryActionButton(
-                label = "Back to Settings",
-                onClick = onBackToSettings
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            LifeFlowPrimaryActionButton(
-                label = "Back to Home",
-                onClick = onBackToHome
             )
         }
     }

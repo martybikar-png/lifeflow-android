@@ -1,15 +1,13 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+
 @Composable
 fun CaptureLibraryScreen(
     onBackToQuickCapture: () -> Unit = {},
@@ -20,28 +18,17 @@ fun CaptureLibraryScreen(
         onBack = onBackToQuickCapture,
         showGoldEdge = true
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LifeFlowSignalPill(text = "Library")
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        LifeFlowSectionPanel(title = "Capture Library") {
+        LifeFlowSectionPanel(title = "Library") {
             Text(
-                text = "Review lightweight captures.",
+                text = "Light captures appear here.",
                 style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        LifeFlowSectionPanel(title = "Next step") {
             LifeFlowPrimaryActionButton(
-                label = "Back to Quick Capture",
+                label = "Back to Capture",
                 onClick = onBackToQuickCapture
             )
         }

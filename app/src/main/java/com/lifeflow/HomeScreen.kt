@@ -1,15 +1,13 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+
 @Composable
 fun HomeScreen(
     onOpenQuickCapture: () -> Unit = {},
@@ -17,41 +15,30 @@ fun HomeScreen(
     onOpenTrust: () -> Unit = {},
 ) {
     ScreenContainer(title = "Home", showGoldEdge = true) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            LifeFlowSignalPill(text = "Home")
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        LifeFlowSectionPanel(title = "Quick Capture") {
+        LifeFlowSectionPanel(title = "Start") {
             Text(
-                text = "Capture one small thing.",
+                text = "Begin with one small capture.",
                 style = lifeFlowCardSummaryStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             LifeFlowPrimaryActionButton(
-                label = "Open Quick Capture",
+                label = "Quick Capture",
                 onClick = onOpenQuickCapture
             )
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-        LifeFlowSectionPanel(title = "More") {
-            LifeFlowPrimaryActionButton(
+            LifeFlowSecondaryActionButton(
                 label = "Settings",
                 onClick = onOpenSettings
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            LifeFlowPrimaryActionButton(
+            LifeFlowSecondaryActionButton(
                 label = "Trust",
                 onClick = onOpenTrust
             )
