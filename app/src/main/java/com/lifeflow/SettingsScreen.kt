@@ -16,7 +16,12 @@ fun SettingsScreen(
     onOpenTrust: () -> Unit = {},
     onBackToHome: () -> Unit = {},
 ) {
-    ScreenContainer(title = "Settings", showGoldEdge = true) {
+    ScreenContainer(
+        title = "Settings",
+        showBackButton = true,
+        onBack = onBackToHome,
+        showGoldEdge = true
+    ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
