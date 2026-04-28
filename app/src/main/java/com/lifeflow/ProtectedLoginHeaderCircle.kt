@@ -31,7 +31,7 @@ internal fun PremiumLoginTopPanel(
     Box(
         modifier = modifier
             .statusBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 40.dp, bottom = 16.dp)
+            .padding(start = 18.dp, end = 18.dp, top = 52.dp, bottom = 16.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

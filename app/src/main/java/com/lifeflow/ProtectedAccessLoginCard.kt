@@ -165,7 +165,7 @@ private fun PremiumLoginBody(
         modifier = modifier
             .premiumLoginBodyCardSurface(PremiumLoginBodyShape)
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 108.dp, bottom = 18.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 112.dp, bottom = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -247,7 +247,7 @@ private fun PremiumLoginBody(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 0.dp)
-                    .offset(y = 18.dp),
+                    .offset(y = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
