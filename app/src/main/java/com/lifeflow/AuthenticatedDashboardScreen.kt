@@ -92,7 +92,7 @@ internal fun AuthenticatedDashboardScreen(
             Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
 
             Text(
-                text = "Tap Authenticate again if snapshot stays preparing.",
+                text = "Protected signals are ready.",
                 style = lifeFlowCardRowLabelStyle(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -111,7 +111,7 @@ internal fun AuthenticatedDashboardScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = lastAction,
+                    text = "Snapshot refreshed.",
                     style = lifeFlowCardRowLabelStyle(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -167,7 +167,7 @@ private fun dashboardTitle(
         DashboardState.HC_UNAVAILABLE -> "Health setup"
         DashboardState.NEEDS_PERMISSIONS -> "Almost there"
         DashboardState.LOADING -> "Preparing"
-        DashboardState.NO_DATA -> "Ready to start"
+        DashboardState.NO_DATA -> "Ready to begin"
         DashboardState.ATTENTION -> "Needs attention"
         DashboardState.READY -> "Ready"
     }
@@ -185,7 +185,7 @@ private fun dashboardMessage(
         DashboardState.LOADING ->
             "LifeFlow is preparing your protected snapshot."
         DashboardState.NO_DATA ->
-            "Load your first snapshot to populate the dashboard."
+            "Your protected snapshot is prepared."
         DashboardState.ATTENTION ->
             "Some protected signals need a fresh check."
         DashboardState.READY ->

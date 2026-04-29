@@ -32,7 +32,10 @@ internal fun DashboardStatusRows(
 
     DashboardValueLine(
         label = "Access",
-        value = "$grantedCount / $requiredCount",
+        value = accessDisplayLabel(
+            requiredCount = requiredCount,
+            grantedCount = grantedCount
+        ),
         valueColor = permissionCoverageColor(
             requiredCount = requiredCount,
             grantedCount = grantedCount
@@ -42,7 +45,7 @@ internal fun DashboardStatusRows(
     Spacer(modifier = Modifier.height(DashboardStatusLineGap))
 
     DashboardValueLine(
-        label = "Steps",
+        label = "Movement",
         value = grantedLabel(stepsGranted),
         valueColor = grantedStateColor(stepsGranted)
     )
@@ -80,11 +83,22 @@ private fun healthStateDisplayLabel(
     healthState: HealthConnectUiState
 ): String {
     return when (healthState) {
-        HealthConnectUiState.Unknown -> "Unknown"
-        HealthConnectUiState.Available -> "Available"
-        HealthConnectUiState.NotInstalled -> "Not installed"
-        HealthConnectUiState.NotSupported -> "Not supported"
-        HealthConnectUiState.UpdateRequired -> "Update required"
+        HealthConnectUiState.Unknown -> "Checking"
+        HealthConnectUiState.Available -> "Ready"
+        HealthConnectUiState.NotInstalled -> "Needs setup"
+        HealthConnectUiState.NotSupported -> "Unavailable"
+        HealthConnectUiState.UpdateRequired -> "Update needed"
+    }
+}
+
+private fun accessDisplayLabel(
+    requiredCount: Int,
+    grantedCount: Int
+): String {
+    return if (requiredCount > 0 && grantedCount >= requiredCount) {
+        "Ready"
+    } else {
+        "$grantedCount / $requiredCount ready"
     }
 }
 
