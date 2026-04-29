@@ -22,7 +22,7 @@ import com.lifeflow.domain.wellbeing.WellbeingAssessment
 private val DashboardHorizontalPadding = 20.dp
 private val DashboardInfoTopGap = 44.dp
 private val DashboardInfoBodyGap = 8.dp
-private val DashboardActionTopGap = 92.dp
+private val DashboardActionTopGap = 134.dp
 private val DashboardActionHorizontalPadding = 12.dp
 
 @Composable

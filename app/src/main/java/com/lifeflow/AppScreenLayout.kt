@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +39,7 @@ private val ScreenOuterVerticalPadding = 12.dp
 private val ScreenContentMaxWidth = 580.dp
 private val ScreenHeaderSpacing = 14.dp
 private val ScreenHeaderTextSpacing = 4.dp
+private val ScreenHeaderTopPadding = 52.dp
 private val ScreenTopBandContentSpacing = 22.dp
 private const val ScreenWhiteStartRatio = 0.20f
 internal const val ScreenSplashWhiteStartRatio = 0.25f
@@ -159,9 +161,12 @@ internal fun ScreenContainer(
                 } else {
                     Modifier
                         .fillMaxWidth()
+                        .statusBarsPadding()
                         .padding(
-                            horizontal = ScreenOuterHorizontalPadding,
-                            vertical = ScreenOuterVerticalPadding + 10.dp
+                            start = ScreenOuterHorizontalPadding,
+                            top = ScreenHeaderTopPadding,
+                            end = ScreenOuterHorizontalPadding,
+                            bottom = ScreenOuterVerticalPadding + 10.dp
                         )
                 },
                 verticalAlignment = Alignment.CenterVertically,
