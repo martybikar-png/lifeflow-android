@@ -18,7 +18,7 @@ fun HomeScreen(
         screenSubtitle = "One calm next step.",
         infoTitle = "Begin with one small capture.",
         infoBody = "Quick Capture opens your first simple entry.\nSettings and Trust stay ready when you need control.",
-        showGoldEdge = false
+        showGoldEdge = true
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
