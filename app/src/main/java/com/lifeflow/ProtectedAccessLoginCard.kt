@@ -132,22 +132,22 @@ private fun PremiumLoginGoldDivider(
         val cornerControl = radius * curve
 
         val path = Path().apply {
-            moveTo(0f, radius)
+            moveTo(-2f, radius)
             cubicTo(
-                0f,
+                -2f,
                 radius - cornerControl,
-                radius - cornerControl,
+                radius - cornerControl - 2f,
                 0f,
-                radius,
+                radius - 2f,
                 0f
             )
-            lineTo(size.width - radius, 0f)
+            lineTo(size.width - radius - 2f, 0f)
             cubicTo(
-                size.width - radius + cornerControl,
+                size.width - radius + cornerControl - 2f,
                 0f,
-                size.width,
+                size.width - 2f,
                 radius - cornerControl,
-                size.width,
+                size.width - 2f,
                 radius
             )
         }
