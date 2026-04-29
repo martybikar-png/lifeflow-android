@@ -40,6 +40,7 @@ internal fun AuthenticatedDashboardScreen(
     onOpenHealthConnectSettings: () -> Unit,
     onReAuthenticate: () -> Unit,
     onUpgradeToCore: () -> Unit,
+    onOpenHome: () -> Unit,
     lastAction: String,
     isSessionAuthorized: Boolean
 ) {
@@ -151,8 +152,8 @@ internal fun AuthenticatedDashboardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 LifeFlowSecondaryActionButton(
-                    label = "Authenticate again",
-                    onClick = onReAuthenticate,
+                    label = "Home",
+                    onClick = onOpenHome,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

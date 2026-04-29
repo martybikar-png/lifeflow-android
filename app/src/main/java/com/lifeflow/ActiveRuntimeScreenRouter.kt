@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import androidx.compose.runtime.Composable
+import com.lifeflow.navigation.ProtectedRuntimeNavHost
 
 @Composable
 internal fun ActiveRuntimeScreenRouter(
@@ -26,22 +27,13 @@ internal fun ActiveRuntimeScreenRouter(
         }
 
         UiState.Authenticated -> {
-            AuthenticatedDashboardScreen(
-                healthState = screen.healthState,
-                requiredCount = screen.requiredPermissions.size,
-                grantedCount = screen.grantedPermissions.size,
-                stepsGranted = screen.stepsGranted,
-                hrGranted = screen.hrGranted,
-                digitalTwinState = screen.digitalTwinState,
-                wellbeingAssessment = screen.wellbeingAssessment,
-                boundarySnapshot = screen.boundarySnapshot,
-                onRefreshNow = onRefreshNow,
+            ProtectedRuntimeNavHost(
+                screen = screen,
+                onAuthenticate = onAuthenticate,
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
-                onReAuthenticate = onAuthenticate,
-                onUpgradeToCore = onUpgradeToCore,
-                lastAction = screen.lastAction,
-                isSessionAuthorized = screen.isAuthenticating
+                onRefreshNow = onRefreshNow,
+                onUpgradeToCore = onUpgradeToCore
             )
         }
 
