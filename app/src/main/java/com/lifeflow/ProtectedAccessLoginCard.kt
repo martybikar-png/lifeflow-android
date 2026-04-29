@@ -1,5 +1,11 @@
 package com.lifeflow
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -123,6 +131,12 @@ internal fun ProtectedAccessLoginCard(
 private fun PremiumLoginGoldDivider(
     modifier: Modifier = Modifier
 ) {
+    val shine = rememberInfiniteTransition(label = "dividerShine").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(9750, easing = LinearEasing), RepeatMode.Restart),
+        label = "dividerShineProgress"
+    ).value
     Canvas(
         modifier = modifier.height(48.dp)
     ) {
@@ -160,6 +174,20 @@ private fun PremiumLoginGoldDivider(
                 cap = StrokeCap.Round
             )
         )
+
+        val measure = PathMeasure(); measure.setPath(path, false)
+        val total = measure.length
+        val start = total * shine
+        val length = total * 0.10f
+        val alphas = listOf(0.03f,0.06f,0.11f,0.18f,0.30f,0.48f,0.86f,0.48f,0.30f,0.18f,0.11f,0.06f,0.03f)
+        alphas.forEachIndexed { index, alpha ->
+            val from = start + length * index / alphas.size
+            val to = start + length * (index + 1) / alphas.size
+            val segment = Path()
+            if (measure.getSegment(from.coerceAtMost(total), to.coerceAtMost(total), segment, true)) {
+                drawPath(segment, Color(0xFFFFF1B0).copy(alpha = alpha), style = Stroke(strokeWidth + 0.7.dp.toPx(), cap = StrokeCap.Round))
+            }
+        }
     }
 }
 

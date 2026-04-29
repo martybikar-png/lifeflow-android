@@ -31,21 +31,21 @@ internal val PremiumLoginLink = Color(0xFF22CDF7)
 
 internal val PremiumLoginGoldDividerBrush = Brush.horizontalGradient(
     colors = listOf(
-        Color(0xFFE4B94D),
-        Color(0xFFFFE9A8),
-        Color(0xFFFFF6C8),
-        Color(0xFFD49A2E),
-        Color(0xFFE4B94D)
+        Color(0xFFD4AF37),
+        Color(0xFFFFF1B0),
+        Color(0xFFFFF6D8),
+        Color(0xFFB8791F),
+        Color(0xFFD4AF37)
     )
 )
 
 internal val PremiumLoginGoldCircleBrush = Brush.sweepGradient(
     colors = listOf(
-        Color(0xFFE0B64A),
+        Color(0xFFD4AF37),
         Color(0xFFB8791F),
-        Color(0xFFF3D26A),
-        Color(0xFFC98B25),
-        Color(0xFFE0B64A)
+        Color(0xFFFFF1B0),
+        Color(0xFFB8791F),
+        Color(0xFFD4AF37)
     )
 )
 

@@ -55,11 +55,11 @@ private val ScreenBoundaryBlueSoftGlow = Color(0xFF0646B9).copy(alpha = 0.18f)
 
 private val ScreenGoldDividerBrush = Brush.horizontalGradient(
     colors = listOf(
-        Color(0xFFE4B94D),
-        Color(0xFFFFE9A8),
-        Color(0xFFFFF6C8),
-        Color(0xFFD49A2E),
-        Color(0xFFE4B94D)
+        Color(0xFFD4AF37),
+        Color(0xFFFFF1B0),
+        Color(0xFFFFF6D8),
+        Color(0xFFB8791F),
+        Color(0xFFD4AF37)
     )
 )
 

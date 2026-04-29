@@ -1,5 +1,12 @@
 package com.lifeflow
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +76,17 @@ internal fun PremiumLoginTopPanel(
 internal fun PremiumCenterCircle(
     modifier: Modifier = Modifier
 ) {
+    val transition = rememberInfiniteTransition(label = "premiumCircleShine")
+    val shineAngle = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 9750, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "premiumCircleShineAngle"
+    ).value
+
     Box(
         modifier = modifier.size(166.dp),
         contentAlignment = Alignment.Center
@@ -99,6 +121,43 @@ internal fun PremiumCenterCircle(
         ) {
             ProtectedBiometricAccessIcon(
                 modifier = Modifier.size(38.dp)
+            )
+        }
+
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(146.dp)
+        ) {
+            val stroke = 1.8.dp.toPx()
+            val edgeSweep = 7.0f
+            val coreSweep = 7.0f
+            drawArc(
+                color = Color(0xFFD4AF37).copy(alpha = 0.38f),
+                startAngle = shineAngle,
+                sweepAngle = edgeSweep,
+                useCenter = false,
+                topLeft = Offset(stroke / 2f, stroke / 2f),
+                size = Size(size.width - stroke, size.height - stroke),
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            drawArc(
+                color = Color(0xFFFFF1B0).copy(alpha = 0.98f),
+                startAngle = shineAngle + edgeSweep,
+                sweepAngle = coreSweep,
+                useCenter = false,
+                topLeft = Offset(stroke / 2f, stroke / 2f),
+                size = Size(size.width - stroke, size.height - stroke),
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            drawArc(
+                color = Color(0xFFD4AF37).copy(alpha = 0.38f),
+                startAngle = shineAngle + edgeSweep + coreSweep,
+                sweepAngle = edgeSweep,
+                useCenter = false,
+                topLeft = Offset(stroke / 2f, stroke / 2f),
+                size = Size(size.width - stroke, size.height - stroke),
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
         }
 
