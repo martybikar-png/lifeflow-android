@@ -7,6 +7,9 @@ import androidx.navigation.compose.rememberNavController
 import com.lifeflow.ActiveRuntimeScreenSnapshot
 import com.lifeflow.AuthenticatedDashboardScreen
 import com.lifeflow.HomeScreen
+import com.lifeflow.TrustScreen
+import com.lifeflow.SettingsScreen
+import com.lifeflow.QuickCaptureScreen
 
 @Composable
 internal fun ProtectedRuntimeNavHost(
@@ -45,7 +48,13 @@ internal fun ProtectedRuntimeNavHost(
         }
 
         composable("protected/home") {
-            HomeScreen()
+            HomeScreen(onOpenQuickCapture = { navController.navigate("protected/quick-capture") { launchSingleTop = true } }, onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } })
         }
+
+        composable("protected/quick-capture") { QuickCaptureScreen(onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+
+        composable("protected/settings") { SettingsScreen(onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+
+        composable("protected/trust") { TrustScreen(onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
     }
 }
