@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import com.lifeflow.navigation.PublicShellNavHost
 
 private const val EnablePublicShellVisualReview = false
+private const val EnableStartupFailureVisualReview = false
 
 @Composable
 internal fun AppEntry(
@@ -25,6 +26,19 @@ internal fun AppEntry(
 
     val showPublicShellVisualReview =
         BuildConfig.DEBUG && EnablePublicShellVisualReview
+
+    val showStartupFailureVisualReview =
+        BuildConfig.DEBUG && EnableStartupFailureVisualReview
+
+    if (showStartupFailureVisualReview) {
+        StartupFailureScreen(
+            message = "Security startup preview.",
+            lastAction = "Visual review only.",
+            onRetryStartup = { },
+            onOpenAppSettings = { }
+        )
+        return
+    }
 
     if (showPublicShellVisualReview || !onboardingCompleted) {
         PublicShellNavHost(
