@@ -197,8 +197,8 @@ internal fun Modifier.premiumLoginPhotoWhiteTopLevitationShadow(
             shadow = Shadow(
                 radius = 28.dp,
                 spread = 1.dp,
-                color = Color.White.copy(alpha = 0.34f),
-                offset = DpOffset(x = 0.dp, y = (-13).dp)
+                color = Color(0xFF032B78).copy(alpha = 0.42f),
+                offset = DpOffset(x = 0.dp, y = 16.dp)
             )
         )
         .dropShadow(
@@ -206,8 +206,8 @@ internal fun Modifier.premiumLoginPhotoWhiteTopLevitationShadow(
             shadow = Shadow(
                 radius = 16.dp,
                 spread = 0.dp,
-                color = Color.White.copy(alpha = 0.20f),
-                offset = DpOffset(x = 0.dp, y = (-6).dp)
+                color = Color(0xFF0646B9).copy(alpha = 0.30f),
+                offset = DpOffset(x = 0.dp, y = 8.dp)
             )
         )
 }

@@ -48,10 +48,10 @@ private val ScreenSurfaceTone = Color(0xFFFFFFFF)
 private val ScreenTopBlueStart = Color(0xFF22CDF7)
 private val ScreenTopBlueEnd = Color(0xFF2F8FFF)
 
-private val ScreenBoundaryBlueWideFade = Color(0xFF0A75E8).copy(alpha = 0.18f)
-private val ScreenBoundaryBlueMidFade = Color(0xFF075FE0).copy(alpha = 0.24f)
-private val ScreenBoundaryBlueDeepFade = Color(0xFF0646B9).copy(alpha = 0.22f)
-private val ScreenBoundaryBlueSoftGlow = Color(0xFF22CDF7).copy(alpha = 0.10f)
+private val ScreenBoundaryBlueWideFade = Color(0xFF032B78).copy(alpha = 0.34f)
+private val ScreenBoundaryBlueMidFade = Color(0xFF0646B9).copy(alpha = 0.36f)
+private val ScreenBoundaryBlueDeepFade = Color(0xFF032B78).copy(alpha = 0.28f)
+private val ScreenBoundaryBlueSoftGlow = Color(0xFF0646B9).copy(alpha = 0.18f)
 
 private val ScreenGoldDividerBrush = Brush.horizontalGradient(
     colors = listOf(

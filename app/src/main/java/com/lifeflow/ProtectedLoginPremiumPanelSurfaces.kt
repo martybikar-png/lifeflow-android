@@ -64,8 +64,8 @@ internal fun Modifier.premiumLoginBodyCardSurface(
             shadow = Shadow(
                 radius = 112.dp,
                 spread = 0.dp,
-                color = Color(0xFF0A75E8).copy(alpha = 0.18f),
-                offset = DpOffset(x = 0.dp, y = (-40).dp)
+                color = Color(0xFF032B78).copy(alpha = 0.36f),
+                offset = DpOffset(x = 0.dp, y = (-42).dp)
             )
         )
         .dropShadow(
@@ -73,7 +73,7 @@ internal fun Modifier.premiumLoginBodyCardSurface(
             shadow = Shadow(
                 radius = 84.dp,
                 spread = 0.dp,
-                color = Color(0xFF075FE0).copy(alpha = 0.24f),
+                color = Color(0xFF0646B9).copy(alpha = 0.34f),
                 offset = DpOffset(x = 0.dp, y = (-28).dp)
             )
         )
@@ -91,7 +91,7 @@ internal fun Modifier.premiumLoginBodyCardSurface(
             shadow = Shadow(
                 radius = 32.dp,
                 spread = 0.dp,
-                color = Color(0xFF22CDF7).copy(alpha = 0.10f),
+                color = Color(0xFF032B78).copy(alpha = 0.22f),
                 offset = DpOffset(x = 0.dp, y = (-8).dp)
             )
         )

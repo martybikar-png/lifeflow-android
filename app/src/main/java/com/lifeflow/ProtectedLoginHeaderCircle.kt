@@ -90,7 +90,7 @@ internal fun PremiumCenterCircle(
                 .size(146.dp)
                 .premiumLoginFloatingPhotoSurface(CircleShape)
                 .border(
-                    width = 1.4.dp,
+                    width = 1.6.dp,
                     brush = PremiumLoginGoldCircleBrush,
                     shape = CircleShape
                 )

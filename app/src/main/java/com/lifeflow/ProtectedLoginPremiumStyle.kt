@@ -41,11 +41,11 @@ internal val PremiumLoginGoldDividerBrush = Brush.horizontalGradient(
 
 internal val PremiumLoginGoldCircleBrush = Brush.sweepGradient(
     colors = listOf(
-        Color(0xFFFFF0A8),
-        Color(0xFFD49A2E),
-        Color(0xFFFFF6C8),
-        Color(0xFFE4B94D),
-        Color(0xFFFFF0A8)
+        Color(0xFFE0B64A),
+        Color(0xFFB8791F),
+        Color(0xFFF3D26A),
+        Color(0xFFC98B25),
+        Color(0xFFE0B64A)
     )
 )
 
