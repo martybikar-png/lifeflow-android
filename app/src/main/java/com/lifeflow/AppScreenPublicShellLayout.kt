@@ -1,6 +1,7 @@
 package com.lifeflow
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -76,7 +77,12 @@ internal fun PublicShellInfoActionScreen(
                 if (infoMarkers.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(PublicShellInfoMarkerGap))
 
-                    LifeFlowMarkerPill(markers = infoMarkers)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LifeFlowMarkerPill(markers = infoMarkers)
+                    }
                 }
                 if (infoNote.isNotBlank()) {
                     Spacer(modifier = Modifier.height(PublicShellInfoNoteGap))
