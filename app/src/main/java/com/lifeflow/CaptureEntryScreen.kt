@@ -12,7 +12,8 @@ fun CaptureEntryScreen(
         screenTitle = "Capture Entry",
         screenSubtitle = "Finish a simple capture.",
         infoTitle = "New capture",
-        infoBody = "Capture entry is ready."
+        infoBody = "Capture entry is ready.",
+        infoMarkers = listOf("Simple", "Draft", "Done"),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

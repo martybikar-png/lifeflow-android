@@ -19,6 +19,7 @@ internal fun StartupFailureScreen(
         screenSubtitle = "Startup paused.",
         infoTitle = "Startup paused",
         infoBody = startupRecoveryGuidance(message),
+        infoMarkers = listOf("Safe", "Retry", "Settings"),
         infoNote = startupFailureInfoNote(
             message = message,
             lastAction = lastAction

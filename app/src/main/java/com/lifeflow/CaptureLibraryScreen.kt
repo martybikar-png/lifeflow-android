@@ -12,7 +12,8 @@ fun CaptureLibraryScreen(
         screenTitle = "Capture Library",
         screenSubtitle = "Review light captures.",
         infoTitle = "Library",
-        infoBody = "Light captures appear here."
+        infoBody = "Light captures appear here.",
+        infoMarkers = listOf("Saved", "Light", "Clear"),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

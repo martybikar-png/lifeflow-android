@@ -27,7 +27,8 @@ import androidx.compose.ui.unit.sp
 
 private const val OnboardingPageCount = 10
 
-private val OnboardingActionTopOffset = 379.dp
+private val OnboardingPageIndicatorBottomPadding = 112.dp
+
 
 private val OnboardingTextPrimary = Color(0xFF1E2430)
 private val OnboardingTextSecondary = Color(0xFF667385)
@@ -56,13 +57,10 @@ internal fun OnboardingStepScreen(
     ScreenContainer(
         title = screenTitle,
         subtitle = screenSubtitle,
-        showGoldEdge = true
+        showGoldEdge = true,
+        scrollContent = false
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(586.dp)
-        ) {
+        LifeFlowActionFrame {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,12 +108,8 @@ internal fun OnboardingStepScreen(
                 )
             }
 
-            OnboardingActionBlock(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 20.dp)
-                    .padding(top = OnboardingActionTopOffset)
+            LifeFlowBottomAnchoredActions(
+                modifier = Modifier.padding(horizontal = 32.dp)
             ) {
                 LifeFlowPrimaryActionButton(
                     label = primaryLabel,
@@ -123,16 +117,20 @@ internal fun OnboardingStepScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
                 LifeFlowSecondaryActionButton(
                     label = secondaryLabel,
                     onClick = onSecondary,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = OnboardingPageIndicatorBottomPadding),
+                contentAlignment = Alignment.Center
+            ) {
                 OnboardingPageIndicator(
                     selectedIndex = selectedIndex,
                     pageCount = OnboardingPageCount

@@ -14,7 +14,8 @@ fun SettingsScreen(
         screenTitle = "Settings",
         screenSubtitle = "Controls for privacy and trust.",
         infoTitle = "Controls",
-        infoBody = "Privacy and trust controls."
+        infoBody = "Privacy and trust controls.",
+        infoMarkers = listOf("Privacy", "Trust", "Control"),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

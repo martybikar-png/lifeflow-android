@@ -26,6 +26,7 @@ fun QuickCaptureScreen(
         screenSubtitle = "Save one thing quickly.",
         infoTitle = "Capture",
         infoBody = "Save one small thing.",
+        infoMarkers = listOf("Fast", "Local", "Light"),
         infoNote = if (enrichedCaptureLocked) { enrichedCapturePresentation?.detailMessage ?: "Core required." } else { "" }
     ) {
         PublicShellActionPanel {

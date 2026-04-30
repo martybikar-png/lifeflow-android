@@ -14,7 +14,8 @@ fun PrivacyScreen(
         screenTitle = "Privacy",
         screenSubtitle = "Data boundaries stay clear.",
         infoTitle = "Privacy",
-        infoBody = "Data boundaries stay clear."
+        infoBody = "Data boundaries stay clear.",
+        infoMarkers = listOf("Local", "Clear", "Yours"),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

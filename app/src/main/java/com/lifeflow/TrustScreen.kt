@@ -13,7 +13,8 @@ fun TrustScreen(
         screenTitle = "Trust",
         screenSubtitle = "Security and access.",
         infoTitle = "Trust",
-        infoBody = "Security and access stay visible."
+        infoBody = "Security and access stay visible.",
+        infoMarkers = listOf("Secure", "Visible", "Yours"),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

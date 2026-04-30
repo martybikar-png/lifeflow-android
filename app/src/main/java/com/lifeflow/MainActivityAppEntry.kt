@@ -42,7 +42,7 @@ internal fun AppEntry(
 
     if (showPublicShellVisualReview || !onboardingCompleted) {
         PublicShellNavHost(
-            startAtHome = showPublicShellVisualReview,
+            startAtHome = false,
             onOnboardingCompleted = {
                 if (!showPublicShellVisualReview) {
                     onMarkOnboardingCompleted()

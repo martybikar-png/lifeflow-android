@@ -20,6 +20,7 @@ private val PublicShellHorizontalPadding = 20.dp
 private val PublicShellInfoTopGap = 44.dp
 private val PublicShellInfoBodyGap = 8.dp
 private val PublicShellInfoNoteGap = 10.dp
+private val PublicShellInfoMarkerGap = 16.dp
 private val PublicShellActionHorizontalPadding = 12.dp
 
 @Composable
@@ -29,6 +30,7 @@ internal fun PublicShellInfoActionScreen(
     infoTitle: String,
     infoBody: String,
     infoNote: String = "",
+    infoMarkers: List<String> = emptyList(),
     showGoldEdge: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -71,6 +73,11 @@ internal fun PublicShellInfoActionScreen(
                     )
                 }
 
+                if (infoMarkers.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(PublicShellInfoMarkerGap))
+
+                    LifeFlowMarkerPill(markers = infoMarkers)
+                }
                 if (infoNote.isNotBlank()) {
                     Spacer(modifier = Modifier.height(PublicShellInfoNoteGap))
 
