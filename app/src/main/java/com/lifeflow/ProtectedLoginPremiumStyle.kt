@@ -50,8 +50,8 @@ internal val PremiumLoginGoldCircleBrush = Brush.sweepGradient(
 )
 
 internal enum class LoginMethod {
-    FACE_ID,
-    IRIS_ID,
-    FINGERPRINT,
-    DEVICE_BOUND
+    BIOMETRIC_ID,
+    SECURE_PROMPT,
+    DEVICE_BOUND,
+    LOCAL_VAULT
 }

@@ -53,7 +53,7 @@ internal fun ProtectedAccessLoginCard(
     onOpenHealthConnectSettings: () -> Unit
 ) {
     var selectedMethod by rememberSaveable {
-        mutableStateOf(LoginMethod.FACE_ID)
+        mutableStateOf(LoginMethod.BIOMETRIC_ID)
     }
 
     val hasMissingPermissions = hasMissingHealthPermissions(
@@ -249,20 +249,20 @@ private fun PremiumLoginBody(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             PremiumLoginMethodRow(
-                title = "Face ID",
-                subtitle = "Face recognition",
+                title = "Biometric ID",
+                subtitle = "Strong biometric",
                 iconResId = R.drawable.lf_ic_authenticate,
-                selected = selectedMethod == LoginMethod.FACE_ID,
-                onClick = { onSelectMethod(LoginMethod.FACE_ID) },
+                selected = selectedMethod == LoginMethod.BIOMETRIC_ID,
+                onClick = { onSelectMethod(LoginMethod.BIOMETRIC_ID) },
                 modifier = Modifier.weight(1f)
             )
 
             PremiumLoginMethodRow(
-                title = "Iris ID",
-                subtitle = "Iris recognition",
+                title = "Secure prompt",
+                subtitle = "Android protected",
                 iconResId = R.drawable.lf_ic_authenticate,
-                selected = selectedMethod == LoginMethod.IRIS_ID,
-                onClick = { onSelectMethod(LoginMethod.IRIS_ID) },
+                selected = selectedMethod == LoginMethod.SECURE_PROMPT,
+                onClick = { onSelectMethod(LoginMethod.SECURE_PROMPT) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -272,20 +272,20 @@ private fun PremiumLoginBody(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             PremiumLoginMethodRow(
-                title = "Fingerprint",
-                subtitle = "Fingerprint login",
+                title = "Device bound",
+                subtitle = "This device only",
                 iconResId = R.drawable.lf_ic_authenticate,
-                selected = selectedMethod == LoginMethod.FINGERPRINT,
-                onClick = { onSelectMethod(LoginMethod.FINGERPRINT) },
+                selected = selectedMethod == LoginMethod.LOCAL_VAULT,
+                onClick = { onSelectMethod(LoginMethod.LOCAL_VAULT) },
                 modifier = Modifier.weight(1f)
             )
 
             PremiumLoginMethodRow(
-                title = "Device ID",
-                subtitle = "Local access",
+                title = "Local vault",
+                subtitle = "Encrypted access",
                 iconResId = R.drawable.lf_ic_permissions,
-                selected = selectedMethod == LoginMethod.DEVICE_BOUND,
-                onClick = { onSelectMethod(LoginMethod.DEVICE_BOUND) },
+                selected = selectedMethod == LoginMethod.LOCAL_VAULT,
+                onClick = { onSelectMethod(LoginMethod.LOCAL_VAULT) },
                 modifier = Modifier.weight(1f)
             )
         }
