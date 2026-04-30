@@ -50,8 +50,8 @@ internal fun resolveDashboardState(
     // Check wellbeing assessment
     if (wellbeingAssessment != null) {
         when (wellbeingAssessment.overallReadiness) {
-            OverallReadiness.ATTENTION_REQUIRED,
-            OverallReadiness.LOW -> return DashboardState.ATTENTION
+            OverallReadiness.ATTENTION_REQUIRED -> return DashboardState.ATTENTION
+            OverallReadiness.LOW -> return DashboardState.READY
             else -> {}
         }
     }
