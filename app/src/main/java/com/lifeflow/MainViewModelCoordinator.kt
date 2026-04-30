@@ -69,7 +69,7 @@ internal suspend fun refreshMainViewModelProtectedSnapshotFromCoordinator(
                     refreshMainViewModelPublicHealthStateWithMessage(
                         message = message,
                         refreshPublicHealthStateOnly = {
-                            refreshMainViewModelPublicHealthStateOnly(
+                            refreshMainViewModelPublicHealthStateWithGrantedPermissions(
                                 wellbeingRuntime = wellbeingRuntime,
                                 wellbeingState = wellbeingState,
                                 updateLastAction = updateLastAction
@@ -118,7 +118,7 @@ internal fun launchMainViewModelRuntimeRefresh(
             refreshTierAndBoundaryState = refreshTierAndBoundaryState,
             isFreeTier = isFreeTier,
             refreshPublicHealthStateOnly = {
-                refreshMainViewModelPublicHealthStateOnly(
+                refreshMainViewModelPublicHealthStateWithGrantedPermissions(
                     wellbeingRuntime = wellbeingRuntime,
                     wellbeingState = wellbeingState,
                     updateLastAction = updateLastAction

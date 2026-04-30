@@ -16,6 +16,11 @@ internal data class MainViewModelHealthConnectStatusRefresh(
     val lastActionMessage: String
 )
 
+internal data class MainViewModelGrantedPermissionsRefresh(
+    val grantedPermissions: Set<String>,
+    val lastActionMessage: String
+)
+
 internal class MainViewModelWellbeingRuntime(
     private val orchestrator: LifeFlowOrchestrator
 ) {
@@ -52,6 +57,25 @@ internal class MainViewModelWellbeingRuntime(
             healthConnectState = state,
             lastActionMessage = "Health Connect state checked: $state."
         )
+    }
+
+    suspend fun refreshGrantedHealthPermissionsSafe(): MainViewModelGrantedPermissionsRefresh {
+        return when (val result = orchestrator.grantedHealthPermissionsSafe()) {
+            is ActionResult.Success -> MainViewModelGrantedPermissionsRefresh(
+                grantedPermissions = result.value,
+                lastActionMessage = "Health permission grants loaded (${result.value.size} granted)."
+            )
+
+            is ActionResult.Error -> MainViewModelGrantedPermissionsRefresh(
+                grantedPermissions = emptySet(),
+                lastActionMessage = "Health permission grants unavailable."
+            )
+
+            is ActionResult.Locked -> MainViewModelGrantedPermissionsRefresh(
+                grantedPermissions = emptySet(),
+                lastActionMessage = "Health permission grants locked."
+            )
+        }
     }
 
     suspend fun refreshWellbeingSnapshot(

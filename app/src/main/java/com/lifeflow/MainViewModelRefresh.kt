@@ -63,6 +63,40 @@ internal fun refreshMainViewModelPublicHealthStateOnly(
     )
 }
 
+internal suspend fun refreshMainViewModelPublicHealthStateWithGrantedPermissions(
+    wellbeingRuntime: MainViewModelWellbeingRuntime,
+    wellbeingState: MainViewModelWellbeingState,
+    updateLastAction: (String) -> Unit
+) {
+    refreshMainViewModelPublicHealthStateOnly(
+        wellbeingRuntime = wellbeingRuntime,
+        wellbeingState = wellbeingState,
+        updateLastAction = updateLastAction
+    )
+
+    val grantedRefresh = wellbeingRuntime.refreshGrantedHealthPermissionsSafe()
+    wellbeingState.grantedHealthPermissions.value = grantedRefresh.grantedPermissions
+    updateLastAction(grantedRefresh.lastActionMessage)
+
+    val update = mainViewModelPublicHealthStateOnlyUiUpdate(
+        healthConnectState = wellbeingState.healthConnectState.value,
+        requiredHealthPermissions = wellbeingState.requiredHealthPermissions.value,
+        grantedHealthPermissions = wellbeingState.grantedHealthPermissions.value,
+        healthPermissionsInitError = wellbeingState.healthPermissionsInitError.value
+    )
+
+    applyMainViewModelWellbeingUiUpdate(
+        update = update,
+        healthConnectStateState = wellbeingState.healthConnectState,
+        requiredHealthPermissionsState = wellbeingState.requiredHealthPermissions,
+        grantedHealthPermissionsState = wellbeingState.grantedHealthPermissions,
+        healthPermissionsInitErrorState = wellbeingState.healthPermissionsInitError,
+        digitalTwinStateState = wellbeingState.digitalTwinState,
+        wellbeingAssessmentState = wellbeingState.wellbeingAssessment,
+        updateLastAction = updateLastAction
+    )
+}
+
 internal fun applyMainViewModelWellbeingSnapshot(
     snapshot: WellbeingRefreshSnapshot,
     wellbeingState: MainViewModelWellbeingState,
@@ -102,9 +136,9 @@ internal fun handleMainViewModelUnexpectedProtectedRefreshFailure(
     }
 }
 
-internal fun refreshMainViewModelPublicHealthStateWithMessage(
+internal suspend fun refreshMainViewModelPublicHealthStateWithMessage(
     message: String,
-    refreshPublicHealthStateOnly: () -> Unit,
+    refreshPublicHealthStateOnly: suspend () -> Unit,
     updateLastAction: (String) -> Unit
 ) {
     refreshPublicHealthStateOnly()
@@ -118,7 +152,7 @@ internal suspend fun refreshMainViewModelWellbeingSnapshotSafe(
     wellbeingState: MainViewModelWellbeingState,
     canExposeProtectedUiDataNow: () -> Boolean,
     updateLastAction: (String) -> Unit,
-    refreshPublicHealthStateWithMessage: (String) -> Unit,
+    refreshPublicHealthStateWithMessage: suspend (String) -> Unit,
     failClosedWithError: (String, Boolean) -> Unit
 ) {
     refreshMutex.withLock {
@@ -172,7 +206,7 @@ internal suspend fun triggerMainViewModelRuntimeRefresh(
     updateLastAction: (String) -> Unit,
     refreshTierAndBoundaryState: () -> Unit,
     isFreeTier: () -> Boolean,
-    refreshPublicHealthStateOnly: () -> Unit,
+    refreshPublicHealthStateOnly: suspend () -> Unit,
     refreshProtectedSnapshot: suspend (Boolean) -> Unit,
     isAuthenticatedUiNow: () -> Boolean
 ) {
