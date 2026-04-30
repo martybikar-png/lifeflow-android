@@ -100,6 +100,15 @@ internal fun AuthenticatedDashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                Spacer(modifier = Modifier.height(10.dp))
+
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LifeFlowMarkerPill(markers = listOf("Health", "Access", "Ready"))
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 DashboardStatusRows(

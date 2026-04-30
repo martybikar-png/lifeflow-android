@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.lifeflow.core.HealthConnectUiState
 
 private val DashboardStatusLineGap = 4.dp
+private val DashboardStatusTopGap = 30.dp
 private val DashboardStatusLabelWidth = 72.dp
 
 @Composable
@@ -25,6 +26,7 @@ internal fun DashboardStatusRows(
     stepsGranted: Boolean,
     hrGranted: Boolean
 ) {
+    Spacer(modifier = Modifier.height(DashboardStatusTopGap))
     DashboardValueLine("Health", healthStateDisplayLabel(healthState), healthStateColor(healthState))
     Spacer(modifier = Modifier.height(DashboardStatusLineGap))
     DashboardValueLine("Access", accessDisplayLabel(requiredCount, grantedCount), permissionCoverageColor(requiredCount, grantedCount))
