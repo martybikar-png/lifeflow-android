@@ -7,8 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-private val StartupFailureActionTopGap = 235.dp
-
 @Composable
 internal fun StartupFailureScreen(
     message: String,
@@ -24,8 +22,7 @@ internal fun StartupFailureScreen(
         infoNote = startupFailureInfoNote(
             message = message,
             lastAction = lastAction
-        ),
-        actionTopGap = StartupFailureActionTopGap
+        )
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
@@ -33,9 +30,6 @@ internal fun StartupFailureScreen(
                 onClick = onRetryStartup,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             LifeFlowSecondaryActionButton(
                 label = "Open App settings",
                 onClick = onOpenAppSettings,

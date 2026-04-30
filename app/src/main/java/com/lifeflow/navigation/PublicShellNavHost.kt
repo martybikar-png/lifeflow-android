@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.lifeflow.AuthenticatedDashboardScreen
+import com.lifeflow.boundary.MainBoundarySnapshot
+import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.CaptureEntryScreen
 import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
@@ -26,14 +29,17 @@ import com.lifeflow.SettingsScreen
 import com.lifeflow.TrustScreen
 import com.lifeflow.publicShellEnrichedCapturePresentation
 
+private const val PublicShellDashboardPreviewRoute = "debug/dashboard"
+
 @Composable
 internal fun PublicShellNavHost(
     modifier: Modifier = Modifier,
+    startAtHome: Boolean = false,
     onOnboardingCompleted: () -> Unit = {},
     completeOnboardingLocally: Boolean = false
 ) {
     var currentRoute by rememberSaveable {
-        mutableStateOf(LifeFlowScreenMap.onboardingWelcome.route)
+        mutableStateOf(if (startAtHome) LifeFlowScreenMap.home.route else LifeFlowScreenMap.onboardingWelcome.route)
     }
 
     val completeOnboarding: () -> Unit = {
@@ -61,7 +67,8 @@ internal fun PublicShellNavHost(
         LifeFlowScreenMap.captureLibrary.route,
         LifeFlowScreenMap.trust.route,
         LifeFlowScreenMap.settings.route,
-        LifeFlowScreenMap.privacy.route -> currentRoute
+        LifeFlowScreenMap.privacy.route,
+        PublicShellDashboardPreviewRoute -> currentRoute
 
         else -> LifeFlowScreenMap.onboardingWelcome.route
     }
@@ -177,6 +184,11 @@ internal fun PublicShellNavHost(
 
             LifeFlowScreenMap.home.route -> {
                 HomeScreen(
+                    onOpenDashboard = {
+                        if (startAtHome) {
+                            currentRoute = PublicShellDashboardPreviewRoute
+                        }
+                    },
                     onOpenQuickCapture = {
                         currentRoute = LifeFlowScreenMap.quickCapture.route
                     },
@@ -186,6 +198,27 @@ internal fun PublicShellNavHost(
                     onOpenTrust = {
                         currentRoute = LifeFlowScreenMap.trust.route
                     }
+                )
+            }
+
+            PublicShellDashboardPreviewRoute -> {
+                AuthenticatedDashboardScreen(
+                    healthState = HealthConnectUiState.Available,
+                    requiredCount = 0,
+                    grantedCount = 0,
+                    stepsGranted = true,
+                    hrGranted = true,
+                    digitalTwinState = null,
+                    wellbeingAssessment = null,
+                    boundarySnapshot = MainBoundarySnapshot.initial(),
+                    onRefreshNow = {},
+                    onGrantHealthPermissions = {},
+                    onOpenHealthConnectSettings = {},
+                    onReAuthenticate = {},
+                    onUpgradeToCore = {},
+                    onOpenHome = { currentRoute = LifeFlowScreenMap.home.route },
+                    lastAction = "",
+                    isSessionAuthorized = true
                 )
             }
 

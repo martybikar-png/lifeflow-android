@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.lifeflow.navigation.PublicShellNavHost
 
-private const val EnablePublicShellVisualReview = false
+private const val EnablePublicShellVisualReview = true
 private const val EnableStartupFailureVisualReview = false
 
 @Composable
@@ -25,7 +25,7 @@ internal fun AppEntry(
     }
 
     val showPublicShellVisualReview =
-        BuildConfig.DEBUG && EnablePublicShellVisualReview
+        EnablePublicShellVisualReview && shouldBypassBiometricAuthForDebugEmulator()
 
     val showStartupFailureVisualReview =
         BuildConfig.DEBUG && EnableStartupFailureVisualReview
@@ -42,6 +42,7 @@ internal fun AppEntry(
 
     if (showPublicShellVisualReview || !onboardingCompleted) {
         PublicShellNavHost(
+            startAtHome = showPublicShellVisualReview,
             onOnboardingCompleted = {
                 if (!showPublicShellVisualReview) {
                     onMarkOnboardingCompleted()

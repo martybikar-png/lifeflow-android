@@ -88,6 +88,7 @@ internal fun ScreenContainer(
     centerHeader: Boolean = false,
     showGoldEdge: Boolean = false,
     whiteStartRatio: Float = ScreenWhiteStartRatio,
+    scrollContent: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val showHeader = (showBackButton && onBack != null) || title.isNotBlank() || subtitle.isNotBlank()
@@ -195,8 +196,8 @@ internal fun ScreenContainer(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = 19.sp,
-                                lineHeight = 22.sp,
+                                fontSize = 20.sp,
+                                lineHeight = 24.sp,
                                 fontWeight = FontWeight.SemiBold
                             ),
                             color = Color.White
@@ -220,7 +221,7 @@ internal fun ScreenContainer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(
                     start = ScreenOuterHorizontalPadding,
                     end = ScreenOuterHorizontalPadding,
@@ -230,7 +231,7 @@ internal fun ScreenContainer(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .then(if (scrollContent) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
                     .widthIn(max = ScreenContentMaxWidth)
                     .align(Alignment.TopCenter),
                 verticalArrangement = Arrangement.Top
@@ -291,14 +292,37 @@ private fun ScreenGoldDivider(
         val measure = PathMeasure(); measure.setPath(path, false)
         val total = measure.length
         val start = total * shine
-        val length = total * 0.10f
+        val length = total * 0.14f
         val alphas = listOf(0.03f,0.06f,0.11f,0.18f,0.30f,0.48f,0.86f,0.48f,0.30f,0.18f,0.11f,0.06f,0.03f)
         alphas.forEachIndexed { index, alpha ->
             val from = start + length * index / alphas.size
             val to = start + length * (index + 1) / alphas.size
             val segment = Path()
             if (measure.getSegment(from.coerceAtMost(total), to.coerceAtMost(total), segment, true)) {
-                drawPath(segment, Color(0xFFFFF1B0).copy(alpha = alpha), style = Stroke(strokeWidth + 0.7.dp.toPx(), cap = StrokeCap.Round))
+                drawPath(
+                    path = segment,
+                    color = Color(0xFFFFF6D8).copy(alpha = alpha * 0.24f),
+                    style = Stroke(
+                        width = strokeWidth + 6.4.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                )
+                drawPath(
+                    path = segment,
+                    color = Color(0xFFFFF1B0).copy(alpha = alpha * 0.55f),
+                    style = Stroke(
+                        width = strokeWidth + 3.0.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                )
+                drawPath(
+                    path = segment,
+                    color = Color(0xFFFFFFFF).copy(alpha = alpha * 0.78f),
+                    style = Stroke(
+                        width = strokeWidth + 0.8.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                )
             }
         }
     }

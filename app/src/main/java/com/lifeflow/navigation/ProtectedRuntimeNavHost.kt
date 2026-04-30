@@ -7,6 +7,9 @@ import androidx.navigation.compose.rememberNavController
 import com.lifeflow.ActiveRuntimeScreenSnapshot
 import com.lifeflow.AuthenticatedDashboardScreen
 import com.lifeflow.HomeScreen
+import com.lifeflow.PrivacyScreen
+import com.lifeflow.CaptureLibraryScreen
+import com.lifeflow.CaptureEntryScreen
 import com.lifeflow.TrustScreen
 import com.lifeflow.SettingsScreen
 import com.lifeflow.QuickCaptureScreen
@@ -48,13 +51,19 @@ internal fun ProtectedRuntimeNavHost(
         }
 
         composable("protected/home") {
-            HomeScreen(onOpenQuickCapture = { navController.navigate("protected/quick-capture") { launchSingleTop = true } }, onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } })
+            HomeScreen(onOpenDashboard = { navController.navigate("protected/dashboard") { launchSingleTop = true } }, onOpenQuickCapture = { navController.navigate("protected/quick-capture") { launchSingleTop = true } }, onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } })
         }
 
-        composable("protected/quick-capture") { QuickCaptureScreen(onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/quick-capture") { QuickCaptureScreen(onPrimaryCapture = { navController.navigate("protected/capture-entry") { launchSingleTop = true } }, onOpenCaptureLibrary = { navController.navigate("protected/capture-library") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 
-        composable("protected/settings") { SettingsScreen(onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/capture-entry") { CaptureEntryScreen(onBackToQuickCapture = { navController.popBackStack() }) }
 
-        composable("protected/trust") { TrustScreen(onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/capture-library") { CaptureLibraryScreen(onBackToQuickCapture = { navController.popBackStack() }) }
+
+        composable("protected/settings") { SettingsScreen(onOpenPrivacy = { navController.navigate("protected/privacy") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+
+        composable("protected/privacy") { PrivacyScreen(onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+
+        composable("protected/trust") { TrustScreen(onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
     }
 }

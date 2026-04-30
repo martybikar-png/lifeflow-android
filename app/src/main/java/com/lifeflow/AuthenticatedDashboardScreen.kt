@@ -1,6 +1,5 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,7 +21,6 @@ import com.lifeflow.domain.wellbeing.WellbeingAssessment
 private val DashboardHorizontalPadding = 20.dp
 private val DashboardInfoTopGap = 44.dp
 private val DashboardInfoBodyGap = 8.dp
-private val DashboardActionTopGap = 134.dp
 private val DashboardActionHorizontalPadding = 12.dp
 
 @Composable
@@ -59,72 +57,72 @@ internal fun AuthenticatedDashboardScreen(
     ScreenContainer(
         title = "LifeFlow Dashboard",
         subtitle = "Protected wellbeing overview.",
-        showGoldEdge = true
+        showGoldEdge = true,
+        scrollContent = false
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = DashboardHorizontalPadding),
-            horizontalAlignment = Alignment.Start
+        LifeFlowActionFrame(
+            modifier = Modifier.padding(horizontal = DashboardHorizontalPadding)
         ) {
-            Spacer(modifier = Modifier.height(DashboardInfoTopGap))
-
-            Text(
-                text = dashboardTitle(dashboardState),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 17.sp,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
-
-            Text(
-                text = dashboardMessage(
-                    dashboardState = dashboardState,
-                    hasLockedCoreSurface = hasLockedCoreSurface
-                ),
-                style = lifeFlowCardSummaryStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
-
-            Text(
-                text = "Protected signals are ready.",
-                style = lifeFlowCardRowLabelStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            DashboardStatusRows(
-                healthState = healthState,
-                requiredCount = requiredCount,
-                grantedCount = grantedCount,
-                stepsGranted = stepsGranted,
-                hrGranted = hrGranted
-            )
-
-            if (lastAction.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopStart),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Spacer(modifier = Modifier.height(DashboardInfoTopGap))
 
                 Text(
-                    text = "Snapshot refreshed.",
+                    text = dashboardTitle(dashboardState),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 17.sp,
+                        lineHeight = 22.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
+
+                Text(
+                    text = dashboardMessage(
+                        dashboardState = dashboardState,
+                        hasLockedCoreSurface = hasLockedCoreSurface
+                    ),
+                    style = lifeFlowCardSummaryStyle(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(DashboardInfoBodyGap))
+
+                Text(
+                    text = "Protected signals are ready.",
                     style = lifeFlowCardRowLabelStyle(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                DashboardStatusRows(
+                    healthState = healthState,
+                    requiredCount = requiredCount,
+                    grantedCount = grantedCount,
+                    stepsGranted = stepsGranted,
+                    hrGranted = hrGranted
+                )
+
+                if (lastAction.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Snapshot refreshed.",
+                        style = lifeFlowCardRowLabelStyle(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(DashboardActionTopGap))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = DashboardActionHorizontalPadding),
-                horizontalAlignment = Alignment.CenterHorizontally
+            LifeFlowBottomAnchoredActions(
+                modifier = Modifier.padding(horizontal = DashboardActionHorizontalPadding)
             ) {
                 LifeFlowPrimaryActionButton(
                     label = primaryDashboardActionLabel(
@@ -148,9 +146,6 @@ internal fun AuthenticatedDashboardScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 LifeFlowSecondaryActionButton(
                     label = "Home",
                     onClick = onOpenHome,

@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun HomeScreen(
+    onOpenDashboard: () -> Unit = {},
     onOpenQuickCapture: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onOpenTrust: () -> Unit = {},
@@ -22,21 +23,20 @@ fun HomeScreen(
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
+                label = "Dashboard",
+                onClick = onOpenDashboard,
+                modifier = Modifier.fillMaxWidth()
+            )
+            LifeFlowSecondaryActionButton(
                 label = "Quick Capture",
                 onClick = onOpenQuickCapture,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             LifeFlowSecondaryActionButton(
                 label = "Settings",
                 onClick = onOpenSettings,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             LifeFlowSecondaryActionButton(
                 label = "Trust",
                 onClick = onOpenTrust,

@@ -59,6 +59,12 @@ internal fun requestActiveRuntimeBiometricAuthentication(
     viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
+    if (shouldBypassBiometricAuthForDebugEmulator()) {
+        setLastAction("Debug emulator authentication bypass accepted")
+        viewModel.onAuthenticationSuccess()
+        return
+    }
+
     setLastAction("Biometric authentication requested")
     biometricAuthManager.authenticate(
         onSuccess = {
