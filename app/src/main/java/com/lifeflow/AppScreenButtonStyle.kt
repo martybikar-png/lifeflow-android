@@ -63,6 +63,23 @@ internal fun LifeFlowSecondaryActionButton(
 }
 
 @Composable
+internal fun LifeFlowOnBlueActionButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    iconResId: Int? = null
+) {
+    LifeFlowSoftActionButton(
+        label = label,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        iconResId = iconResId,
+        variant = LifeFlowButtonVariant.OnBlue
+    )
+}
+@Composable
 private fun LifeFlowSoftActionButton(
     label: String,
     onClick: () -> Unit,
@@ -92,11 +109,17 @@ private fun LifeFlowSoftActionButton(
     val contentColor = when {
         !enabled -> LifeFlowButtonDisabledText
         isPressed || isHovered -> LifeFlowButtonInteractiveText
-        variant == LifeFlowButtonVariant.Primary -> LifeFlowButtonPrimaryText
-        else -> LifeFlowButtonSecondaryText
+        variant == LifeFlowButtonVariant.Secondary -> LifeFlowButtonSecondaryText
+        else -> LifeFlowButtonPrimaryText
     }
 
     val chromeModifier = when {
+        variant == LifeFlowButtonVariant.OnBlue && !isPressed -> Modifier.lifeFlowRaisedOnBlueButtonChrome(
+            shape = LifeFlowButtonShape,
+            surfaceColor = surfaceColor,
+            borderColor = borderColor
+        )
+
         !enabled -> Modifier.lifeFlowRaisedButtonChrome(
             shape = LifeFlowButtonShape,
             surfaceColor = surfaceColor,

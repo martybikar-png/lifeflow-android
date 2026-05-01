@@ -18,7 +18,8 @@ import androidx.compose.ui.unit.sp
 
 internal enum class LifeFlowButtonVariant {
     Primary,
-    Secondary
+    Secondary,
+    OnBlue
 }
 
 internal val LifeFlowButtonShape = RoundedCornerShape(24.dp)
@@ -42,6 +43,10 @@ private val LifeFlowButtonPressedSurfaceBottom = Color(0xFFFFFFFF)
 internal val LifeFlowButtonLiftLight = Color(0xFFFFFFFF).copy(alpha = 0.98f)
 internal val LifeFlowButtonLiftDark = Color(0xFF5DBAE7).copy(alpha = 0.34f)
 internal val LifeFlowButtonHoverDark = Color(0xFF4FAFE2).copy(alpha = 0.38f)
+
+private val LifeFlowButtonOnBlueLight = Color(0xFFFFFFFF).copy(alpha = 0.78f)
+private val LifeFlowButtonOnBlueGlow = Color(0xFFFFFFFF).copy(alpha = 0.42f)
+private val LifeFlowButtonOnBlueDepth = Color(0xFFFFFFFF).copy(alpha = 0.24f)
 internal val LifeFlowButtonDisabledDark = Color(0xFFB8C7D6).copy(alpha = 0.18f)
 
 private val LifeFlowButtonInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.84f)
@@ -181,6 +186,58 @@ internal fun Modifier.lifeFlowPressedButtonChrome(
                 spread = 0.dp,
                 color = LifeFlowButtonPressedInnerHighlight,
                 offset = DpOffset(x = (-4).dp, y = (-4).dp)
+            )
+        )
+        .border(
+            width = 0.55.dp,
+            color = borderColor,
+            shape = shape
+        )
+}
+internal fun Modifier.lifeFlowRaisedOnBlueButtonChrome(
+    shape: RoundedCornerShape,
+    surfaceColor: Color,
+    borderColor: Color
+): Modifier {
+    return this
+        .dropShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 26.dp,
+                spread = 0.dp,
+                color = Color.White.copy(alpha = 0.76f),
+                offset = DpOffset(x = (-8).dp, y = (-10).dp)
+            )
+        )
+        .dropShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 24.dp,
+                spread = 0.dp,
+                color = Color.White.copy(alpha = 0.38f),
+                offset = DpOffset(x = 9.dp, y = 12.dp)
+            )
+        )
+        .dropShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 14.dp,
+                spread = 0.dp,
+                color = Color.White.copy(alpha = 0.22f),
+                offset = DpOffset(x = 13.dp, y = 16.dp)
+            )
+        )
+        .background(
+            color = surfaceColor,
+            shape = shape
+        )
+        .innerShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 7.dp,
+                spread = 0.dp,
+                color = Color.White.copy(alpha = 0.78f),
+                offset = DpOffset(x = (-2).dp, y = (-2).dp)
             )
         )
         .border(
