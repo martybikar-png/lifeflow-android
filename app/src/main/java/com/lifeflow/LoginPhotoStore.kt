@@ -2,7 +2,6 @@ package com.lifeflow
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -29,10 +28,11 @@ internal class LoginPhotoStore(
         sourceUri: Uri,
         transform: LoginPhotoCropTransform
     ): Long {
-        val sourceBitmap = appContext.contentResolver
-            .openInputStream(sourceUri)
-            ?.use { BitmapFactory.decodeStream(it) }
-            ?: return loginPhotoVersion()
+        val sourceBitmap = LoginPhotoBitmapDecoder.decodeNormalizedBitmap(
+            context = appContext,
+            sourceUri = sourceUri,
+            maxSide = SOURCE_MAX_SIDE
+        ) ?: return loginPhotoVersion()
 
         return try {
             val output = Bitmap.createBitmap(
@@ -111,6 +111,7 @@ internal class LoginPhotoStore(
     private companion object {
         private const val LOGIN_PHOTO_DIR = "login"
         private const val LOGIN_PHOTO_FILE = "login_photo"
+        private const val SOURCE_MAX_SIDE = 4096
         private const val OUTPUT_SIZE = 512
         private const val PNG_QUALITY = 96
     }

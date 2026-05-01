@@ -1,10 +1,10 @@
 package com.lifeflow
 
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -40,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +63,12 @@ internal fun LoginPhotoCropEditor(
     var imageBitmap by remember(sourceUri) {
         mutableStateOf<ImageBitmap?>(null)
     }
+    var isLoadingPhoto by remember(sourceUri) {
+        mutableStateOf(true)
+    }
+    var didFailToLoad by remember(sourceUri) {
+        mutableStateOf(false)
+    }
     var scale by remember(sourceUri) {
         mutableFloatStateOf(1f)
     }
@@ -74,11 +80,17 @@ internal fun LoginPhotoCropEditor(
     }
 
     LaunchedEffect(sourceUri) {
+        isLoadingPhoto = true
+        didFailToLoad = false
         imageBitmap = withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(sourceUri)?.use { input ->
-                BitmapFactory.decodeStream(input)?.asImageBitmap()
-            }
+            LoginPhotoBitmapDecoder.decodeNormalizedBitmap(
+                context = context,
+                sourceUri = sourceUri,
+                maxSide = PREVIEW_MAX_SIDE
+            )?.asImageBitmap()
         }
+        didFailToLoad = imageBitmap == null
+        isLoadingPhoto = false
     }
 
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
@@ -135,27 +147,41 @@ internal fun LoginPhotoCropEditor(
                 contentAlignment = Alignment.Center
             ) {
                 val loadedImage = imageBitmap
-                if (loadedImage != null) {
-                    Image(
-                        bitmap = loadedImage,
-                        contentDescription = "Photo crop preview",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                translationX = offset.x
-                                translationY = offset.y
-                            },
-                        contentScale = ContentScale.Crop
-                    )
+                when {
+                    loadedImage != null -> {
+                        Image(
+                            bitmap = loadedImage,
+                            contentDescription = "Photo crop preview",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                    translationX = offset.x
+                                    translationY = offset.y
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    isLoadingPhoto -> {
+                        CropStatusText(text = "Loading photo…")
+                    }
+
+                    didFailToLoad -> {
+                        CropStatusText(text = "Photo could not load")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
             LifeFlowPrimaryActionButton(
-                label = if (isSaving) "Saving…" else "Use photo",
+                label = when {
+                    isSaving -> "Saving…"
+                    isLoadingPhoto -> "Loading photo…"
+                    else -> "Use photo"
+                },
                 onClick = {
                     onConfirm(
                         LoginPhotoCropTransform(
@@ -166,7 +192,7 @@ internal fun LoginPhotoCropEditor(
                         )
                     )
                 },
-                enabled = !isSaving && imageBitmap != null
+                enabled = !isSaving && !isLoadingPhoto && imageBitmap != null
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -189,5 +215,23 @@ internal fun LoginPhotoCropEditor(
     }
 }
 
+@Composable
+private fun CropStatusText(
+    text: String
+) {
+    Text(
+        text = text,
+        color = Color.White.copy(alpha = 0.88f),
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.bodySmall.copy(
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+            fontWeight = FontWeight.Medium
+        ),
+        modifier = Modifier.padding(horizontal = 24.dp)
+    )
+}
+
 private const val MIN_SCALE = 1f
 private const val MAX_SCALE = 4f
+private const val PREVIEW_MAX_SIDE = 2048
