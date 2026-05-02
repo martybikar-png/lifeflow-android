@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 @Composable
 fun CaptureEntryScreen(
     onSaveCapture: () -> Unit = {},
+    statusMessage: String = "",
     onBackToQuickCapture: () -> Unit = {},
 ) {
     PublicShellInfoActionScreen(
@@ -15,6 +16,7 @@ fun CaptureEntryScreen(
         infoTitle = "New capture",
         infoBody = "Capture entry is ready.",
         infoMarkers = listOf("Simple", "Draft", "Done"),
+        infoNote = captureInfoNote(statusMessage = statusMessage),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

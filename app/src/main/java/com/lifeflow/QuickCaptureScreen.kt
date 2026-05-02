@@ -17,6 +17,7 @@ fun QuickCaptureScreen(
     onPrimaryCapture: () -> Unit = {},
     onOpenCaptureLibrary: () -> Unit = {},
     onUpgradeToCore: () -> Unit = {},
+    statusMessage: String = "",
     onBackToHome: () -> Unit = {},
 ) {
     val enrichedCaptureLocked = enrichedCapturePresentation.isLockedLike()
@@ -27,7 +28,14 @@ fun QuickCaptureScreen(
         infoTitle = "Capture",
         infoBody = "Save one small thing.",
         infoMarkers = listOf("Fast", "Local", "Light"),
-        infoNote = if (enrichedCaptureLocked) { enrichedCapturePresentation?.detailMessage ?: "Core required." } else { "" }
+        infoNote = captureInfoNote(
+            primaryNote = if (enrichedCaptureLocked) {
+                enrichedCapturePresentation?.detailMessage ?: "Core required."
+            } else {
+                ""
+            },
+            statusMessage = statusMessage
+        )
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(

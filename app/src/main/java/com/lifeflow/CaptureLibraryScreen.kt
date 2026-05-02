@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 @Composable
 fun CaptureLibraryScreen(
     presentation: QuickCaptureLibraryPresentation = QuickCaptureLibraryPresentation.initial(),
+    statusMessage: String = "",
     onLoadLibrary: () -> Unit = {},
     onBackToQuickCapture: () -> Unit = {},
 ) {
@@ -21,6 +22,7 @@ fun CaptureLibraryScreen(
         infoTitle = "Library",
         infoBody = presentation.infoBody,
         infoMarkers = presentation.markers,
+        infoNote = captureInfoNote(statusMessage = statusMessage),
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
@@ -35,5 +37,27 @@ fun CaptureLibraryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+internal fun captureInfoNote(
+    primaryNote: String = "",
+    statusMessage: String = ""
+): String {
+    val parts = listOf(
+        primaryNote.trim(),
+        captureStatusMessageOrBlank(statusMessage)
+    ).filter { it.isNotBlank() }
+
+    return parts.joinToString(separator = "\n")
+}
+
+private fun captureStatusMessageOrBlank(message: String): String {
+    val normalized = message.trim()
+    if (normalized.isBlank()) return ""
+
+    return when {
+        normalized.startsWith("Quick capture", ignoreCase = true) -> normalized
+        normalized.startsWith("Capture library", ignoreCase = true) -> normalized
+        else -> ""
     }
 }

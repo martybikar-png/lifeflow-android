@@ -56,11 +56,11 @@ internal fun ProtectedRuntimeNavHost(
             HomeScreen(onOpenDashboard = { navController.navigate("protected/dashboard") { launchSingleTop = true } }, onOpenQuickCapture = { navController.navigate("protected/quick-capture") { launchSingleTop = true } }, onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } })
         }
 
-        composable("protected/quick-capture") { QuickCaptureScreen(onPrimaryCapture = { navController.navigate("protected/capture-entry") { launchSingleTop = true } }, onOpenCaptureLibrary = { navController.navigate("protected/capture-library") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/quick-capture") { QuickCaptureScreen(statusMessage = screen.lastAction, onPrimaryCapture = { navController.navigate("protected/capture-entry") { launchSingleTop = true } }, onOpenCaptureLibrary = { navController.navigate("protected/capture-library") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 
-        composable("protected/capture-entry") { CaptureEntryScreen(onSaveCapture = onSaveQuickCapture, onBackToQuickCapture = { navController.popBackStack() }) }
+        composable("protected/capture-entry") { CaptureEntryScreen(statusMessage = screen.lastAction, onSaveCapture = onSaveQuickCapture, onBackToQuickCapture = { navController.popBackStack() }) }
 
-        composable("protected/capture-library") { CaptureLibraryScreen(presentation = screen.quickCaptureLibrary, onLoadLibrary = onLoadQuickCaptureLibrary, onBackToQuickCapture = { navController.popBackStack() }) }
+        composable("protected/capture-library") { CaptureLibraryScreen(presentation = screen.quickCaptureLibrary, statusMessage = screen.lastAction, onLoadLibrary = onLoadQuickCaptureLibrary, onBackToQuickCapture = { navController.popBackStack() }) }
 
         composable("protected/settings") { SettingsScreen(onOpenPrivacy = { navController.navigate("protected/privacy") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 
