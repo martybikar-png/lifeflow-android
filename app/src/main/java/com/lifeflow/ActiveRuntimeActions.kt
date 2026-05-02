@@ -64,13 +64,13 @@ internal fun requestActiveRuntimeBiometricAuthentication(
     viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
-    if (shouldBypassBiometricAuthForDebugEmulator()) {
+    if (shouldUseDebugEmulatorAuthHarness()) {
         SecurityAccessSession.grantDefault(applicationContext)
         SecurityRuleEngine.reportIntegrityTrustVerdict(
             verdict = SecurityIntegrityTrustVerdict.VERIFIED,
             reason = "DEBUG_EMULATOR_AUTH_VERIFIED"
         )
-        setLastAction("Debug emulator authentication bypass accepted")
+        setLastAction("Debug emulator authentication harness accepted")
         viewModel.onAuthenticationSuccess()
         return
     }
@@ -97,7 +97,7 @@ internal fun requestActiveRuntimeVaultResetAuthentication(
 ) {
     setLastAction("Vault reset authentication requested")
 
-    if (shouldBypassBiometricAuthForDebugEmulator()) {
+    if (shouldUseDebugEmulatorAuthHarness()) {
         try {
             SecurityAccessSession.grantDefault(applicationContext)
             SecurityVaultResetAuthorization.grantFromVaultResetBiometricSuccess()

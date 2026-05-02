@@ -25,7 +25,7 @@ internal fun AppEntry(
     }
 
     val showPublicShellVisualReview =
-        EnablePublicShellVisualReview && shouldBypassBiometricAuthForDebugEmulator()
+        EnablePublicShellVisualReview && shouldUseDebugEmulatorAuthHarness()
 
     val showStartupFailureVisualReview =
         BuildConfig.DEBUG && EnableStartupFailureVisualReview

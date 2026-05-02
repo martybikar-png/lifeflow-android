@@ -2,7 +2,7 @@ package com.lifeflow
 
 import android.os.Build
 
-internal fun shouldBypassBiometricAuthForDebugEmulator(): Boolean {
+internal fun shouldUseDebugEmulatorAuthHarness(): Boolean {
     if (!BuildConfig.DEBUG) {
         return false
     }
