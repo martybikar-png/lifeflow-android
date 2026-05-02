@@ -7,6 +7,8 @@ import android.provider.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.lifeflow.security.BiometricAuthManager
 import com.lifeflow.security.SecurityAccessSession
+import com.lifeflow.security.SecurityIntegrityTrustVerdict
+import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.SecurityVaultResetAuthorization
 
 internal fun requestActiveRuntimeRefreshWithUiFeedback(
@@ -64,6 +66,10 @@ internal fun requestActiveRuntimeBiometricAuthentication(
 ) {
     if (shouldBypassBiometricAuthForDebugEmulator()) {
         SecurityAccessSession.grantDefault(applicationContext)
+        SecurityRuleEngine.reportIntegrityTrustVerdict(
+            verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+            reason = "DEBUG_EMULATOR_AUTH_VERIFIED"
+        )
         setLastAction("Debug emulator authentication bypass accepted")
         viewModel.onAuthenticationSuccess()
         return
