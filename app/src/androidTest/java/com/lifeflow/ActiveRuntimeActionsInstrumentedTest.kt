@@ -50,6 +50,20 @@ class ActiveRuntimeActionsInstrumentedTest {
     }
 
     @Test
+    fun debugEmulatorAuthHarness_isEnabledForDebugEmulatorRegressionContract() {
+        assertTrue(BuildConfig.DEBUG)
+        assertTrue(shouldUseDebugEmulatorAuthHarness())
+    }
+
+    @Test
+    fun activeRuntimeViewModelContract_recordsAuthenticationSuccess() {
+        viewModel.onAuthenticationSuccess()
+
+        assertTrue(viewModel.authenticationSuccessCalled)
+        assertNull(viewModel.authenticationErrorMessage)
+    }
+
+    @Test
     fun completeActiveRuntimeVaultResetAuthorization_success_updatesLastAction_and_callsResetVault() {
         completeActiveRuntimeVaultResetAuthorization(
             grantAuthorization = {},
@@ -130,6 +144,7 @@ class ActiveRuntimeActionsInstrumentedTest {
             mutableStateOf(QuickCaptureLibraryPresentation.initial())
 
         var resetVaultCalled: Boolean = false
+        var authenticationSuccessCalled: Boolean = false
         var authenticationErrorMessage: String? = null
 
         override fun refreshMetricsAndTwinNow() = Unit
@@ -140,7 +155,9 @@ class ActiveRuntimeActionsInstrumentedTest {
 
         override fun onHealthPermissionsResult(granted: Set<String>) = Unit
 
-        override fun onAuthenticationSuccess() = Unit
+        override fun onAuthenticationSuccess() {
+            authenticationSuccessCalled = true
+        }
 
         override fun onAuthenticationError(message: String) {
             authenticationErrorMessage = message
