@@ -1,19 +1,29 @@
 package com.lifeflow.security
 
+import android.os.Build
 import android.util.Log
+import com.lifeflow.BuildConfig
 
 private const val SECURITY_CRYPTO_BOOTSTRAP_TAG = "LifeFlowSecurityCryptoBootstrap"
+private const val DEBUG_EMULATOR_SESSION_KEY_ALIAS = "lifeflow_debug_emulator_session_key"
 
 internal fun createLifeFlowSecurityCryptoBindings(
     isInstrumentation: Boolean
 ): SecurityCryptoBindings {
-    val sessionKeyManager = if (isInstrumentation) {
-        KeyManager(
+    val debugEmulatorCryptoProfile = isDebugEmulatorCryptoProfile()
+
+    val sessionKeyManager = when {
+        isInstrumentation -> KeyManager(
             alias = TEST_KEY_ALIAS,
             authenticationPolicy = KeyManager.AuthenticationPolicy.NONE
         )
-    } else {
-        KeyManager(
+
+        debugEmulatorCryptoProfile -> KeyManager(
+            alias = DEBUG_EMULATOR_SESSION_KEY_ALIAS,
+            authenticationPolicy = KeyManager.AuthenticationPolicy.NONE
+        )
+
+        else -> KeyManager(
             alias = SESSION_KEY_ALIAS,
             authenticationPolicy = KeyManager.AuthenticationPolicy.BIOMETRIC_TIME_BOUND
         )
@@ -22,7 +32,8 @@ internal fun createLifeFlowSecurityCryptoBindings(
     val sessionEncryptionService = EncryptionService(sessionKeyManager)
 
     val authPerUseKeyManager = createLifeFlowSecurityAuthPerUseKeyManager(
-        isInstrumentation = isInstrumentation
+        isInstrumentation = isInstrumentation,
+        debugEmulatorCryptoProfile = debugEmulatorCryptoProfile
     )
     val authPerUseEncryptionService = authPerUseKeyManager?.let(::EncryptionService)
 
@@ -35,9 +46,11 @@ internal fun createLifeFlowSecurityCryptoBindings(
 }
 
 private fun createLifeFlowSecurityAuthPerUseKeyManager(
-    isInstrumentation: Boolean
+    isInstrumentation: Boolean,
+    debugEmulatorCryptoProfile: Boolean
 ): KeyManager? {
     if (isInstrumentation) return null
+    if (debugEmulatorCryptoProfile) return null
     if (!KeyManager.supportsAuthPerUseBiometric()) return null
 
     val keyManager = KeyManager(
@@ -99,6 +112,28 @@ private fun handleLifeFlowSecurityAuthPerUseBootstrapFailure(
             )
         }
     }
+}
+
+
+private fun isDebugEmulatorCryptoProfile(): Boolean {
+    if (!BuildConfig.DEBUG) return false
+
+    val fingerprint = Build.FINGERPRINT.lowercase()
+    val model = Build.MODEL.lowercase()
+    val manufacturer = Build.MANUFACTURER.lowercase()
+    val brand = Build.BRAND.lowercase()
+    val device = Build.DEVICE.lowercase()
+    val product = Build.PRODUCT.lowercase()
+    val hardware = Build.HARDWARE.lowercase()
+
+    return fingerprint.contains("generic") ||
+        fingerprint.contains("emulator") ||
+        model.contains("sdk") ||
+        model.contains("emulator") ||
+        manufacturer.contains("google") && product.contains("sdk") ||
+        brand.contains("google") && device.contains("emu") ||
+        hardware.contains("goldfish") ||
+        hardware.contains("ranchu")
 }
 
 private fun deleteLifeFlowSecurityAuthPerUseKeyIfPresent(

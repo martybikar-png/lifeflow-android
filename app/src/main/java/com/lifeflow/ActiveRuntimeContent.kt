@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ internal fun ActiveRuntimeContent(
     var pendingSettingsRefresh by rememberSaveable { mutableStateOf(false) }
     var showIntroSplash by rememberSaveable { mutableStateOf(true) }
     val setLastAction: (String) -> Unit = { _ -> }
+    val applicationContext = LocalContext.current.applicationContext
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -140,6 +142,7 @@ internal fun ActiveRuntimeContent(
 
     val onAuthenticate: () -> Unit = {
         requestActiveRuntimeBiometricAuthentication(
+            applicationContext = applicationContext,
             biometricAuthManager = biometricAuthManager,
             viewModel = viewModel,
             setLastAction = setLastAction
@@ -169,6 +172,7 @@ internal fun ActiveRuntimeContent(
         },
         onResetVault = {
             requestActiveRuntimeVaultResetAuthentication(
+                applicationContext = applicationContext,
                 biometricAuthManager = biometricAuthManager,
                 viewModel = viewModel,
                 setLastAction = setLastAction

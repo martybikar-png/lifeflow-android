@@ -1,10 +1,12 @@
 package com.lifeflow
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.lifeflow.security.BiometricAuthManager
+import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityVaultResetAuthorization
 
 internal fun requestActiveRuntimeRefreshWithUiFeedback(
@@ -55,11 +57,13 @@ internal fun openActiveRuntimeHealthConnectSettingsWithFallback(
 }
 
 internal fun requestActiveRuntimeBiometricAuthentication(
+    applicationContext: Context,
     biometricAuthManager: BiometricAuthManager,
     viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
     if (shouldBypassBiometricAuthForDebugEmulator()) {
+        SecurityAccessSession.grantDefault(applicationContext)
         setLastAction("Debug emulator authentication bypass accepted")
         viewModel.onAuthenticationSuccess()
         return
@@ -80,11 +84,28 @@ internal fun requestActiveRuntimeBiometricAuthentication(
 }
 
 internal fun requestActiveRuntimeVaultResetAuthentication(
+    applicationContext: Context,
     biometricAuthManager: BiometricAuthManager,
     viewModel: ActiveRuntimeViewModelContract,
     setLastAction: (String) -> Unit
 ) {
     setLastAction("Vault reset authentication requested")
+
+    if (shouldBypassBiometricAuthForDebugEmulator()) {
+        try {
+            SecurityAccessSession.grantDefault(applicationContext)
+            SecurityVaultResetAuthorization.grantFromVaultResetBiometricSuccess()
+            setLastAction("Debug emulator vault reset authorization accepted")
+            viewModel.resetVault()
+        } catch (exception: Exception) {
+            SecurityVaultResetAuthorization.clear()
+            val resolvedMessage = exception.message?.takeIf { it.isNotBlank() }
+                ?: "Debug emulator vault reset authorization failed"
+            setLastAction("Vault reset authentication failed: $resolvedMessage")
+            viewModel.onAuthenticationError(resolvedMessage)
+        }
+        return
+    }
 
     if (biometricAuthManager.hasAuthPerUseCrypto()) {
         biometricAuthManager.authenticateForVaultResetAuthPerUseCrypto(
