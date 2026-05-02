@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun CaptureEntryScreen(
+    onSaveCapture: () -> Unit = {},
     onBackToQuickCapture: () -> Unit = {},
 ) {
     PublicShellInfoActionScreen(
@@ -18,7 +19,7 @@ fun CaptureEntryScreen(
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
                 label = "Done",
-                onClick = onBackToQuickCapture,
+                onClick = { onSaveCapture(); onBackToQuickCapture() },
                 modifier = Modifier.fillMaxWidth()
             )
 

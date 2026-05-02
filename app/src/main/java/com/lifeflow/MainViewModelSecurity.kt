@@ -46,6 +46,11 @@ internal fun mainViewModelSecurityEvaluation(
                     trustState == TrustState.DEGRADED
             )
 
+    val canPerformProtectedWrite =
+        isAuthenticatedUi &&
+            isAuthorized &&
+            trustState == TrustState.VERIFIED
+
     val runtimeEntryBlockMessage =
         if (!isAuthorized) {
             AUTH_REQUIRED_USER_MESSAGE
@@ -60,6 +65,7 @@ internal fun mainViewModelSecurityEvaluation(
 
     return MainViewModelSecurityEvaluation(
         canExposeProtectedUiData = canExposeProtectedUiData,
+        canPerformProtectedWrite = canPerformProtectedWrite,
         runtimeEntryBlockMessage = runtimeEntryBlockMessage,
         shouldExpireSession = shouldExpireSession
     )

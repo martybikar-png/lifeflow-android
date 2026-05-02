@@ -6,6 +6,7 @@ import com.lifeflow.navigation.ProtectedRuntimeNavHost
 @Composable
 internal fun ActiveRuntimeScreenRouter(
     screen: ActiveRuntimeScreenSnapshot,
+    onSaveQuickCapture: () -> Unit = {},
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
@@ -29,6 +30,7 @@ internal fun ActiveRuntimeScreenRouter(
         UiState.Authenticated -> {
             ProtectedRuntimeNavHost(
                 screen = screen,
+                onSaveQuickCapture = onSaveQuickCapture,
                 onAuthenticate = onAuthenticate,
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,

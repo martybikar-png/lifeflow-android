@@ -17,6 +17,7 @@ import com.lifeflow.QuickCaptureScreen
 @Composable
 internal fun ProtectedRuntimeNavHost(
     screen: ActiveRuntimeScreenSnapshot,
+    onSaveQuickCapture: () -> Unit,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
@@ -56,7 +57,7 @@ internal fun ProtectedRuntimeNavHost(
 
         composable("protected/quick-capture") { QuickCaptureScreen(onPrimaryCapture = { navController.navigate("protected/capture-entry") { launchSingleTop = true } }, onOpenCaptureLibrary = { navController.navigate("protected/capture-library") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 
-        composable("protected/capture-entry") { CaptureEntryScreen(onBackToQuickCapture = { navController.popBackStack() }) }
+        composable("protected/capture-entry") { CaptureEntryScreen(onSaveCapture = onSaveQuickCapture, onBackToQuickCapture = { navController.popBackStack() }) }
 
         composable("protected/capture-library") { CaptureLibraryScreen(onBackToQuickCapture = { navController.popBackStack() }) }
 

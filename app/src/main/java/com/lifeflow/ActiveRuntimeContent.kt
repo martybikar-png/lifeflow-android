@@ -160,6 +160,7 @@ internal fun ActiveRuntimeContent(
 
     ActiveRuntimeScreenRouter(
         screen = screen,
+        onSaveQuickCapture = viewModel::saveQuickCaptureDraft,
         onAuthenticate = onAuthenticate,
         onGrantHealthPermissions = onGrantPermissions,
         onOpenHealthConnectSettings = onOpenHealthConnectSettings,

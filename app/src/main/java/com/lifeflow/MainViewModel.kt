@@ -26,7 +26,6 @@ class MainViewModel(
     override val boundarySnapshot = mutableStateOf(MainBoundarySnapshot.initial())
 
     private val currentTier = mutableStateOf<TierState>(TierState.CORE)
-
     private val wellbeingState = MainViewModelWellbeingState()
     private val refreshMutex = Mutex()
     private val boundaryAccessController = BoundaryAccessController()
@@ -237,6 +236,7 @@ class MainViewModel(
     }
 
     override fun refreshMetricsAndTwinNow() = launchRuntimeRefresh("Manual dashboard refresh requested.")
+    override fun saveQuickCaptureDraft() = launchMainViewModelQuickCaptureSave(viewModelScope, orchestrator, { currentSecurityEvaluation().canPerformProtectedWrite }, ::failClosedWithError, ::updateLastAction)
 
     override fun onHealthPermissionsResult(granted: Set<String>) {
         wellbeingState.grantedHealthPermissions.value = granted
