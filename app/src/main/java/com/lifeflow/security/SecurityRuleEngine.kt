@@ -72,6 +72,9 @@ object SecurityRuleEngine {
     fun getTrustState(): TrustState =
         stateStore.get()
 
+    internal fun getTrustStateLastTransitionAt() =
+        stateStore.lastTransitionAt()
+
     @Suppress("unused")
     @Synchronized
     fun setTrustState(state: TrustState, reason: String) {

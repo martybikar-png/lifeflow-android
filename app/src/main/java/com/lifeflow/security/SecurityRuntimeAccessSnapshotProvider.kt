@@ -8,9 +8,12 @@ internal class SecurityRuntimeAccessSnapshotProvider {
         refreshRuntimeHardeningTrustState()
 
         val currentTrustState = SecurityRuleEngine.getTrustState()
+        val trustStateLastTransitionAt =
+            SecurityRuleEngine.getTrustStateLastTransitionAt()
 
         return SecurityRuntimeAccessSnapshot(
-            containment = SecurityAuditLog.runtimeContainmentSnapshot(
+            containment = SecurityAuditLog.runtimeContainmentSnapshotSince(
+                since = trustStateLastTransitionAt,
                 currentTrustState = currentTrustState
             ),
             sessionAuthorized = SecurityAccessSession.isAuthorized(),
