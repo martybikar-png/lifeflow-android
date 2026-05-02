@@ -20,6 +20,7 @@ internal data class ActiveRuntimeScreenSnapshot(
     val hrGranted: Boolean,
     val boundarySnapshot: MainBoundarySnapshot,
     val freeTierMessage: String,
+    val quickCaptureLibrary: QuickCaptureLibraryPresentation,
     val lastAction: String
 )
 
@@ -33,6 +34,7 @@ internal fun collectActiveRuntimeScreenSnapshot(
     val wellbeingAssessment = viewModel.wellbeingAssessment.value
     val boundarySnapshot = viewModel.boundarySnapshot.value
     val freeTierMessage = viewModel.freeTierMessage.value
+    val quickCaptureLibrary = viewModel.quickCaptureLibrary.value
     val lastAction = viewModel.lastAction.value
     val requiredPermissions = viewModel.requiredHealthPermissions.value
     val grantedPermissions = viewModel.grantedHealthPermissions.value
@@ -53,6 +55,7 @@ internal fun collectActiveRuntimeScreenSnapshot(
         hrGranted = hrGranted,
         boundarySnapshot = boundarySnapshot,
         freeTierMessage = freeTierMessage,
+        quickCaptureLibrary = quickCaptureLibrary,
         lastAction = lastAction
     )
 }

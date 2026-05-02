@@ -17,7 +17,9 @@ interface ActiveRuntimeViewModelContract {
     val digitalTwinState: State<DigitalTwinState?>
     val wellbeingAssessment: State<WellbeingAssessment?>
     val boundarySnapshot: State<MainBoundarySnapshot>
+    val quickCaptureLibrary: State<QuickCaptureLibraryPresentation>
     fun saveQuickCaptureDraft()
+    fun loadQuickCaptureLibrary()
     fun refreshMetricsAndTwinNow()
     fun onHealthPermissionsResult(granted: Set<String>)
     fun onAuthenticationSuccess()

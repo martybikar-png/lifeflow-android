@@ -24,7 +24,7 @@ class MainViewModel(
     override val lastAction = mutableStateOf("Initializing secure LifeFlow session...")
     override val freeTierMessage = mutableStateOf("Free tier active.")
     override val boundarySnapshot = mutableStateOf(MainBoundarySnapshot.initial())
-
+    override val quickCaptureLibrary = mutableStateOf(QuickCaptureLibraryPresentation.initial())
     private val currentTier = mutableStateOf<TierState>(TierState.CORE)
     private val wellbeingState = MainViewModelWellbeingState()
     private val refreshMutex = Mutex()
@@ -142,12 +142,7 @@ class MainViewModel(
         )
     }
 
-    private fun failClosedAuthentication(message: String, clearSession: Boolean = true) {
-        failClosedWithError(
-            message = message,
-            clearSession = clearSession
-        )
-    }
+    private fun failClosedAuthentication(message: String, clearSession: Boolean = true) = failClosedWithError(message, clearSession)
 
     private fun failClosedWithError(
         message: String,
@@ -237,7 +232,7 @@ class MainViewModel(
 
     override fun refreshMetricsAndTwinNow() = launchRuntimeRefresh("Manual dashboard refresh requested.")
     override fun saveQuickCaptureDraft() = launchMainViewModelQuickCaptureSave(viewModelScope, orchestrator, { currentSecurityEvaluation().canPerformProtectedWrite }, ::failClosedWithError, ::updateLastAction)
-
+    override fun loadQuickCaptureLibrary() = launchMainViewModelQuickCaptureLibraryLoad(viewModelScope, orchestrator, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
     override fun onHealthPermissionsResult(granted: Set<String>) {
         wellbeingState.grantedHealthPermissions.value = granted
         launchRuntimeRefresh("Health permission result received (${granted.size} granted).")

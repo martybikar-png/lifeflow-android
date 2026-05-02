@@ -6,18 +6,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.lifeflow.ActiveRuntimeScreenSnapshot
 import com.lifeflow.AuthenticatedDashboardScreen
+import com.lifeflow.CaptureEntryScreen
+import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
 import com.lifeflow.PrivacyScreen
-import com.lifeflow.CaptureLibraryScreen
-import com.lifeflow.CaptureEntryScreen
-import com.lifeflow.TrustScreen
-import com.lifeflow.SettingsScreen
 import com.lifeflow.QuickCaptureScreen
+import com.lifeflow.SettingsScreen
+import com.lifeflow.TrustScreen
 
 @Composable
 internal fun ProtectedRuntimeNavHost(
     screen: ActiveRuntimeScreenSnapshot,
     onSaveQuickCapture: () -> Unit,
+    onLoadQuickCaptureLibrary: () -> Unit,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
@@ -59,7 +60,7 @@ internal fun ProtectedRuntimeNavHost(
 
         composable("protected/capture-entry") { CaptureEntryScreen(onSaveCapture = onSaveQuickCapture, onBackToQuickCapture = { navController.popBackStack() }) }
 
-        composable("protected/capture-library") { CaptureLibraryScreen(onBackToQuickCapture = { navController.popBackStack() }) }
+        composable("protected/capture-library") { CaptureLibraryScreen(presentation = screen.quickCaptureLibrary, onLoadLibrary = onLoadQuickCaptureLibrary, onBackToQuickCapture = { navController.popBackStack() }) }
 
         composable("protected/settings") { SettingsScreen(onOpenPrivacy = { navController.navigate("protected/privacy") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 

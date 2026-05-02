@@ -7,6 +7,7 @@ import com.lifeflow.navigation.ProtectedRuntimeNavHost
 internal fun ActiveRuntimeScreenRouter(
     screen: ActiveRuntimeScreenSnapshot,
     onSaveQuickCapture: () -> Unit = {},
+    onLoadQuickCaptureLibrary: () -> Unit = {},
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
@@ -31,6 +32,7 @@ internal fun ActiveRuntimeScreenRouter(
             ProtectedRuntimeNavHost(
                 screen = screen,
                 onSaveQuickCapture = onSaveQuickCapture,
+                onLoadQuickCaptureLibrary = onLoadQuickCaptureLibrary,
                 onAuthenticate = onAuthenticate,
                 onGrantHealthPermissions = onGrantHealthPermissions,
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
