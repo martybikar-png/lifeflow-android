@@ -126,11 +126,17 @@ class ActiveRuntimeActionsInstrumentedTest {
             mutableStateOf(null)
         override val boundarySnapshot: State<MainBoundarySnapshot> =
             mutableStateOf(MainBoundarySnapshot.initial())
+        override val quickCaptureLibrary: State<QuickCaptureLibraryPresentation> =
+            mutableStateOf(QuickCaptureLibraryPresentation.initial())
 
         var resetVaultCalled: Boolean = false
         var authenticationErrorMessage: String? = null
 
         override fun refreshMetricsAndTwinNow() = Unit
+
+        override fun saveQuickCaptureDraft() = Unit
+
+        override fun loadQuickCaptureLibrary() = Unit
 
         override fun onHealthPermissionsResult(granted: Set<String>) = Unit
 
