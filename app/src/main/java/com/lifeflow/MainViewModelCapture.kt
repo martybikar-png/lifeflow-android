@@ -40,6 +40,7 @@ data class QuickCaptureLibraryPresentation(
 internal fun launchMainViewModelQuickCaptureSave(
     scope: CoroutineScope,
     orchestrator: LifeFlowOrchestrator,
+    note: String,
     canPerformProtectedWriteNow: () -> Boolean,
     failClosedWithError: (String, Boolean) -> Unit,
     updateLastAction: (String) -> Unit
@@ -52,7 +53,7 @@ internal fun launchMainViewModelQuickCaptureSave(
 
         updateLastAction("Quick capture save requested.")
 
-        when (val result = orchestrator.saveDiaryEntry(createQuickCaptureDiaryEntry())) {
+        when (val result = orchestrator.saveDiaryEntry(createQuickCaptureDiaryEntry(note))) {
             is ActionResult.Success -> updateLastAction("Quick capture saved.")
             is ActionResult.Error -> updateLastAction("Quick capture failed: ${result.message}")
             is ActionResult.Locked -> failClosedWithError(
@@ -119,7 +120,7 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
             val suffix = if (count == 1) "" else "s"
 
             QuickCaptureLibraryPresentation(
-                infoBody = "$count saved capture$suffix.`nLatest: $latest",
+                infoBody = "$count saved capture$suffix.\nLatest: $latest",
                 markers = listOf("$count Saved", formatDiarySignal(dominantSignal), "Local")
             )
         }
@@ -139,11 +140,18 @@ private fun formatDiarySignal(signal: DiarySignal?): String {
         ?: "No signal"
 }
 
-private fun createQuickCaptureDiaryEntry(): DiaryEntry =
+private fun createQuickCaptureDiaryEntry(note: String): DiaryEntry =
     DiaryEntry(
         id = UUID.randomUUID().toString(),
         timestampEpochMillis = System.currentTimeMillis(),
         signal = DiarySignal.MOOD_NEUTRAL,
         intensity = SignalIntensity.SUBTLE,
-        note = "Quick capture"
+        note = normalizeQuickCaptureNote(note)
     )
+
+private fun normalizeQuickCaptureNote(note: String): String =
+    note
+        .trim()
+        .replace(Regex("\\s+"), " ")
+        .ifBlank { "Quick capture" }
+        .take(96)

@@ -230,8 +230,17 @@ class MainViewModel(
     override fun refreshMetricsAndTwinNow() =
         launchRuntimeRefresh("Manual dashboard refresh requested.")
 
-    override fun saveQuickCaptureDraft() =
-        launchMainViewModelQuickCaptureSave(viewModelScope, orchestrator, { currentSecurityEvaluation().canPerformProtectedWrite }, ::failClosedWithError, ::updateLastAction)
+    override fun saveQuickCaptureDraft(note: String) =
+        launchMainViewModelQuickCaptureSave(
+            scope = viewModelScope,
+            orchestrator = orchestrator,
+            note = note,
+            canPerformProtectedWriteNow = {
+                currentSecurityEvaluation().canPerformProtectedWrite
+            },
+            failClosedWithError = ::failClosedWithError,
+            updateLastAction = ::updateLastAction
+        )
 
     override fun loadQuickCaptureLibrary() =
         launchMainViewModelQuickCaptureLibraryLoad(viewModelScope, orchestrator, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)

@@ -17,7 +17,7 @@ import com.lifeflow.TrustScreen
 @Composable
 internal fun ProtectedRuntimeNavHost(
     screen: ActiveRuntimeScreenSnapshot,
-    onSaveQuickCapture: () -> Unit,
+    onSaveQuickCapture: (String) -> Unit,
     onLoadQuickCaptureLibrary: () -> Unit,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,

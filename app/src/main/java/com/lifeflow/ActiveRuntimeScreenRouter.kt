@@ -6,7 +6,7 @@ import com.lifeflow.navigation.ProtectedRuntimeNavHost
 @Composable
 internal fun ActiveRuntimeScreenRouter(
     screen: ActiveRuntimeScreenSnapshot,
-    onSaveQuickCapture: () -> Unit = {},
+    onSaveQuickCapture: (String) -> Unit = {},
     onLoadQuickCaptureLibrary: () -> Unit = {},
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,

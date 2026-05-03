@@ -18,7 +18,7 @@ interface ActiveRuntimeViewModelContract {
     val wellbeingAssessment: State<WellbeingAssessment?>
     val boundarySnapshot: State<MainBoundarySnapshot>
     val quickCaptureLibrary: State<QuickCaptureLibraryPresentation>
-    fun saveQuickCaptureDraft()
+    fun saveQuickCaptureDraft(note: String)
     fun loadQuickCaptureLibrary()
     fun refreshMetricsAndTwinNow()
     fun onHealthPermissionsResult(granted: Set<String>)
