@@ -15,21 +15,22 @@ import kotlin.math.abs
 internal class SecurityIntegrityServerVerdictPolicy(
     private val maxServerVerdictSkewMs: Long = 5 * 60_000L,
     private val policyVersionPrefix: String = "policy-v",
-    private val maxConsumedRequestHashes: Int = 256
+    maxConsumedRequestHashes: Int = 256
 ) {
     init {
         require(maxServerVerdictSkewMs > 0L) { "maxServerVerdictSkewMs must be > 0." }
         require(policyVersionPrefix.isNotBlank()) { "policyVersionPrefix must not be blank." }
-        require(maxConsumedRequestHashes > 0) { "maxConsumedRequestHashes must be > 0." }
     }
 
-    private val consumedServerVerdictRequestHashes = linkedSetOf<String>()
+    private val replayGuard = SecurityIntegrityServerVerdictReplayGuard(
+        maxConsumedRequestHashes = maxConsumedRequestHashes
+    )
     private val claimsEnforcementPolicy = SecurityIntegrityClaimsEnforcementPolicy()
     private val attestationPolicy = SecurityIntegrityServerAttestationPolicy()
     private val rpcMapper = SecurityIntegrityServerRpcMapper()
 
     fun clear() {
-        consumedServerVerdictRequestHashes.clear()
+        replayGuard.clear()
     }
 
     fun normalize(
@@ -80,7 +81,7 @@ internal class SecurityIntegrityServerVerdictPolicy(
                     )
                 }
 
-                if (!rememberConsumedServerVerdictRequestHash(requestHashEcho)) {
+                if (!replayGuard.remember(requestHashEcho)) {
                     return metadataFailClosed(
                         "duplicate server verdict requestHashEcho ($requestHashEcho)"
                     )
@@ -168,22 +169,6 @@ internal class SecurityIntegrityServerVerdictPolicy(
                 decision == IntegrityTrustDecision.DENY ||
                     decision == IntegrityTrustDecision.LOCK
         }
-    }
-
-    private fun rememberConsumedServerVerdictRequestHash(
-        requestHashEcho: String
-    ): Boolean {
-        if (requestHashEcho in consumedServerVerdictRequestHashes) {
-            return false
-        }
-
-        while (consumedServerVerdictRequestHashes.size >= maxConsumedRequestHashes) {
-            val oldest = consumedServerVerdictRequestHashes.first()
-            consumedServerVerdictRequestHashes.remove(oldest)
-        }
-
-        consumedServerVerdictRequestHashes.add(requestHashEcho)
-        return true
     }
 
     private fun metadataFailClosed(
