@@ -48,6 +48,6 @@ private fun buildWellbeingBody(
     return if (cleanStatus.isBlank()) {
         body
     } else {
-        "\n"
+        body
     }
 }

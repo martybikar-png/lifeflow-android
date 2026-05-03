@@ -48,6 +48,6 @@ private fun buildJournalBody(
     return if (cleanStatus.isBlank()) {
         body
     } else {
-        "\n"
+        body
     }
 }
