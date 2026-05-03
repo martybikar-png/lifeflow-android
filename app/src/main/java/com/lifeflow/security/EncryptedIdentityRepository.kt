@@ -65,62 +65,22 @@ class EncryptedIdentityRepository(
 
     override suspend fun getById(id: UUID): LifeFlowIdentity? {
         return mutex.withLock {
-            SecurityRuleEngine.requireAllowed(
-                operation = DomainOperation.READ_IDENTITY_BY_ID,
-                reason = "getById(id) requires active auth session"
+            encryptedIdentityReadById(
+                id = id,
+                blobStore = blobStore,
+                encryptionService = encryptionService,
+                vault = vault
             )
-
-            val stored = blobStore.get(id) ?: return@withLock null
-            val version = vault.getIdentityVersion(id)
-
-            try {
-                val plain = decryptStrict(id, version, stored)
-                val identity = deserialize(plain)
-                require(identity.id == id) { "Identity id mismatch for requested id=$id" }
-                identity
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (exception: Exception) {
-                SecurityKeystoreFailureHandler.throwForFailure(
-                    operation = DomainOperation.READ_IDENTITY_BY_ID,
-                    failureReason = "decrypt/deserialize failed for id=$id",
-                    genericMessage = "EncryptedIdentityRepository: getById() integrity failure",
-                    throwable = exception
-                )
-            }
         }
     }
 
     override suspend fun getActiveIdentity(): LifeFlowIdentity? {
         return mutex.withLock {
-            SecurityRuleEngine.requireAllowed(
-                operation = DomainOperation.READ_ACTIVE_IDENTITY,
-                reason = "getActiveIdentity() requires active auth session"
+            encryptedIdentityReadActiveIdentity(
+                blobStore = blobStore,
+                encryptionService = encryptionService,
+                vault = vault
             )
-
-            try {
-                for ((id, stored) in blobStore.entries()) {
-                    val version = vault.getIdentityVersion(id)
-                    val plain = decryptStrict(id, version, stored)
-                    val identity = deserialize(plain)
-
-                    if (identity.id != id) {
-                        throw SecurityException("Identity id mismatch during active scan for id=$id")
-                    }
-
-                    if (identity.isActive) return@withLock identity
-                }
-                null
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (exception: Exception) {
-                SecurityKeystoreFailureHandler.throwForFailure(
-                    operation = DomainOperation.READ_ACTIVE_IDENTITY,
-                    failureReason = "decrypt/deserialize failed during scan",
-                    genericMessage = "EncryptedIdentityRepository: getActiveIdentity() integrity failure",
-                    throwable = exception
-                )
-            }
         }
     }
 
