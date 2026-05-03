@@ -20,6 +20,7 @@ internal fun ProtectedRuntimeNavHost(
     onSaveQuickCapture: (String) -> Unit,
     onLoadQuickCaptureLibrary: () -> Unit,
     onDeleteQuickCapture: (String) -> Unit,
+    onUpdateQuickCapture: (String, String) -> Unit,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
@@ -78,6 +79,7 @@ internal fun ProtectedRuntimeNavHost(
                 statusMessage = screen.lastAction,
                 onLoadLibrary = onLoadQuickCaptureLibrary,
                 onDeleteCapture = onDeleteQuickCapture,
+                onUpdateCapture = onUpdateQuickCapture,
                 onBackToQuickCapture = { navController.popBackStack() }
             )
         }

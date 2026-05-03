@@ -15,9 +15,13 @@ fun CaptureLibraryScreen(
     statusMessage: String = "",
     onLoadLibrary: () -> Unit = {},
     onDeleteCapture: (String) -> Unit = {},
+    onUpdateCapture: (String, String) -> Unit = { _, _ -> },
     onBackToQuickCapture: () -> Unit = {},
 ) {
     var openedCaptureId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editCaptureId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editNote by rememberSaveable { mutableStateOf("") }
+
     val latestCapture = presentation.recentCaptures.firstOrNull()
     val captureCount = presentation.recentCaptures.size
     val detailIndex = openedCaptureId?.let { captureId ->
@@ -29,6 +33,7 @@ fun CaptureLibraryScreen(
         presentation.recentCaptures[index]
     }
     val isDetailOpen = detailIndex != null && detailCapture != null
+    val isEditing = editCaptureId != null && editCaptureId == detailCapture?.id
     val detailPosition = detailIndex?.let { index ->
         "Capture ${index + 1} of $captureCount"
     } ?: ""
@@ -44,6 +49,8 @@ fun CaptureLibraryScreen(
             presentation.recentCaptures.none { item -> item.id == currentId }
         ) {
             openedCaptureId = null
+            editCaptureId = null
+            editNote = ""
         }
     }
 
@@ -51,9 +58,9 @@ fun CaptureLibraryScreen(
         screenTitle = if (isDetailOpen) "Capture Detail" else "Capture Library",
         screenSubtitle = if (isDetailOpen) detailPosition else "Review light captures.",
         infoTitle = if (isDetailOpen) detailPosition else "Library",
-        infoBody = detailCapture?.note ?: presentation.infoBody,
+        infoBody = if (isEditing) "Edit one short note." else detailCapture?.note ?: presentation.infoBody,
         infoMarkers = if (isDetailOpen) {
-            listOf(detailPosition, "Local", "Calm")
+            listOf(detailPosition, "Local", if (isEditing) "Editing" else "Calm")
         } else {
             presentation.markers
         },
@@ -64,40 +71,80 @@ fun CaptureLibraryScreen(
             val currentCapture = detailCapture
 
             if (currentIndex != null && currentCapture != null) {
-                if (currentIndex < presentation.recentCaptures.lastIndex) {
-                    LifeFlowSecondaryActionButton(
-                        label = "Previous capture",
+                if (isEditing) {
+                    LifeFlowSoftTextInput(
+                        value = editNote,
+                        onValueChange = { editNote = it },
+                        placeholder = "Edit note",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    LifeFlowPrimaryActionButton(
+                        label = "Save edit",
                         onClick = {
-                            openedCaptureId =
-                                presentation.recentCaptures[currentIndex + 1].id
+                            onUpdateCapture(currentCapture.id, editNote)
+                            editCaptureId = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    LifeFlowSecondaryActionButton(
+                        label = "Cancel edit",
+                        onClick = {
+                            editCaptureId = null
+                            editNote = ""
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    if (currentIndex < presentation.recentCaptures.lastIndex) {
+                        LifeFlowSecondaryActionButton(
+                            label = "Previous capture",
+                            onClick = {
+                                openedCaptureId =
+                                    presentation.recentCaptures[currentIndex + 1].id
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    if (currentIndex > 0) {
+                        LifeFlowSecondaryActionButton(
+                            label = "Next capture",
+                            onClick = {
+                                openedCaptureId =
+                                    presentation.recentCaptures[currentIndex - 1].id
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    LifeFlowSecondaryActionButton(
+                        label = "Edit capture",
+                        onClick = {
+                            editCaptureId = currentCapture.id
+                            editNote = currentCapture.note
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    LifeFlowSecondaryActionButton(
+                        label = "Delete capture",
+                        onClick = {
+                            openedCaptureId = null
+                            editCaptureId = null
+                            onDeleteCapture(currentCapture.id)
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-
-                if (currentIndex > 0) {
-                    LifeFlowSecondaryActionButton(
-                        label = "Next capture",
-                        onClick = {
-                            openedCaptureId =
-                                presentation.recentCaptures[currentIndex - 1].id
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                LifeFlowSecondaryActionButton(
-                    label = "Delete capture",
-                    onClick = {
-                        openedCaptureId = null
-                        onDeleteCapture(currentCapture.id)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 LifeFlowPrimaryActionButton(
                     label = "Back to Library",
-                    onClick = { openedCaptureId = null },
+                    onClick = {
+                        openedCaptureId = null
+                        editCaptureId = null
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
 

@@ -21,6 +21,7 @@ interface ActiveRuntimeViewModelContract {
     fun saveQuickCaptureDraft(note: String)
     fun loadQuickCaptureLibrary()
     fun deleteQuickCapture(id: String)
+    fun updateQuickCapture(id: String, note: String)
     fun refreshMetricsAndTwinNow()
     fun onHealthPermissionsResult(granted: Set<String>)
     fun onAuthenticationSuccess()

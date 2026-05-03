@@ -183,6 +183,8 @@ class ActiveRuntimeActionsInstrumentedTest {
 
         override fun deleteQuickCapture(id: String) = Unit
 
+        override fun updateQuickCapture(id: String, note: String) = Unit
+
         override fun onHealthPermissionsResult(granted: Set<String>) = Unit
 
         override fun onAuthenticationSuccess() {

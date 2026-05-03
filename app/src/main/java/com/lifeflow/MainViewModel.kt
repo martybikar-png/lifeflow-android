@@ -248,6 +248,9 @@ class MainViewModel(
     override fun deleteQuickCapture(id: String) =
         launchMainViewModelQuickCaptureDelete(viewModelScope, orchestrator, id, { currentSecurityEvaluation().canPerformProtectedWrite }, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
 
+    override fun updateQuickCapture(id: String, note: String) =
+        launchMainViewModelQuickCaptureUpdate(viewModelScope, orchestrator, id, note, { currentSecurityEvaluation().canPerformProtectedWrite }, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
+
     override fun onHealthPermissionsResult(granted: Set<String>) =
         handleMainViewModelHealthPermissionsResult(
             granted = granted,

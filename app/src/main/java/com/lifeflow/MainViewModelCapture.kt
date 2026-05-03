@@ -152,7 +152,7 @@ internal fun launchMainViewModelQuickCaptureDelete(
     }
 }
 
-private suspend fun loadQuickCaptureLibraryOnce(
+internal suspend fun loadQuickCaptureLibraryOnce(
     orchestrator: LifeFlowOrchestrator,
     quickCaptureLibraryState: MutableState<QuickCaptureLibraryPresentation>,
     failClosedWithError: (String, Boolean) -> Unit,
@@ -240,7 +240,7 @@ private fun createQuickCaptureDiaryEntry(note: String): DiaryEntry =
         note = normalizeQuickCaptureNote(note)
     )
 
-private fun normalizeQuickCaptureNote(note: String): String =
+internal fun normalizeQuickCaptureNote(note: String): String =
     note
         .trim()
         .replace(Regex("\\s+"), " ")
