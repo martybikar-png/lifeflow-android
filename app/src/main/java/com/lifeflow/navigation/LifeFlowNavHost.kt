@@ -9,10 +9,12 @@ import androidx.navigation.compose.rememberNavController
 import com.lifeflow.CaptureEntryScreen
 import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
+import com.lifeflow.JournalScreen
 import com.lifeflow.PrivacyScreen
 import com.lifeflow.QuickCaptureScreen
 import com.lifeflow.SettingsScreen
 import com.lifeflow.TrustScreen
+import com.lifeflow.WellbeingScreen
 import com.lifeflow.publicShellEnrichedCapturePresentation
 
 @Composable
@@ -30,11 +32,33 @@ internal fun LifeFlowNavHost(
                 onOpenQuickCapture = {
                     navController.navigateSingleTopTo(LifeFlowScreenMap.quickCapture.route)
                 },
+                onOpenWellbeing = {
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.wellbeing.route)
+                },
+                onOpenJournal = {
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.journal.route)
+                },
                 onOpenSettings = {
                     navController.navigateSingleTopTo(LifeFlowScreenMap.settings.route)
                 },
                 onOpenTrust = {
                     navController.navigateSingleTopTo(LifeFlowScreenMap.trust.route)
+                }
+            )
+        }
+
+        composable(LifeFlowScreenMap.wellbeing.route) {
+            WellbeingScreen(
+                onBackToHome = {
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.home.route)
+                }
+            )
+        }
+
+        composable(LifeFlowScreenMap.journal.route) {
+            JournalScreen(
+                onBackToHome = {
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.home.route)
                 }
             )
         }

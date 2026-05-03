@@ -9,10 +9,12 @@ import com.lifeflow.AuthenticatedDashboardScreen
 import com.lifeflow.CaptureEntryScreen
 import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
+import com.lifeflow.JournalScreen
 import com.lifeflow.PrivacyScreen
 import com.lifeflow.QuickCaptureScreen
 import com.lifeflow.SettingsScreen
 import com.lifeflow.TrustScreen
+import com.lifeflow.WellbeingScreen
 
 @Composable
 internal fun ProtectedRuntimeNavHost(
@@ -48,26 +50,80 @@ internal fun ProtectedRuntimeNavHost(
                 onOpenHealthConnectSettings = onOpenHealthConnectSettings,
                 onReAuthenticate = onAuthenticate,
                 onUpgradeToCore = onUpgradeToCore,
-                onOpenHome = { navController.navigate("protected/home") { launchSingleTop = true } },
+                onOpenHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                },
                 lastAction = screen.lastAction,
                 isSessionAuthorized = screen.isAuthenticating
             )
         }
 
         composable("protected/home") {
-            HomeScreen(onOpenDashboard = { navController.navigate("protected/dashboard") { launchSingleTop = true } }, onOpenQuickCapture = { navController.navigate("protected/quick-capture") { launchSingleTop = true } }, onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } })
+            HomeScreen(
+                onOpenDashboard = {
+                    navController.navigateProtectedSingleTop("protected/dashboard")
+                },
+                onOpenQuickCapture = {
+                    navController.navigateProtectedSingleTop("protected/quick-capture")
+                },
+                onOpenWellbeing = {
+                    navController.navigateProtectedSingleTop("protected/wellbeing")
+                },
+                onOpenJournal = {
+                    navController.navigateProtectedSingleTop("protected/journal")
+                },
+                onOpenSettings = {
+                    navController.navigateProtectedSingleTop("protected/settings")
+                },
+                onOpenTrust = {
+                    navController.navigateProtectedSingleTop("protected/trust")
+                }
+            )
         }
 
-        composable("protected/quick-capture") { QuickCaptureScreen(statusMessage = screen.lastAction, onPrimaryCapture = { navController.navigate("protected/capture-entry") { launchSingleTop = true } }, onOpenCaptureLibrary = { navController.navigate("protected/capture-library") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/wellbeing") {
+            WellbeingScreen(
+                isProtectedSurface = true,
+                statusMessage = screen.lastAction,
+                onBackToHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                }
+            )
+        }
+
+        composable("protected/journal") {
+            JournalScreen(
+                isProtectedSurface = true,
+                statusMessage = screen.lastAction,
+                onBackToHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                }
+            )
+        }
+
+        composable("protected/quick-capture") {
+            QuickCaptureScreen(
+                statusMessage = screen.lastAction,
+                onPrimaryCapture = {
+                    navController.navigateProtectedSingleTop("protected/capture-entry")
+                },
+                onOpenCaptureLibrary = {
+                    navController.navigateProtectedSingleTop("protected/capture-library")
+                },
+                onBackToHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                }
+            )
+        }
 
         composable("protected/capture-entry") {
             CaptureEntryScreen(
                 onSaveCapture = onSaveQuickCapture,
-                onBackToQuickCapture = { navController.popBackStack() },
+                onBackToQuickCapture = {
+                    navController.popBackStack()
+                },
                 onOpenCaptureLibrary = {
-                    navController.navigate("protected/capture-library") {
-                        launchSingleTop = true
-                    }
+                    navController.navigateProtectedSingleTop("protected/capture-library")
                 }
             )
         }
@@ -79,14 +135,55 @@ internal fun ProtectedRuntimeNavHost(
                 onLoadLibrary = onLoadQuickCaptureLibrary,
                 onDeleteCapture = onDeleteQuickCapture,
                 onUpdateCapture = onUpdateQuickCapture,
-                onBackToQuickCapture = { navController.popBackStack() }
+                onBackToQuickCapture = {
+                    navController.popBackStack()
+                }
             )
         }
 
-        composable("protected/settings") { SettingsScreen(onOpenPrivacy = { navController.navigate("protected/privacy") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/settings") {
+            SettingsScreen(
+                onOpenPrivacy = {
+                    navController.navigateProtectedSingleTop("protected/privacy")
+                },
+                onOpenTrust = {
+                    navController.navigateProtectedSingleTop("protected/trust")
+                },
+                onBackToHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                }
+            )
+        }
 
-        composable("protected/privacy") { PrivacyScreen(onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/privacy") {
+            PrivacyScreen(
+                onOpenTrust = {
+                    navController.navigateProtectedSingleTop("protected/trust")
+                },
+                onBackToSettings = {
+                    navController.navigateProtectedSingleTop("protected/settings")
+                },
+                onBackToHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                }
+            )
+        }
 
-        composable("protected/trust") { TrustScreen(onOpenSettings = { navController.navigate("protected/settings") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
+        composable("protected/trust") {
+            TrustScreen(
+                onOpenSettings = {
+                    navController.navigateProtectedSingleTop("protected/settings")
+                },
+                onBackToHome = {
+                    navController.navigateProtectedSingleTop("protected/home")
+                }
+            )
+        }
+    }
+}
+
+private fun androidx.navigation.NavHostController.navigateProtectedSingleTop(route: String) {
+    navigate(route) {
+        launchSingleTop = true
     }
 }

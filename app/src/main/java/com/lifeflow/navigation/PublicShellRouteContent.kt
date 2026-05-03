@@ -7,6 +7,7 @@ import com.lifeflow.AuthenticatedDashboardScreen
 import com.lifeflow.CaptureEntryScreen
 import com.lifeflow.CaptureLibraryScreen
 import com.lifeflow.HomeScreen
+import com.lifeflow.JournalScreen
 import com.lifeflow.OnboardingHomeScreen
 import com.lifeflow.OnboardingPermissionsScreen
 import com.lifeflow.OnboardingPrivacyScreen
@@ -21,6 +22,7 @@ import com.lifeflow.PrivacyScreen
 import com.lifeflow.QuickCaptureScreen
 import com.lifeflow.SettingsScreen
 import com.lifeflow.TrustScreen
+import com.lifeflow.WellbeingScreen
 import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.publicShellEnrichedCapturePresentation
@@ -146,6 +148,12 @@ internal fun PublicShellRouteContent(
                     onOpenQuickCapture = {
                         onRouteChange(LifeFlowScreenMap.quickCapture.route)
                     },
+                    onOpenWellbeing = {
+                        onRouteChange(LifeFlowScreenMap.wellbeing.route)
+                    },
+                    onOpenJournal = {
+                        onRouteChange(LifeFlowScreenMap.journal.route)
+                    },
                     onOpenSettings = {
                         onRouteChange(LifeFlowScreenMap.settings.route)
                     },
@@ -175,6 +183,24 @@ internal fun PublicShellRouteContent(
                     },
                     lastAction = "",
                     isSessionAuthorized = true
+                )
+            }
+
+            LifeFlowScreenMap.wellbeing.route -> {
+                WellbeingScreen(
+                    isProtectedSurface = false,
+                    onBackToHome = {
+                        onRouteChange(LifeFlowScreenMap.home.route)
+                    }
+                )
+            }
+
+            LifeFlowScreenMap.journal.route -> {
+                JournalScreen(
+                    isProtectedSurface = false,
+                    onBackToHome = {
+                        onRouteChange(LifeFlowScreenMap.home.route)
+                    }
                 )
             }
 

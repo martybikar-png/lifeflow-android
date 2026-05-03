@@ -18,6 +18,8 @@ internal fun publicShellActiveRoute(currentRoute: String): String {
         LifeFlowScreenMap.quickCapture.route,
         LifeFlowScreenMap.captureEntry.route,
         LifeFlowScreenMap.captureLibrary.route,
+        LifeFlowScreenMap.wellbeing.route,
+        LifeFlowScreenMap.journal.route,
         LifeFlowScreenMap.trust.route,
         LifeFlowScreenMap.settings.route,
         LifeFlowScreenMap.privacy.route,

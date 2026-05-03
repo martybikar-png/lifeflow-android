@@ -4,6 +4,8 @@ enum class LifeFlowNavSection {
     ONBOARDING,
     HOME,
     CAPTURE,
+    WELLBEING,
+    JOURNAL,
     TRUST,
     SETTINGS,
     PRIVACY
@@ -120,6 +122,20 @@ object LifeFlowScreenMap {
         supportsBack = true
     )
 
+    val wellbeing = LifeFlowDestination(
+        route = "wellbeing",
+        section = LifeFlowNavSection.WELLBEING,
+        title = "Wellbeing",
+        isPrimary = true
+    )
+
+    val journal = LifeFlowDestination(
+        route = "journal",
+        section = LifeFlowNavSection.JOURNAL,
+        title = "Journal",
+        isPrimary = true
+    )
+
     val trust = LifeFlowDestination(
         route = "trust",
         section = LifeFlowNavSection.TRUST,
@@ -157,6 +173,8 @@ object LifeFlowScreenMap {
     val primaryDestinations = listOf(
         home,
         quickCapture,
+        wellbeing,
+        journal,
         trust,
         settings
     )
