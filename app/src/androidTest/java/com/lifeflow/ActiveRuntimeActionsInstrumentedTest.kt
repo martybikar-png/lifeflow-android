@@ -1,7 +1,9 @@
 package com.lifeflow
 
+import android.content.Context
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.core.HealthConnectUiState
@@ -59,6 +61,23 @@ class ActiveRuntimeActionsInstrumentedTest {
     fun activeRuntimeViewModelContract_recordsAuthenticationSuccess() {
         viewModel.onAuthenticationSuccess()
 
+        assertTrue(viewModel.authenticationSuccessCalled)
+        assertNull(viewModel.authenticationErrorMessage)
+    }
+
+    @Test
+    fun debugEmulatorAuthHarness_authenticatesAndPromotesTrustToVerified() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+
+        completeDebugEmulatorBiometricAuthentication(
+            applicationContext = context,
+            viewModel = viewModel,
+            setLastAction = { lastActionMessage = it }
+        )
+
+        assertEquals("Debug emulator authentication harness accepted", lastActionMessage)
+        assertTrue(SecurityAccessSession.isAuthorized())
+        assertEquals(TrustState.VERIFIED, SecurityRuleEngine.getTrustState())
         assertTrue(viewModel.authenticationSuccessCalled)
         assertNull(viewModel.authenticationErrorMessage)
     }

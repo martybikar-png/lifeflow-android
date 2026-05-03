@@ -65,13 +65,11 @@ internal fun requestActiveRuntimeBiometricAuthentication(
     setLastAction: (String) -> Unit
 ) {
     if (shouldUseDebugEmulatorAuthHarness()) {
-        SecurityAccessSession.grantDefault(applicationContext)
-        SecurityRuleEngine.reportIntegrityTrustVerdict(
-            verdict = SecurityIntegrityTrustVerdict.VERIFIED,
-            reason = "DEBUG_EMULATOR_AUTH_VERIFIED"
+        completeDebugEmulatorBiometricAuthentication(
+            applicationContext = applicationContext,
+            viewModel = viewModel,
+            setLastAction = setLastAction
         )
-        setLastAction("Debug emulator authentication harness accepted")
-        viewModel.onAuthenticationSuccess()
         return
     }
 
@@ -87,6 +85,20 @@ internal fun requestActiveRuntimeBiometricAuthentication(
             viewModel.onAuthenticationError(resolvedMessage)
         }
     )
+}
+
+internal fun completeDebugEmulatorBiometricAuthentication(
+    applicationContext: Context,
+    viewModel: ActiveRuntimeViewModelContract,
+    setLastAction: (String) -> Unit
+) {
+    SecurityAccessSession.grantDefault(applicationContext)
+    SecurityRuleEngine.reportIntegrityTrustVerdict(
+        verdict = SecurityIntegrityTrustVerdict.VERIFIED,
+        reason = "DEBUG_EMULATOR_AUTH_VERIFIED"
+    )
+    setLastAction("Debug emulator authentication harness accepted")
+    viewModel.onAuthenticationSuccess()
 }
 
 internal fun requestActiveRuntimeVaultResetAuthentication(
