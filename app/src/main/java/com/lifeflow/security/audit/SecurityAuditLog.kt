@@ -1,6 +1,5 @@
 package com.lifeflow.security.audit
 
-import com.lifeflow.security.SecurityRuntimeContainmentPolicy
 import com.lifeflow.security.SecurityRuntimeContainmentSnapshot
 import com.lifeflow.security.TrustState
 import java.time.Instant
@@ -130,65 +129,28 @@ object SecurityAuditLog {
         getEntriesBySeverity(Severity.CRITICAL)
 
     internal fun incidentSignalSnapshot(): SecurityIncidentSignalSnapshot =
-        SecurityAuditIncidentSignalAnalyzer.snapshot(getEntries())
+        securityAuditIncidentSignalSnapshot()
 
-    internal fun incidentSignalSnapshotSince(
-        since: Instant
-    ): SecurityIncidentSignalSnapshot =
-        SecurityAuditIncidentSignalAnalyzer.snapshot(getEntriesSince(since))
+    internal fun incidentSignalSnapshotSince(since: Instant): SecurityIncidentSignalSnapshot =
+        securityAuditIncidentSignalSnapshotSince(since)
 
-    internal fun incidentResponseSnapshot(
-        currentTrustState: TrustState
-    ): SecurityIncidentResponseSnapshot =
-        SecurityIncidentResponseBridge.snapshot(
-            incident = incidentSignalSnapshot(),
-            currentTrustState = currentTrustState
-        )
+    internal fun incidentResponseSnapshot(currentTrustState: TrustState): SecurityIncidentResponseSnapshot =
+        securityAuditIncidentResponseSnapshot(currentTrustState)
 
-    internal fun incidentResponseSnapshotSince(
-        since: Instant,
-        currentTrustState: TrustState
-    ): SecurityIncidentResponseSnapshot =
-        SecurityIncidentResponseBridge.snapshot(
-            incident = incidentSignalSnapshotSince(since),
-            currentTrustState = currentTrustState
-        )
+    internal fun incidentResponseSnapshotSince(since: Instant, currentTrustState: TrustState): SecurityIncidentResponseSnapshot =
+        securityAuditIncidentResponseSnapshotSince(since, currentTrustState)
 
-    internal fun abuseMonitoringSnapshot(
-        currentTrustState: TrustState
-    ): SecurityAbuseMonitoringSnapshot =
-        SecurityAbuseMonitoringAnalyzer.snapshot(
-            incident = incidentSignalSnapshot(),
-            currentTrustState = currentTrustState
-        )
+    internal fun abuseMonitoringSnapshot(currentTrustState: TrustState): SecurityAbuseMonitoringSnapshot =
+        securityAuditAbuseMonitoringSnapshot(currentTrustState)
 
-    internal fun abuseMonitoringSnapshotSince(
-        since: Instant,
-        currentTrustState: TrustState
-    ): SecurityAbuseMonitoringSnapshot =
-        SecurityAbuseMonitoringAnalyzer.snapshot(
-            incident = incidentSignalSnapshotSince(since),
-            currentTrustState = currentTrustState
-        )
+    internal fun abuseMonitoringSnapshotSince(since: Instant, currentTrustState: TrustState): SecurityAbuseMonitoringSnapshot =
+        securityAuditAbuseMonitoringSnapshotSince(since, currentTrustState)
 
-    internal fun runtimeContainmentSnapshot(
-        currentTrustState: TrustState
-    ): SecurityRuntimeContainmentSnapshot =
-        SecurityRuntimeContainmentPolicy.snapshot(
-            incidentResponse = incidentResponseSnapshot(currentTrustState)
-        )
+    internal fun runtimeContainmentSnapshot(currentTrustState: TrustState): SecurityRuntimeContainmentSnapshot =
+        securityAuditRuntimeContainmentSnapshot(currentTrustState)
 
-    internal fun runtimeContainmentSnapshotSince(
-        since: Instant,
-        currentTrustState: TrustState
-    ): SecurityRuntimeContainmentSnapshot =
-        SecurityRuntimeContainmentPolicy.snapshot(
-            incidentResponse = incidentResponseSnapshotSince(
-                since = since,
-                currentTrustState = currentTrustState
-            )
-        )
-
+    internal fun runtimeContainmentSnapshotSince(since: Instant, currentTrustState: TrustState): SecurityRuntimeContainmentSnapshot =
+        securityAuditRuntimeContainmentSnapshotSince(since, currentTrustState)
     fun clear() {
         entries.clear()
     }
