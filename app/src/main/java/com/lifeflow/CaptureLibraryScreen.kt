@@ -16,38 +16,66 @@ fun CaptureLibraryScreen(
     onLoadLibrary: () -> Unit = {},
     onBackToQuickCapture: () -> Unit = {},
 ) {
-    var openedLatestNote by rememberSaveable { mutableStateOf<String?>(null) }
+    var openedNoteIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     val latestNote = presentation.recentNotes.firstOrNull()
-    val detailNote = openedLatestNote
-    val isDetailOpen = detailNote != null
+    val noteCount = presentation.recentNotes.size
+    val detailIndex = openedNoteIndex?.takeIf { index ->
+        index in presentation.recentNotes.indices
+    }
+    val detailNote = detailIndex?.let { index ->
+        presentation.recentNotes[index]
+    }
+    val isDetailOpen = detailIndex != null && detailNote != null
+    val detailPosition = detailIndex?.let { index ->
+        "Capture ${index + 1} of $noteCount"
+    } ?: ""
 
     LaunchedEffect(Unit) {
         onLoadLibrary()
     }
 
-    LaunchedEffect(latestNote) {
-        if (openedLatestNote != null && openedLatestNote != latestNote) {
-            openedLatestNote = null
+    LaunchedEffect(presentation.recentNotes) {
+        val currentIndex = openedNoteIndex
+        if (currentIndex != null && currentIndex !in presentation.recentNotes.indices) {
+            openedNoteIndex = null
         }
     }
 
     PublicShellInfoActionScreen(
         screenTitle = if (isDetailOpen) "Capture Detail" else "Capture Library",
-        screenSubtitle = if (isDetailOpen) "Latest light capture." else "Review light captures.",
-        infoTitle = if (isDetailOpen) "Latest capture" else "Library",
+        screenSubtitle = if (isDetailOpen) detailPosition else "Review light captures.",
+        infoTitle = if (isDetailOpen) detailPosition else "Library",
         infoBody = detailNote ?: presentation.infoBody,
         infoMarkers = if (isDetailOpen) {
-            listOf("Latest", "Local", "Calm")
+            listOf(detailPosition, "Local", "Calm")
         } else {
             presentation.markers
         },
         infoNote = captureInfoNote(statusMessage = statusMessage),
     ) {
         PublicShellActionPanel {
-            if (isDetailOpen) {
+            val currentIndex = detailIndex
+
+            if (currentIndex != null) {
+                if (currentIndex < presentation.recentNotes.lastIndex) {
+                    LifeFlowSecondaryActionButton(
+                        label = "Previous capture",
+                        onClick = { openedNoteIndex = currentIndex + 1 },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (currentIndex > 0) {
+                    LifeFlowSecondaryActionButton(
+                        label = "Next capture",
+                        onClick = { openedNoteIndex = currentIndex - 1 },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 LifeFlowPrimaryActionButton(
                     label = "Back to Library",
-                    onClick = { openedLatestNote = null },
+                    onClick = { openedNoteIndex = null },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -60,7 +88,7 @@ fun CaptureLibraryScreen(
                 if (latestNote != null) {
                     LifeFlowPrimaryActionButton(
                         label = "Open latest",
-                        onClick = { openedLatestNote = latestNote },
+                        onClick = { openedNoteIndex = 0 },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
