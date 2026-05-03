@@ -24,6 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -159,10 +163,15 @@ private fun LifeFlowSoftActionButton(
                 enabled = enabled,
                 interactionSource = interactionSource
             )
+            .semantics(mergeDescendants = true) {
+                contentDescription = label
+                role = Role.Button
+            }
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
+                role = Role.Button,
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
