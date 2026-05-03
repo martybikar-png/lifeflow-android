@@ -92,84 +92,12 @@ object SecurityAccessSession {
             return false
         }
 
-        val applicationContext = runtimeApplicationContext.get()
-            ?: run {
-                SecurityAuditLog.critical(
-                    EventType.POLICY_VIOLATION,
-                    "Session runtime context missing - cannot validate device binding"
-                )
-                clear()
-                return false
-            }
-
-        val storedFingerprint = boundDeviceFingerprint.get()
-            ?: run {
-                SecurityAuditLog.critical(
-                    EventType.POLICY_VIOLATION,
-                    "Session missing device fingerprint binding"
-                )
-                clear()
-                return false
-            }
-
-        val storedBindingId = boundBindingId.get()
-            ?: run {
-                SecurityAuditLog.critical(
-                    EventType.POLICY_VIOLATION,
-                    "Session missing persistent device binding id"
-                )
-                clear()
-                return false
-            }
-
-        val isValidDevice = DeviceFingerprint.validate(
-            applicationContext,
-            storedFingerprint
+        return validateSecurityAccessSession(
+            applicationContext = runtimeApplicationContext.get(),
+            storedFingerprint = boundDeviceFingerprint.get(),
+            storedBindingId = boundBindingId.get(),
+            clearSession = ::clear
         )
-        if (!isValidDevice) {
-            SecurityAuditLog.critical(
-                EventType.POLICY_VIOLATION,
-                "Device fingerprint mismatch - possible session theft"
-            )
-            clear()
-            return false
-        }
-
-        val manager = SecurityDeviceBindingRegistry.currentOrNull()
-            ?: run {
-                SecurityAuditLog.critical(
-                    EventType.POLICY_VIOLATION,
-                    "Device binding registry missing during session validation"
-                )
-                clear()
-                return false
-            }
-
-        val currentBinding = runCatching {
-            manager.requireCurrentBinding()
-        }.getOrElse {
-            SecurityAuditLog.critical(
-                EventType.POLICY_VIOLATION,
-                "Current device binding validation failed",
-                mapOf(
-                    "errorType" to it::class.java.simpleName,
-                    "errorMessage" to (it.message ?: "unknown")
-                )
-            )
-            clear()
-            return false
-        }
-
-        if (currentBinding.bindingId != storedBindingId) {
-            SecurityAuditLog.critical(
-                EventType.POLICY_VIOLATION,
-                "Persistent device binding id mismatch - possible session replay"
-            )
-            clear()
-            return false
-        }
-
-        return true
     }
 
     fun isAuthorized(context: Context): Boolean {
