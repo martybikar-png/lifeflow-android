@@ -147,12 +147,6 @@ fun CaptureLibraryScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                LifeFlowSecondaryActionButton(
-                    label = "Back to Capture",
-                    onClick = onBackToQuickCapture,
-                    modifier = Modifier.fillMaxWidth()
-                )
             } else {
                 if (latestCapture != null) {
                     LifeFlowPrimaryActionButton(
