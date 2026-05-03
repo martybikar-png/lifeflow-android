@@ -177,9 +177,11 @@ class ActiveRuntimeActionsInstrumentedTest {
 
         override fun refreshMetricsAndTwinNow() = Unit
 
-        override fun saveQuickCaptureDraft() = Unit
+        override fun saveQuickCaptureDraft(note: String) = Unit
 
         override fun loadQuickCaptureLibrary() = Unit
+
+        override fun deleteQuickCapture(id: String) = Unit
 
         override fun onHealthPermissionsResult(granted: Set<String>) = Unit
 

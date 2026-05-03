@@ -55,6 +55,11 @@ class LifeFlowOrchestratorModuleOperations(
             lifeflowOrchestratorSaveDiaryEntry(repo, entry)
         }
 
+    suspend fun deleteDiaryEntry(id: String): ActionResult<Unit> =
+        diaryAccess.write { repo ->
+            lifeflowOrchestratorDeleteDiaryEntry(repo, id)
+        }
+
     suspend fun loadMemoryState(identityInitialized: Boolean): ActionResult<SecondBrainState> =
         memoryAccess.read { repo ->
             lifeflowOrchestratorLoadMemoryState(repo, identityInitialized)
@@ -85,4 +90,3 @@ class LifeFlowOrchestratorModuleOperations(
             lifeflowOrchestratorSaveShoppingItem(repo, item)
         }
 }
-

@@ -56,6 +56,20 @@ internal suspend fun lifeflowOrchestratorSaveDiaryEntry(
     }
 }
 
+internal suspend fun lifeflowOrchestratorDeleteDiaryEntry(
+    diaryRepository: LocalDiaryRepository,
+    id: String
+): ActionResult<Unit> {
+    return try {
+        diaryRepository.deleteEntry(id)
+        ActionResult.Success(Unit)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        ActionResult.Error(exception.message ?: "Diary delete failed")
+    }
+}
+
 // --- Memory ---
 
 internal suspend fun lifeflowOrchestratorLoadMemoryState(

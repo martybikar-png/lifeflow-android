@@ -19,6 +19,7 @@ internal fun ProtectedRuntimeNavHost(
     screen: ActiveRuntimeScreenSnapshot,
     onSaveQuickCapture: (String) -> Unit,
     onLoadQuickCaptureLibrary: () -> Unit,
+    onDeleteQuickCapture: (String) -> Unit,
     onAuthenticate: () -> Unit,
     onGrantHealthPermissions: () -> Unit,
     onOpenHealthConnectSettings: () -> Unit,
@@ -71,7 +72,15 @@ internal fun ProtectedRuntimeNavHost(
             )
         }
 
-        composable("protected/capture-library") { CaptureLibraryScreen(presentation = screen.quickCaptureLibrary, statusMessage = screen.lastAction, onLoadLibrary = onLoadQuickCaptureLibrary, onBackToQuickCapture = { navController.popBackStack() }) }
+        composable("protected/capture-library") {
+            CaptureLibraryScreen(
+                presentation = screen.quickCaptureLibrary,
+                statusMessage = screen.lastAction,
+                onLoadLibrary = onLoadQuickCaptureLibrary,
+                onDeleteCapture = onDeleteQuickCapture,
+                onBackToQuickCapture = { navController.popBackStack() }
+            )
+        }
 
         composable("protected/settings") { SettingsScreen(onOpenPrivacy = { navController.navigate("protected/privacy") { launchSingleTop = true } }, onOpenTrust = { navController.navigate("protected/trust") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 

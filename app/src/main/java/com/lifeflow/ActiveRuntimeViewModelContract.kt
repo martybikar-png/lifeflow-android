@@ -20,6 +20,7 @@ interface ActiveRuntimeViewModelContract {
     val quickCaptureLibrary: State<QuickCaptureLibraryPresentation>
     fun saveQuickCaptureDraft(note: String)
     fun loadQuickCaptureLibrary()
+    fun deleteQuickCapture(id: String)
     fun refreshMetricsAndTwinNow()
     fun onHealthPermissionsResult(granted: Set<String>)
     fun onAuthenticationSuccess()

@@ -12,31 +12,36 @@ import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+data class QuickCaptureLibraryItem(
+    val id: String,
+    val note: String
+)
+
 data class QuickCaptureLibraryPresentation(
     val infoBody: String,
     val markers: List<String>,
-    val recentNotes: List<String> = emptyList()
+    val recentCaptures: List<QuickCaptureLibraryItem> = emptyList()
 ) {
     companion object {
         fun initial(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
                 infoBody = "Light captures appear here.",
                 markers = listOf("Saved", "Light", "Clear"),
-                recentNotes = emptyList()
+                recentCaptures = emptyList()
             )
 
         fun loading(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
                 infoBody = "Loading captures.",
                 markers = listOf("Loading", "Local", "Secure"),
-                recentNotes = emptyList()
+                recentCaptures = emptyList()
             )
 
         fun unavailable(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
                 infoBody = "Capture library unavailable.",
                 markers = listOf("Locked", "Local", "Retry"),
-                recentNotes = emptyList()
+                recentCaptures = emptyList()
             )
     }
 }
@@ -85,16 +90,59 @@ internal fun launchMainViewModelQuickCaptureLibraryLoad(
         quickCaptureLibraryState.value = QuickCaptureLibraryPresentation.loading()
         updateLastAction("Capture library load requested.")
 
-        when (val result = orchestrator.loadDiaryState(identityInitialized = true)) {
+        loadQuickCaptureLibraryOnce(
+            orchestrator = orchestrator,
+            quickCaptureLibraryState = quickCaptureLibraryState,
+            failClosedWithError = failClosedWithError,
+            updateLastAction = updateLastAction,
+            successMessage = "Capture library loaded."
+        )
+    }
+}
+
+internal fun launchMainViewModelQuickCaptureDelete(
+    scope: CoroutineScope,
+    orchestrator: LifeFlowOrchestrator,
+    id: String,
+    canPerformProtectedWriteNow: () -> Boolean,
+    canExposeProtectedUiDataNow: () -> Boolean,
+    quickCaptureLibraryState: MutableState<QuickCaptureLibraryPresentation>,
+    failClosedWithError: (String, Boolean) -> Unit,
+    updateLastAction: (String) -> Unit
+) {
+    scope.launch {
+        val cleanId = id.trim()
+        if (cleanId.isBlank()) {
+            updateLastAction("Quick capture delete failed: missing capture id.")
+            return@launch
+        }
+
+        if (!canPerformProtectedWriteNow()) {
+            updateLastAction("Quick capture needs verified trust before deleting.")
+            return@launch
+        }
+
+        updateLastAction("Quick capture delete requested.")
+
+        when (val result = orchestrator.deleteDiaryEntry(cleanId)) {
             is ActionResult.Success -> {
-                quickCaptureLibraryState.value = result.value.toQuickCaptureLibraryPresentation()
-                updateLastAction("Capture library loaded.")
+                if (!canExposeProtectedUiDataNow()) {
+                    failClosedWithError(MAIN_VIEW_MODEL_REFRESH_BLOCKED_MESSAGE, true)
+                    return@launch
+                }
+
+                quickCaptureLibraryState.value = QuickCaptureLibraryPresentation.loading()
+                loadQuickCaptureLibraryOnce(
+                    orchestrator = orchestrator,
+                    quickCaptureLibraryState = quickCaptureLibraryState,
+                    failClosedWithError = failClosedWithError,
+                    updateLastAction = updateLastAction,
+                    successMessage = "Quick capture deleted."
+                )
             }
 
-            is ActionResult.Error -> {
-                quickCaptureLibraryState.value = QuickCaptureLibraryPresentation.unavailable()
-                updateLastAction("Capture library failed: ${result.message}")
-            }
+            is ActionResult.Error ->
+                updateLastAction("Quick capture delete failed: ${result.message}")
 
             is ActionResult.Locked -> failClosedWithError(
                 mainViewModelLockedReasonToUserMessage(result.reason),
@@ -104,45 +152,73 @@ internal fun launchMainViewModelQuickCaptureLibraryLoad(
     }
 }
 
+private suspend fun loadQuickCaptureLibraryOnce(
+    orchestrator: LifeFlowOrchestrator,
+    quickCaptureLibraryState: MutableState<QuickCaptureLibraryPresentation>,
+    failClosedWithError: (String, Boolean) -> Unit,
+    updateLastAction: (String) -> Unit,
+    successMessage: String
+) {
+    when (val result = orchestrator.loadDiaryState(identityInitialized = true)) {
+        is ActionResult.Success -> {
+            quickCaptureLibraryState.value = result.value.toQuickCaptureLibraryPresentation()
+            updateLastAction(successMessage)
+        }
+
+        is ActionResult.Error -> {
+            quickCaptureLibraryState.value = QuickCaptureLibraryPresentation.unavailable()
+            updateLastAction("Capture library failed: ${result.message}")
+        }
+
+        is ActionResult.Locked -> failClosedWithError(
+            mainViewModelLockedReasonToUserMessage(result.reason),
+            true
+        )
+    }
+}
+
 private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLibraryPresentation {
     return when (readiness) {
         DiaryReadiness.BLOCKED ->
             QuickCaptureLibraryPresentation(
                 infoBody = "Capture library locked.",
                 markers = listOf("Locked", "Protected", "Retry"),
-                recentNotes = emptyList()
+                recentCaptures = emptyList()
             )
 
         DiaryReadiness.EMPTY ->
             QuickCaptureLibraryPresentation(
                 infoBody = "No captures yet.",
                 markers = listOf("Empty", "Local", "Ready"),
-                recentNotes = emptyList()
+                recentCaptures = emptyList()
             )
 
         DiaryReadiness.READY -> {
             val count = recentEntries.size
             val suffix = if (count == 1) "" else "s"
-            val recentNotes = recentEntries
+            val recentCaptures = recentEntries
                 .take(3)
-                .map { entry -> entry.toRecentNoteText() }
-            val recentSummary = recentNotes
-                .mapIndexed { index, note -> "${index + 1}. ${note.toCapturePreviewText()}" }
+                .map { entry -> entry.toQuickCaptureLibraryItem() }
+            val recentSummary = recentCaptures
+                .mapIndexed { index, item -> "${index + 1}. ${item.note.toCapturePreviewText()}" }
                 .ifEmpty { listOf("No capture details yet.") }
                 .joinToString(separator = "\n")
 
             QuickCaptureLibraryPresentation(
                 infoBody = "$count saved capture$suffix.\nRecent:\n$recentSummary",
                 markers = listOf("$count Saved", formatDiarySignal(dominantSignal), "Local"),
-                recentNotes = recentNotes
+                recentCaptures = recentCaptures
             )
         }
     }
 }
 
-private fun DiaryEntry.toRecentNoteText(): String {
+private fun DiaryEntry.toQuickCaptureLibraryItem(): QuickCaptureLibraryItem {
     val cleanNote = note.trim().ifBlank { formatDiarySignal(signal) }
-    return cleanNote.take(96)
+    return QuickCaptureLibraryItem(
+        id = id,
+        note = cleanNote.take(96)
+    )
 }
 
 private fun String.toCapturePreviewText(): String = take(42)

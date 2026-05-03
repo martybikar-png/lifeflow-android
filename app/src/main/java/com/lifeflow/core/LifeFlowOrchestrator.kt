@@ -74,6 +74,9 @@ class LifeFlowOrchestrator(
     suspend fun saveDiaryEntry(entry: DiaryEntry): ActionResult<Unit> =
         moduleOperations.saveDiaryEntry(entry)
 
+    suspend fun deleteDiaryEntry(id: String): ActionResult<Unit> =
+        moduleOperations.deleteDiaryEntry(id)
+
     suspend fun loadMemoryState(identityInitialized: Boolean): ActionResult<SecondBrainState> =
         moduleOperations.loadMemoryState(identityInitialized)
 

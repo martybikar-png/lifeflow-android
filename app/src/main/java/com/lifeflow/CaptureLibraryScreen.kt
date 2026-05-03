@@ -14,30 +14,36 @@ fun CaptureLibraryScreen(
     presentation: QuickCaptureLibraryPresentation = QuickCaptureLibraryPresentation.initial(),
     statusMessage: String = "",
     onLoadLibrary: () -> Unit = {},
+    onDeleteCapture: (String) -> Unit = {},
     onBackToQuickCapture: () -> Unit = {},
 ) {
-    var openedNoteIndex by rememberSaveable { mutableStateOf<Int?>(null) }
-    val latestNote = presentation.recentNotes.firstOrNull()
-    val noteCount = presentation.recentNotes.size
-    val detailIndex = openedNoteIndex?.takeIf { index ->
-        index in presentation.recentNotes.indices
+    var openedCaptureId by rememberSaveable { mutableStateOf<String?>(null) }
+    val latestCapture = presentation.recentCaptures.firstOrNull()
+    val captureCount = presentation.recentCaptures.size
+    val detailIndex = openedCaptureId?.let { captureId ->
+        presentation.recentCaptures
+            .indexOfFirst { item -> item.id == captureId }
+            .takeIf { index -> index >= 0 }
     }
-    val detailNote = detailIndex?.let { index ->
-        presentation.recentNotes[index]
+    val detailCapture = detailIndex?.let { index ->
+        presentation.recentCaptures[index]
     }
-    val isDetailOpen = detailIndex != null && detailNote != null
+    val isDetailOpen = detailIndex != null && detailCapture != null
     val detailPosition = detailIndex?.let { index ->
-        "Capture ${index + 1} of $noteCount"
+        "Capture ${index + 1} of $captureCount"
     } ?: ""
 
     LaunchedEffect(Unit) {
         onLoadLibrary()
     }
 
-    LaunchedEffect(presentation.recentNotes) {
-        val currentIndex = openedNoteIndex
-        if (currentIndex != null && currentIndex !in presentation.recentNotes.indices) {
-            openedNoteIndex = null
+    LaunchedEffect(presentation.recentCaptures) {
+        val currentId = openedCaptureId
+        if (
+            currentId != null &&
+            presentation.recentCaptures.none { item -> item.id == currentId }
+        ) {
+            openedCaptureId = null
         }
     }
 
@@ -45,7 +51,7 @@ fun CaptureLibraryScreen(
         screenTitle = if (isDetailOpen) "Capture Detail" else "Capture Library",
         screenSubtitle = if (isDetailOpen) detailPosition else "Review light captures.",
         infoTitle = if (isDetailOpen) detailPosition else "Library",
-        infoBody = detailNote ?: presentation.infoBody,
+        infoBody = detailCapture?.note ?: presentation.infoBody,
         infoMarkers = if (isDetailOpen) {
             listOf(detailPosition, "Local", "Calm")
         } else {
@@ -55,12 +61,16 @@ fun CaptureLibraryScreen(
     ) {
         PublicShellActionPanel {
             val currentIndex = detailIndex
+            val currentCapture = detailCapture
 
-            if (currentIndex != null) {
-                if (currentIndex < presentation.recentNotes.lastIndex) {
+            if (currentIndex != null && currentCapture != null) {
+                if (currentIndex < presentation.recentCaptures.lastIndex) {
                     LifeFlowSecondaryActionButton(
                         label = "Previous capture",
-                        onClick = { openedNoteIndex = currentIndex + 1 },
+                        onClick = {
+                            openedCaptureId =
+                                presentation.recentCaptures[currentIndex + 1].id
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -68,14 +78,26 @@ fun CaptureLibraryScreen(
                 if (currentIndex > 0) {
                     LifeFlowSecondaryActionButton(
                         label = "Next capture",
-                        onClick = { openedNoteIndex = currentIndex - 1 },
+                        onClick = {
+                            openedCaptureId =
+                                presentation.recentCaptures[currentIndex - 1].id
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
+                LifeFlowSecondaryActionButton(
+                    label = "Delete capture",
+                    onClick = {
+                        openedCaptureId = null
+                        onDeleteCapture(currentCapture.id)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 LifeFlowPrimaryActionButton(
                     label = "Back to Library",
-                    onClick = { openedNoteIndex = null },
+                    onClick = { openedCaptureId = null },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -85,10 +107,10 @@ fun CaptureLibraryScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                if (latestNote != null) {
+                if (latestCapture != null) {
                     LifeFlowPrimaryActionButton(
                         label = "Open latest",
-                        onClick = { openedNoteIndex = 0 },
+                        onClick = { openedCaptureId = latestCapture.id },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

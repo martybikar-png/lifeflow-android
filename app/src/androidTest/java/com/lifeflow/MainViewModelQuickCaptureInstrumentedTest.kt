@@ -55,7 +55,7 @@ class MainViewModelQuickCaptureInstrumentedTest {
     fun quickCaptureSaveThenLibraryLoad_persistsThroughProtectedRuntime() {
         val viewModel = createProtectedViewModel()
 
-        viewModel.saveQuickCaptureDraft()
+        viewModel.saveQuickCaptureDraft("Quick capture")
 
         waitUntil("quick capture save") {
             viewModel.lastAction.value == "Quick capture saved."
@@ -74,8 +74,8 @@ class MainViewModelQuickCaptureInstrumentedTest {
             presentation.infoBody.contains("saved capture")
         )
         assertTrue(
-            presentation.infoBody,
-            presentation.infoBody.contains("Latest: Quick capture")
+            presentation.recentCaptures.joinToString(),
+            presentation.recentCaptures.any { it.note == "Quick capture" }
         )
         assertTrue(
             presentation.markers.joinToString(),

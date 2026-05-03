@@ -172,8 +172,9 @@ class ActiveRuntimeActionFeedbackInstrumentedTest {
             refreshFailure?.let { throw it }
         }
 
-        override fun saveQuickCaptureDraft() = Unit
+        override fun saveQuickCaptureDraft(note: String) = Unit
         override fun loadQuickCaptureLibrary() = Unit
+        override fun deleteQuickCapture(id: String) = Unit
         override fun onHealthPermissionsResult(granted: Set<String>) = Unit
         override fun onAuthenticationSuccess() = Unit
         override fun onAuthenticationError(message: String) = Unit

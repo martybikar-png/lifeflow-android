@@ -162,6 +162,7 @@ internal fun ActiveRuntimeContent(
         screen = screen,
         onSaveQuickCapture = viewModel::saveQuickCaptureDraft,
         onLoadQuickCaptureLibrary = viewModel::loadQuickCaptureLibrary,
+        onDeleteQuickCapture = viewModel::deleteQuickCapture,
         onAuthenticate = onAuthenticate,
         onGrantHealthPermissions = onGrantPermissions,
         onOpenHealthConnectSettings = onOpenHealthConnectSettings,
