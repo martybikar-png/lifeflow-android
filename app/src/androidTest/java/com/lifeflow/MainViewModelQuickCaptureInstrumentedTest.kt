@@ -99,6 +99,39 @@ class MainViewModelQuickCaptureInstrumentedTest {
         )
     }
 
+    @Test
+    fun quickCaptureLibraryShowsMoreThanThreeRecentCapturesFromDomainLimit() {
+        val viewModel = createProtectedViewModel()
+        val notes = (1..5).map { index -> "History capture $index" }
+
+        notes.forEach { note ->
+            viewModel.lastAction.value = "Waiting for $note"
+            viewModel.saveQuickCaptureDraft(note)
+
+            waitUntil("save $note") {
+                viewModel.lastAction.value == "Quick capture saved."
+            }
+
+            Thread.sleep(20L)
+        }
+
+        viewModel.lastAction.value = "Waiting for history load"
+        viewModel.loadQuickCaptureLibrary()
+
+        waitUntil("capture history load") {
+            viewModel.lastAction.value == "Capture library loaded."
+        }
+
+        val recentCaptures = viewModel.quickCaptureLibrary.value.recentCaptures
+
+        assertEquals(5, recentCaptures.size)
+        assertEquals("History capture 5", recentCaptures.first().note)
+        assertTrue(
+            recentCaptures.joinToString(),
+            recentCaptures.any { it.note == "History capture 1" }
+        )
+    }
+
     private fun createProtectedViewModel(): MainViewModel {
         assertTrue(runtime.ensureStarted())
 

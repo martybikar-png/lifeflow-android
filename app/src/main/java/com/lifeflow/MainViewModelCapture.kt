@@ -197,7 +197,6 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
             val count = recentEntries.size
             val suffix = if (count == 1) "" else "s"
             val recentCaptures = recentEntries
-                .take(3)
                 .map { entry -> entry.toQuickCaptureLibraryItem() }
             val recentSummary = recentCaptures
                 .mapIndexed { index, item -> "${index + 1}. ${item.note.toCapturePreviewText()}" }
