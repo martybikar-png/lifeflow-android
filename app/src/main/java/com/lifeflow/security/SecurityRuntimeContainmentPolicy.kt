@@ -58,7 +58,7 @@ internal object SecurityRuntimeContainmentPolicy {
                     incidentLevel = incidentResponse.incidentLevel,
                     currentTrustState = incidentResponse.currentTrustState,
                     effectiveTrustState = effectiveTrustState,
-                    capabilityEnvelope = recoveryOnlyEnvelope(),
+                    capabilityEnvelope = securityRuntimeRecoveryOnlyEnvelope(),
                     requireRecovery = true,
                     notifyMonitoring = incidentResponse.notifyMonitoring,
                     containmentCodes = containmentCodes
@@ -75,7 +75,7 @@ internal object SecurityRuntimeContainmentPolicy {
                     incidentLevel = incidentResponse.incidentLevel,
                     currentTrustState = incidentResponse.currentTrustState,
                     effectiveTrustState = effectiveTrustState,
-                    capabilityEnvelope = restrictedEnvelope(),
+                    capabilityEnvelope = securityRuntimeRestrictedEnvelope(),
                     requireRecovery = incidentResponse.requireRecovery,
                     notifyMonitoring = incidentResponse.notifyMonitoring,
                     containmentCodes = containmentCodes
@@ -92,7 +92,7 @@ internal object SecurityRuntimeContainmentPolicy {
                     incidentLevel = incidentResponse.incidentLevel,
                     currentTrustState = incidentResponse.currentTrustState,
                     effectiveTrustState = effectiveTrustState,
-                    capabilityEnvelope = guardedEnvelope(),
+                    capabilityEnvelope = securityRuntimeGuardedEnvelope(),
                     requireRecovery = incidentResponse.requireRecovery,
                     notifyMonitoring = incidentResponse.notifyMonitoring,
                     containmentCodes = containmentCodes
@@ -109,7 +109,7 @@ internal object SecurityRuntimeContainmentPolicy {
                     incidentLevel = incidentResponse.incidentLevel,
                     currentTrustState = incidentResponse.currentTrustState,
                     effectiveTrustState = effectiveTrustState,
-                    capabilityEnvelope = normalEnvelope(),
+                    capabilityEnvelope = securityRuntimeNormalEnvelope(),
                     requireRecovery = incidentResponse.requireRecovery,
                     notifyMonitoring = incidentResponse.notifyMonitoring,
                     containmentCodes = containmentCodes
@@ -152,44 +152,4 @@ internal object SecurityRuntimeContainmentPolicy {
             SecurityIncidentResponseCode.OBSERVE_ONLY ->
                 SecurityRuntimeContainmentCode.OBSERVE_ONLY
         }
-
-    private fun normalEnvelope(): SecurityRuntimeCapabilityEnvelope =
-        SecurityRuntimeCapabilityEnvelope(
-            allowProtectedRuntime = true,
-            allowSensitiveOperations = true,
-            allowExternalAuthority = true,
-            allowSecretUnlock = true,
-            allowStateMutation = true,
-            allowRecoveryFlow = true
-        )
-
-    private fun guardedEnvelope(): SecurityRuntimeCapabilityEnvelope =
-        SecurityRuntimeCapabilityEnvelope(
-            allowProtectedRuntime = true,
-            allowSensitiveOperations = true,
-            allowExternalAuthority = true,
-            allowSecretUnlock = true,
-            allowStateMutation = true,
-            allowRecoveryFlow = true
-        )
-
-    private fun restrictedEnvelope(): SecurityRuntimeCapabilityEnvelope =
-        SecurityRuntimeCapabilityEnvelope(
-            allowProtectedRuntime = true,
-            allowSensitiveOperations = false,
-            allowExternalAuthority = false,
-            allowSecretUnlock = false,
-            allowStateMutation = true,
-            allowRecoveryFlow = true
-        )
-
-    private fun recoveryOnlyEnvelope(): SecurityRuntimeCapabilityEnvelope =
-        SecurityRuntimeCapabilityEnvelope(
-            allowProtectedRuntime = false,
-            allowSensitiveOperations = false,
-            allowExternalAuthority = false,
-            allowSecretUnlock = false,
-            allowStateMutation = false,
-            allowRecoveryFlow = true
-        )
 }
