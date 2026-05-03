@@ -54,6 +54,21 @@ fun CaptureLibraryScreen(
         }
     }
 
+    LaunchedEffect(statusMessage) {
+        when {
+            statusMessage.trim().startsWith("Quick capture updated", ignoreCase = true) -> {
+                editCaptureId = null
+                editNote = ""
+            }
+
+            statusMessage.trim().startsWith("Quick capture deleted", ignoreCase = true) -> {
+                openedCaptureId = null
+                editCaptureId = null
+                editNote = ""
+            }
+        }
+    }
+
     PublicShellInfoActionScreen(
         screenTitle = if (isDetailOpen) "Capture Detail" else "Capture Library",
         screenSubtitle = if (isDetailOpen) detailPosition else "Review light captures.",
@@ -83,7 +98,6 @@ fun CaptureLibraryScreen(
                         label = "Save edit",
                         onClick = {
                             onUpdateCapture(currentCapture.id, editNote)
-                            editCaptureId = null
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -131,8 +145,6 @@ fun CaptureLibraryScreen(
                     LifeFlowSecondaryActionButton(
                         label = "Delete capture",
                         onClick = {
-                            openedCaptureId = null
-                            editCaptureId = null
                             onDeleteCapture(currentCapture.id)
                         },
                         modifier = Modifier.fillMaxWidth()
