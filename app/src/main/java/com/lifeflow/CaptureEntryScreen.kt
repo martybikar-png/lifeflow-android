@@ -36,7 +36,7 @@ fun CaptureEntryScreen(
                 label = "Done",
                 onClick = {
                     onSaveCapture(note)
-                    onBackToQuickCapture()
+                    note = ""
                 },
                 modifier = Modifier.fillMaxWidth()
             )
