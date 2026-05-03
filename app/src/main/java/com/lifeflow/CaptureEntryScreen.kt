@@ -16,9 +16,7 @@ fun CaptureEntryScreen(
     onOpenCaptureLibrary: () -> Unit = {},
 ) {
     var note by rememberSaveable { mutableStateOf("") }
-    val canOpenLibrary = statusMessage
-        .trim()
-        .startsWith("Quick capture saved", ignoreCase = true)
+    var hasSubmittedCapture by rememberSaveable { mutableStateOf(false) }
 
     PublicShellInfoActionScreen(
         screenTitle = "Capture Entry",
@@ -40,12 +38,13 @@ fun CaptureEntryScreen(
                 label = "Done",
                 onClick = {
                     onSaveCapture(note)
+                    hasSubmittedCapture = true
                     note = ""
                 },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            if (canOpenLibrary) {
+            if (hasSubmittedCapture) {
                 LifeFlowSecondaryActionButton(
                     label = "Open Library",
                     onClick = onOpenCaptureLibrary,
