@@ -29,6 +29,7 @@ internal fun createLifeFlowSecurityCryptoBindings(
         )
     }
 
+    sessionKeyManager.ensureKey()
     val sessionEncryptionService = EncryptionService(sessionKeyManager)
 
     val authPerUseKeyManager = createLifeFlowSecurityAuthPerUseKeyManager(
