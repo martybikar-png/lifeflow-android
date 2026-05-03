@@ -14,25 +14,29 @@ import kotlinx.coroutines.launch
 
 data class QuickCaptureLibraryPresentation(
     val infoBody: String,
-    val markers: List<String>
+    val markers: List<String>,
+    val recentNotes: List<String> = emptyList()
 ) {
     companion object {
         fun initial(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
                 infoBody = "Light captures appear here.",
-                markers = listOf("Saved", "Light", "Clear")
+                markers = listOf("Saved", "Light", "Clear"),
+                recentNotes = emptyList()
             )
 
         fun loading(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
                 infoBody = "Loading captures.",
-                markers = listOf("Loading", "Local", "Secure")
+                markers = listOf("Loading", "Local", "Secure"),
+                recentNotes = emptyList()
             )
 
         fun unavailable(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
                 infoBody = "Capture library unavailable.",
-                markers = listOf("Locked", "Local", "Retry")
+                markers = listOf("Locked", "Local", "Retry"),
+                recentNotes = emptyList()
             )
     }
 }
@@ -105,13 +109,15 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
         DiaryReadiness.BLOCKED ->
             QuickCaptureLibraryPresentation(
                 infoBody = "Capture library locked.",
-                markers = listOf("Locked", "Protected", "Retry")
+                markers = listOf("Locked", "Protected", "Retry"),
+                recentNotes = emptyList()
             )
 
         DiaryReadiness.EMPTY ->
             QuickCaptureLibraryPresentation(
                 infoBody = "No captures yet.",
-                markers = listOf("Empty", "Local", "Ready")
+                markers = listOf("Empty", "Local", "Ready"),
+                recentNotes = emptyList()
             )
 
         DiaryReadiness.READY -> {
@@ -119,22 +125,27 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
             val suffix = if (count == 1) "" else "s"
             val recentNotes = recentEntries
                 .take(3)
-                .mapIndexed { index, entry -> "${index + 1}. ${entry.toDisplayText()}" }
+                .map { entry -> entry.toRecentNoteText() }
+            val recentSummary = recentNotes
+                .mapIndexed { index, note -> "${index + 1}. ${note.toCapturePreviewText()}" }
                 .ifEmpty { listOf("No capture details yet.") }
                 .joinToString(separator = "\n")
 
             QuickCaptureLibraryPresentation(
-                infoBody = "$count saved capture$suffix.\nRecent:\n$recentNotes",
-                markers = listOf("$count Saved", formatDiarySignal(dominantSignal), "Local")
+                infoBody = "$count saved capture$suffix.\nRecent:\n$recentSummary",
+                markers = listOf("$count Saved", formatDiarySignal(dominantSignal), "Local"),
+                recentNotes = recentNotes
             )
         }
     }
 }
 
-private fun DiaryEntry.toDisplayText(): String {
+private fun DiaryEntry.toRecentNoteText(): String {
     val cleanNote = note.trim().ifBlank { formatDiarySignal(signal) }
-    return cleanNote.take(42)
+    return cleanNote.take(96)
 }
+
+private fun String.toCapturePreviewText(): String = take(42)
 
 private fun formatDiarySignal(signal: DiarySignal?): String {
     return signal?.name
