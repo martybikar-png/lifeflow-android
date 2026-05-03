@@ -58,41 +58,41 @@ internal class SecurityIntegrityServerVerdictPolicy(
 
             IntegrityTrustVerdictSource.PLAY_INTEGRITY_STANDARD_SERVER -> {
                 val requestHashEcho = response.requestHashEcho
-                    ?: return metadataFailClosed("missing requestHashEcho")
+                    ?: return securityIntegrityServerVerdictMetadataFailClosed("missing requestHashEcho")
                 val serverTimestampEpochMs = response.serverTimestampEpochMs
-                    ?: return metadataFailClosed("missing serverTimestampEpochMs")
+                    ?: return securityIntegrityServerVerdictMetadataFailClosed("missing serverTimestampEpochMs")
                 val policyVersion = response.policyVersion
-                    ?: return metadataFailClosed("missing policyVersion")
+                    ?: return securityIntegrityServerVerdictMetadataFailClosed("missing policyVersion")
 
                 if (response.requestBindingVerified != true) {
-                    return metadataFailClosed("request binding was not verified by server")
+                    return securityIntegrityServerVerdictMetadataFailClosed("request binding was not verified by server")
                 }
 
                 if (!policyVersion.startsWith(policyVersionPrefix)) {
-                    return metadataFailClosed(
+                    return securityIntegrityServerVerdictMetadataFailClosed(
                         "invalid policyVersion format ($policyVersion)"
                     )
                 }
 
                 val skewMs = abs(nowEpochMs - serverTimestampEpochMs)
                 if (skewMs > maxServerVerdictSkewMs) {
-                    return metadataFailClosed(
+                    return securityIntegrityServerVerdictMetadataFailClosed(
                         "stale server verdict metadata (skewMs=$skewMs)"
                     )
                 }
 
                 if (!replayGuard.remember(requestHashEcho)) {
-                    return metadataFailClosed(
+                    return securityIntegrityServerVerdictMetadataFailClosed(
                         "duplicate server verdict requestHashEcho ($requestHashEcho)"
                     )
                 }
 
-                if (!isDecisionCompatible(
+                if (!securityIntegrityServerDecisionCompatible(
                         verdict = response.verdict,
                         decision = response.decision
                     )
                 ) {
-                    return metadataFailClosed(
+                    return securityIntegrityServerVerdictMetadataFailClosed(
                         "invalid zero-trust decision ${response.decision} for verdict ${response.verdict}"
                     )
                 }
@@ -142,44 +142,12 @@ internal class SecurityIntegrityServerVerdictPolicy(
         }
 
         if (response.requestHashEcho != expectedRequestHash) {
-            return metadataFailClosed("requestHash echo mismatch")
+            return securityIntegrityServerVerdictMetadataFailClosed("requestHash echo mismatch")
         }
 
         return normalize(
             response = rpcMapper.map(response),
             nowEpochMs = System.currentTimeMillis()
-        )
-    }
-
-    private fun isDecisionCompatible(
-        verdict: SecurityIntegrityTrustVerdict,
-        decision: IntegrityTrustDecision
-    ): Boolean {
-        return when (verdict) {
-            SecurityIntegrityTrustVerdict.VERIFIED ->
-                decision == IntegrityTrustDecision.ALLOW ||
-                    decision == IntegrityTrustDecision.STEP_UP
-
-            SecurityIntegrityTrustVerdict.DEGRADED ->
-                decision == IntegrityTrustDecision.STEP_UP ||
-                    decision == IntegrityTrustDecision.DEGRADED ||
-                    decision == IntegrityTrustDecision.DENY
-
-            SecurityIntegrityTrustVerdict.COMPROMISED ->
-                decision == IntegrityTrustDecision.DENY ||
-                    decision == IntegrityTrustDecision.LOCK
-        }
-    }
-
-    private fun metadataFailClosed(
-        detail: String
-    ): IntegrityTrustVerdictResponse {
-        return IntegrityTrustVerdictResponse(
-            verdict = SecurityIntegrityTrustVerdict.COMPROMISED,
-            reason = "SERVER_VERDICT_METADATA_INVALID: $detail",
-            verdictSource = IntegrityTrustVerdictSource.CLIENT_FAILSAFE,
-            decision = IntegrityTrustDecision.LOCK,
-            decisionReasonCode = "SERVER_METADATA_INVALID"
         )
     }
 }
