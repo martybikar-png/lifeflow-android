@@ -9,7 +9,6 @@ import com.lifeflow.core.LifeFlowOrchestrator
 import com.lifeflow.domain.core.TierState
 import com.lifeflow.domain.security.TrustState
 import com.lifeflow.domain.security.TrustStatePort
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 
 class MainViewModel(
@@ -79,8 +78,6 @@ class MainViewModel(
             trustState = trustStatePort.currentTrustState()
         )
 
-    private fun shouldQueueForegroundRefresh(): Boolean =
-        !isFreeTier() && isAuthenticatedUiNow()
 
     private fun setSessionExpiryNotified(value: Boolean) { sessionExpiryNotified = value }
 
@@ -230,66 +227,58 @@ class MainViewModel(
         )
     }
 
-    override fun refreshMetricsAndTwinNow() = launchRuntimeRefresh("Manual dashboard refresh requested.")
-    override fun saveQuickCaptureDraft() = launchMainViewModelQuickCaptureSave(viewModelScope, orchestrator, { currentSecurityEvaluation().canPerformProtectedWrite }, ::failClosedWithError, ::updateLastAction)
-    override fun loadQuickCaptureLibrary() = launchMainViewModelQuickCaptureLibraryLoad(viewModelScope, orchestrator, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
-    override fun onHealthPermissionsResult(granted: Set<String>) {
-        wellbeingState.grantedHealthPermissions.value = granted
-        launchRuntimeRefresh("Health permission result received (${granted.size} granted).")
-    }
+    override fun refreshMetricsAndTwinNow() =
+        launchRuntimeRefresh("Manual dashboard refresh requested.")
 
-    override fun onAuthenticationSuccess() {
-        beginAuthenticationSuccessFlow(
-            setUiStateLoading = {}
+    override fun saveQuickCaptureDraft() =
+        launchMainViewModelQuickCaptureSave(viewModelScope, orchestrator, { currentSecurityEvaluation().canPerformProtectedWrite }, ::failClosedWithError, ::updateLastAction)
+
+    override fun loadQuickCaptureLibrary() =
+        launchMainViewModelQuickCaptureLibraryLoad(viewModelScope, orchestrator, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
+
+    override fun onHealthPermissionsResult(granted: Set<String>) =
+        handleMainViewModelHealthPermissionsResult(
+            granted = granted,
+            updateGrantedHealthPermissions = { wellbeingState.grantedHealthPermissions.value = it },
+            launchRuntimeRefresh = ::launchRuntimeRefresh
         )
-        viewModelScope.launch {
-            runAuthenticationBootstrap()
-        }
-    }
+
+    override fun onAuthenticationSuccess() =
+        launchMainViewModelAuthenticationSuccess(
+            scope = viewModelScope,
+            beginAuthenticationSuccessFlow = ::beginAuthenticationSuccessFlow,
+            runAuthenticationBootstrap = ::runAuthenticationBootstrap
+        )
 
     override fun onAuthenticationError(message: String) =
-        handleAuthenticationError(message)
+        handleMainViewModelAuthenticationError(
+            message = message,
+            failClosedAuthentication = ::failClosedAuthentication
+        )
 
-    override fun onAppBackgrounded() {
-        pendingForegroundRefresh = shouldQueueForegroundRefresh()
-    }
-
-    override fun onAppForegrounded() {
-        val shouldRefreshAfterRecheck = consumeMainViewModelPendingForegroundRefresh(
-            pendingForegroundRefresh = pendingForegroundRefresh,
+    override fun onAppBackgrounded() =
+        handleMainViewModelAppBackgrounded(
+            isFreeTier = ::isFreeTier,
+            isAuthenticatedUiNow = ::isAuthenticatedUiNow,
             updatePendingForegroundRefresh = { pendingForegroundRefresh = it }
         )
 
-        handleMainViewModelSessionPollTick(
-            securityEvaluation = currentSecurityEvaluation(),
-            alreadyNotified = sessionExpiryNotified,
-            handleSessionExpiryIfNeeded = { notified ->
-                handleMainViewModelSessionExpiryIfNeeded(
-                    alreadyNotified = notified,
-                    setSessionExpiryNotified = ::setSessionExpiryNotified,
-                    failClosedAuthentication = ::failClosedAuthentication
-                )
-            },
-            clearSessionExpiryNotification = {
-                setSessionExpiryNotified(false)
-            }
+    override fun onAppForegrounded() =
+        handleMainViewModelAppForegrounded(
+            pendingForegroundRefresh = pendingForegroundRefresh,
+            updatePendingForegroundRefresh = { pendingForegroundRefresh = it },
+            currentSecurityEvaluation = ::currentSecurityEvaluation,
+            isSessionExpiryNotified = { sessionExpiryNotified },
+            setSessionExpiryNotified = ::setSessionExpiryNotified,
+            failClosedAuthentication = ::failClosedAuthentication,
+            canExposeProtectedUiDataNow = ::canExposeProtectedUiDataNow,
+            launchRuntimeRefresh = ::launchRuntimeRefresh
         )
 
-        if (!shouldRefreshAfterRecheck) {
-            return
-        }
-
-        if (canExposeProtectedUiDataNow()) {
-            launchRuntimeRefresh("Returned to foreground; secure refresh requested.")
-        }
-    }
-
-    override fun resetVault() {
-        beginAuthenticationSuccessFlow(
-            setUiStateLoading = {}
+    override fun resetVault() =
+        launchMainViewModelVaultReset(
+            scope = viewModelScope,
+            beginAuthenticationSuccessFlow = ::beginAuthenticationSuccessFlow,
+            runVaultReset = ::runVaultReset
         )
-        viewModelScope.launch {
-            runVaultReset()
-        }
-    }
 }
