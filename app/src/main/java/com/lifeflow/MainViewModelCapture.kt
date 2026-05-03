@@ -116,11 +116,15 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
 
         DiaryReadiness.READY -> {
             val count = recentEntries.size
-            val latest = recentEntries.firstOrNull()?.toDisplayText() ?: "No capture details yet."
             val suffix = if (count == 1) "" else "s"
+            val recentNotes = recentEntries
+                .take(3)
+                .mapIndexed { index, entry -> "${index + 1}. ${entry.toDisplayText()}" }
+                .ifEmpty { listOf("No capture details yet.") }
+                .joinToString(separator = "\n")
 
             QuickCaptureLibraryPresentation(
-                infoBody = "$count saved capture$suffix.\nLatest: $latest",
+                infoBody = "$count saved capture$suffix.\nRecent:\n$recentNotes",
                 markers = listOf("$count Saved", formatDiarySignal(dominantSignal), "Local")
             )
         }
