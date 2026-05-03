@@ -58,7 +58,18 @@ internal fun ProtectedRuntimeNavHost(
 
         composable("protected/quick-capture") { QuickCaptureScreen(statusMessage = screen.lastAction, onPrimaryCapture = { navController.navigate("protected/capture-entry") { launchSingleTop = true } }, onOpenCaptureLibrary = { navController.navigate("protected/capture-library") { launchSingleTop = true } }, onBackToHome = { navController.navigate("protected/home") { launchSingleTop = true } }) }
 
-        composable("protected/capture-entry") { CaptureEntryScreen(statusMessage = screen.lastAction, onSaveCapture = onSaveQuickCapture, onBackToQuickCapture = { navController.popBackStack() }) }
+        composable("protected/capture-entry") {
+            CaptureEntryScreen(
+                statusMessage = screen.lastAction,
+                onSaveCapture = onSaveQuickCapture,
+                onBackToQuickCapture = { navController.popBackStack() },
+                onOpenCaptureLibrary = {
+                    navController.navigate("protected/capture-library") {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
 
         composable("protected/capture-library") { CaptureLibraryScreen(presentation = screen.quickCaptureLibrary, statusMessage = screen.lastAction, onLoadLibrary = onLoadQuickCaptureLibrary, onBackToQuickCapture = { navController.popBackStack() }) }
 

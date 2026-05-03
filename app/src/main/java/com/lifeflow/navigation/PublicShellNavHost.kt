@@ -242,6 +242,9 @@ internal fun PublicShellNavHost(
                 CaptureEntryScreen(
                     onBackToQuickCapture = {
                         currentRoute = LifeFlowScreenMap.quickCapture.route
+                    },
+                    onOpenCaptureLibrary = {
+                        currentRoute = LifeFlowScreenMap.captureLibrary.route
                     }
                 )
             }

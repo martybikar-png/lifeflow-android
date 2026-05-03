@@ -59,6 +59,9 @@ internal fun LifeFlowNavHost(
             CaptureEntryScreen(
                 onBackToQuickCapture = {
                     navController.popBackStack()
+                },
+                onOpenCaptureLibrary = {
+                    navController.navigateSingleTopTo(LifeFlowScreenMap.captureLibrary.route)
                 }
             )
         }
