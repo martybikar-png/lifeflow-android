@@ -9,6 +9,8 @@ import com.lifeflow.boundary.MainBoundarySnapshot
 import com.lifeflow.core.HealthConnectUiState
 import com.lifeflow.domain.core.digitaltwin.DigitalTwinState
 import com.lifeflow.domain.wellbeing.WellbeingAssessment
+import com.lifeflow.security.LifeFlowSecurityBootstrap
+import com.lifeflow.security.LifeFlowSecurityBootstrapResult
 import com.lifeflow.security.SecurityAccessSession
 import com.lifeflow.security.SecurityRuleEngine
 import com.lifeflow.security.SecurityVaultResetAuthorization
@@ -24,11 +26,18 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ActiveRuntimeActionsInstrumentedTest {
 
+    private lateinit var context: Context
     private lateinit var viewModel: RecordingActiveRuntimeViewModel
+    private var securityBootstrap: LifeFlowSecurityBootstrapResult? = null
     private var lastActionMessage: String? = null
 
     @Before
     fun setUp() {
+        context = ApplicationProvider.getApplicationContext()
+        securityBootstrap = LifeFlowSecurityBootstrap.start(
+            applicationContext = context,
+            isInstrumentation = true
+        )
         viewModel = RecordingActiveRuntimeViewModel()
         lastActionMessage = null
         SecurityVaultResetAuthorization.clear()
@@ -44,6 +53,8 @@ class ActiveRuntimeActionsInstrumentedTest {
     fun tearDown() {
         SecurityVaultResetAuthorization.clear()
         SecurityAccessSession.clear()
+        securityBootstrap?.close()
+        securityBootstrap = null
         SecurityRuleEngine.clearAudit()
         forceResetSecurityState(
             state = TrustState.DEGRADED,
@@ -67,8 +78,6 @@ class ActiveRuntimeActionsInstrumentedTest {
 
     @Test
     fun debugEmulatorAuthHarness_authenticatesAndPromotesTrustToVerified() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-
         completeDebugEmulatorBiometricAuthentication(
             applicationContext = context,
             viewModel = viewModel,
