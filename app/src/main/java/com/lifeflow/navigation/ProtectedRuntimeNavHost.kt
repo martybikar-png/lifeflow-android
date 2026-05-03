@@ -62,7 +62,6 @@ internal fun ProtectedRuntimeNavHost(
 
         composable("protected/capture-entry") {
             CaptureEntryScreen(
-                statusMessage = screen.lastAction,
                 onSaveCapture = onSaveQuickCapture,
                 onBackToQuickCapture = { navController.popBackStack() },
                 onOpenCaptureLibrary = {

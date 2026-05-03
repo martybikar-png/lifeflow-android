@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 @Composable
 fun CaptureEntryScreen(
     onSaveCapture: (String) -> Unit = {},
-    statusMessage: String = "",
+
     onBackToQuickCapture: () -> Unit = {},
     onOpenCaptureLibrary: () -> Unit = {},
 ) {
@@ -24,7 +24,9 @@ fun CaptureEntryScreen(
         infoTitle = "New capture",
         infoBody = "Add one short note.",
         infoMarkers = listOf("Simple", "Draft", "Done"),
-        infoNote = captureInfoNote(statusMessage = statusMessage),
+        infoNote = captureInfoNote(
+            primaryNote = if (hasSubmittedCapture) "Submitted." else ""
+        ),
     ) {
         PublicShellActionPanel {
             LifeFlowSoftTextInput(
