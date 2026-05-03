@@ -74,8 +74,10 @@ object SecurityAuditLog {
         message: String,
         metadata: Map<String, String> = emptyMap()
     ) {
-        val sanitizedMetadata = metadata.mapValues { sanitize(it.value) }
-        val sanitizedMessage = sanitize(message)
+        val sanitizedMetadata = metadata.mapValues {
+            sanitizeSecurityAuditValue(it.value)
+        }
+        val sanitizedMessage = sanitizeSecurityAuditValue(message)
 
         val entry = AuditEntry(
             timestamp = Instant.now(),
@@ -189,23 +191,5 @@ object SecurityAuditLog {
 
     fun clear() {
         entries.clear()
-    }
-
-    private fun sanitize(value: String): String {
-        if (value.isBlank()) return value
-
-        val sensitivePatterns = listOf(
-            Regex("(?i)(password|passwd|pwd)\\s*[:=]\\s*\\S+"),
-            Regex("(?i)(token|key|secret|auth)\\s*[:=]\\s*\\S+"),
-            Regex("[A-Za-z0-9+/]{32,}={0,2}"),
-            Regex("[0-9a-fA-F]{32,}")
-        )
-
-        var sanitized = value
-        sensitivePatterns.forEach { pattern ->
-            sanitized = sanitized.replace(pattern, "[REDACTED]")
-        }
-
-        return sanitized
     }
 }
