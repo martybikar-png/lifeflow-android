@@ -10,13 +10,13 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun CaptureEntryScreen(
-    onSaveCapture: (String) -> Unit = {},
-
+    onSaveCapture: ((String) -> Unit)? = null,
     onBackToQuickCapture: () -> Unit = {},
     onOpenCaptureLibrary: () -> Unit = {},
 ) {
     var note by rememberSaveable { mutableStateOf("") }
     var hasSubmittedCapture by rememberSaveable { mutableStateOf(false) }
+    val canSaveCapture = onSaveCapture != null
 
     PublicShellInfoActionScreen(
         screenTitle = "Capture Entry",
@@ -39,11 +39,15 @@ fun CaptureEntryScreen(
             LifeFlowPrimaryActionButton(
                 label = "Done",
                 onClick = {
-                    onSaveCapture(note)
-                    hasSubmittedCapture = true
-                    note = ""
+                    val saveAction = onSaveCapture
+                    if (saveAction != null) {
+                        saveAction(note)
+                        hasSubmittedCapture = true
+                        note = ""
+                    }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canSaveCapture
             )
 
             if (hasSubmittedCapture) {
