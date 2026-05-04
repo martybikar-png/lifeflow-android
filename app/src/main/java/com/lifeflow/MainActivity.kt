@@ -2,6 +2,8 @@ package com.lifeflow
 
 import android.content.Intent
 import android.graphics.Color
+import android.widget.ImageView
+import android.view.Gravity
 import android.os.Bundle
 import android.view.View
 import android.view.ViewTreeObserver
@@ -34,15 +36,29 @@ class MainActivity : FragmentActivity() {
         val onboardingStore = OnboardingStateStore(this)
 
         showNativeStartupFrame()
-        window.decorView.runAfterFirstDraw {
+        window.decorView.runAfterFirstWindowFocus {
             installComposeContent(onboardingStore = onboardingStore)
         }
     }
 
     private fun showNativeStartupFrame() {
+        val iconSizePx = (132 * resources.displayMetrics.density).toInt()
+
         setContentView(
             FrameLayout(this).apply {
-                setBackgroundColor(Color.rgb(242, 243, 247))
+                setBackgroundColor(Color.rgb(34, 205, 247))
+                addView(
+                    ImageView(this@MainActivity).apply {
+                        setImageResource(R.drawable.lifeflow_splash_icon)
+                        adjustViewBounds = true
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    },
+                    FrameLayout.LayoutParams(
+                        iconSizePx,
+                        iconSizePx,
+                        Gravity.CENTER
+                    )
+                )
             }
         )
     }
@@ -64,26 +80,30 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-private fun View.runAfterFirstDraw(action: () -> Unit) {
+private fun View.runAfterFirstWindowFocus(action: () -> Unit) {
     var didPost = false
     val target = this
     val observer = viewTreeObserver
 
-    val listener = object : ViewTreeObserver.OnDrawListener {
-        override fun onDraw() {
-            if (didPost) return
+    val listener = object : ViewTreeObserver.OnWindowFocusChangeListener {
+        override fun onWindowFocusChanged(hasFocus: Boolean) {
+            if (!hasFocus || didPost) return
 
             didPost = true
             target.post {
                 if (observer.isAlive) {
-                    observer.removeOnDrawListener(this)
+                    observer.removeOnWindowFocusChangeListener(this)
                 }
                 action()
             }
         }
     }
 
-    observer.addOnDrawListener(listener)
+    observer.addOnWindowFocusChangeListener(listener)
+
+    if (hasWindowFocus()) {
+        listener.onWindowFocusChanged(true)
+    }
 }
 
 @Composable
