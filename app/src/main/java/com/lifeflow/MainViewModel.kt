@@ -31,6 +31,15 @@ class MainViewModel(
     private val wellbeingRuntime = MainViewModelWellbeingRuntime(
         orchestrator = orchestrator
     )
+    private val captureGateway = MainViewModelCaptureGateway(
+        scope = viewModelScope,
+        orchestrator = orchestrator,
+        quickCaptureLibrary = quickCaptureLibrary,
+        canPerformProtectedWriteNow = { currentSecurityEvaluation().canPerformProtectedWrite },
+        canExposeProtectedUiDataNow = ::canExposeProtectedUiDataNow,
+        failClosedWithError = ::failClosedWithError,
+        updateLastAction = ::updateLastAction
+    )
 
     private var sessionExpiryNotified = false
     private var pendingForegroundRefresh = false
@@ -231,25 +240,16 @@ class MainViewModel(
         launchRuntimeRefresh("Manual dashboard refresh requested.")
 
     override fun saveQuickCaptureDraft(note: String) =
-        launchMainViewModelQuickCaptureSave(
-            scope = viewModelScope,
-            orchestrator = orchestrator,
-            note = note,
-            canPerformProtectedWriteNow = {
-                currentSecurityEvaluation().canPerformProtectedWrite
-            },
-            failClosedWithError = ::failClosedWithError,
-            updateLastAction = ::updateLastAction
-        )
+        captureGateway.saveQuickCaptureDraft(note)
 
     override fun loadQuickCaptureLibrary() =
-        launchMainViewModelQuickCaptureLibraryLoad(viewModelScope, orchestrator, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
+        captureGateway.loadQuickCaptureLibrary()
 
     override fun deleteQuickCapture(id: String) =
-        launchMainViewModelQuickCaptureDelete(viewModelScope, orchestrator, id, { currentSecurityEvaluation().canPerformProtectedWrite }, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
+        captureGateway.deleteQuickCapture(id)
 
     override fun updateQuickCapture(id: String, note: String) =
-        launchMainViewModelQuickCaptureUpdate(viewModelScope, orchestrator, id, note, { currentSecurityEvaluation().canPerformProtectedWrite }, ::canExposeProtectedUiDataNow, quickCaptureLibrary, ::failClosedWithError, ::updateLastAction)
+        captureGateway.updateQuickCapture(id, note)
 
     override fun onHealthPermissionsResult(granted: Set<String>) =
         handleMainViewModelHealthPermissionsResult(
