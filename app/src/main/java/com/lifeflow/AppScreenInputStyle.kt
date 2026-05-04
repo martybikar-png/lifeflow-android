@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,8 +16,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
 private const val LifeFlowInputMaxLength = 96
-private val LifeFlowInputHorizontalPadding = 18.dp
-private val LifeFlowInputVerticalPadding = 10.dp
+private val LifeFlowInputHorizontalPadding = 20.dp
+private val LifeFlowInputVerticalPadding = 16.dp
+private val LifeFlowTextInputMinHeight = 76.dp
+private val LifeFlowTextInputShape = RoundedCornerShape(26.dp)
 
 @Composable
 internal fun LifeFlowSoftTextInput(
@@ -53,15 +55,9 @@ internal fun LifeFlowSoftTextInput(
             ) {
                 Box(
                     modifier = Modifier
-                        .widthIn(max = LifeFlowButtonMaxWidth)
                         .fillMaxWidth()
-                        .heightIn(min = LifeFlowButtonMinHeight)
-                        .lifeFlowRaisedButtonChrome(
-                            shape = LifeFlowButtonShape,
-                            surfaceColor = LifeFlowButtonIdleSurface,
-                            borderColor = LifeFlowButtonIdleBorder,
-                            darkShadowColor = LifeFlowButtonLiftDark
-                        )
+                        .heightIn(min = LifeFlowTextInputMinHeight)
+                        .lifeFlowRaisedPanelChrome(LifeFlowTextInputShape)
                         .padding(
                             horizontal = LifeFlowInputHorizontalPadding,
                             vertical = LifeFlowInputVerticalPadding

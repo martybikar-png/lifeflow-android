@@ -11,28 +11,34 @@ import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 
+private val PremiumLoginShadowLight = Color(0xFFFFFFFF)
+private val PremiumLoginShadowDark = Color(0xFFD2D6DF).copy(alpha = 0.72f)
+private val PremiumLoginGoldBorder = Color(0xFFE8D9AA).copy(alpha = 0.92f)
+private val PremiumLoginInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.94f)
+private val PremiumLoginInnerShade = Color(0xFFD2D6DF).copy(alpha = 0.18f)
+
 internal fun Modifier.premiumLoginRaisedSurface(
     shape: Shape,
     surfaceColor: Color = PremiumLoginWhite,
-    darkAlpha: Float = 0.22f
+    darkAlpha: Float = 0.72f
 ): Modifier {
     return this
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 24.dp,
+                radius = 12.dp,
                 spread = 0.dp,
-                color = Color.White.copy(alpha = 0.86f),
-                offset = DpOffset(x = (-8).dp, y = (-10).dp)
+                color = PremiumLoginShadowLight,
+                offset = DpOffset(x = (-6).dp, y = (-6).dp)
             )
         )
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 24.dp,
+                radius = 12.dp,
                 spread = 0.dp,
-                color = Color(0xFF8FA0B8).copy(alpha = darkAlpha),
-                offset = DpOffset(x = 8.dp, y = 12.dp)
+                color = PremiumLoginShadowDark.copy(alpha = darkAlpha),
+                offset = DpOffset(x = 6.dp, y = 6.dp)
             )
         )
         .background(
@@ -42,15 +48,24 @@ internal fun Modifier.premiumLoginRaisedSurface(
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 10.dp,
+                radius = 4.dp,
                 spread = 0.dp,
-                color = Color.White.copy(alpha = 0.82f),
-                offset = DpOffset(x = 0.dp, y = (-7).dp)
+                color = PremiumLoginInnerHighlight,
+                offset = DpOffset(x = (-2).dp, y = (-2).dp)
+            )
+        )
+        .innerShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 4.dp,
+                spread = 0.dp,
+                color = PremiumLoginInnerShade,
+                offset = DpOffset(x = 2.dp, y = 2.dp)
             )
         )
         .border(
-            width = 0.7.dp,
-            color = Color.White.copy(alpha = 0.48f),
+            width = 0.275.dp,
+            color = PremiumLoginGoldBorder,
             shape = shape
         )
 }
@@ -62,37 +77,19 @@ internal fun Modifier.premiumLoginBodyCardSurface(
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 112.dp,
+                radius = 18.dp,
                 spread = 0.dp,
-                color = Color(0xFF032B78).copy(alpha = 0.36f),
-                offset = DpOffset(x = 0.dp, y = (-42).dp)
+                color = PremiumLoginShadowLight,
+                offset = DpOffset(x = (-8).dp, y = (-8).dp)
             )
         )
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 84.dp,
+                radius = 16.dp,
                 spread = 0.dp,
-                color = Color(0xFF0646B9).copy(alpha = 0.34f),
-                offset = DpOffset(x = 0.dp, y = (-28).dp)
-            )
-        )
-        .dropShadow(
-            shape = shape,
-            shadow = Shadow(
-                radius = 58.dp,
-                spread = 0.dp,
-                color = Color(0xFF0646B9).copy(alpha = 0.22f),
-                offset = DpOffset(x = 0.dp, y = (-18).dp)
-            )
-        )
-        .dropShadow(
-            shape = shape,
-            shadow = Shadow(
-                radius = 32.dp,
-                spread = 0.dp,
-                color = Color(0xFF032B78).copy(alpha = 0.22f),
-                offset = DpOffset(x = 0.dp, y = (-8).dp)
+                color = PremiumLoginShadowDark,
+                offset = DpOffset(x = 8.dp, y = 8.dp)
             )
         )
         .background(
@@ -102,15 +99,24 @@ internal fun Modifier.premiumLoginBodyCardSurface(
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 12.dp,
+                radius = 4.dp,
                 spread = 0.dp,
-                color = Color.White.copy(alpha = 0.84f),
-                offset = DpOffset(x = 0.dp, y = (-8).dp)
+                color = PremiumLoginInnerHighlight,
+                offset = DpOffset(x = (-2).dp, y = (-2).dp)
+            )
+        )
+        .innerShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 4.dp,
+                spread = 0.dp,
+                color = PremiumLoginInnerShade,
+                offset = DpOffset(x = 2.dp, y = 2.dp)
             )
         )
         .border(
-            width = 0.8.dp,
-            color = Color.White.copy(alpha = 0.58f),
+            width = 0.275.dp,
+            color = PremiumLoginGoldBorder,
             shape = shape
         )
 }
@@ -120,53 +126,56 @@ internal fun Modifier.premiumLoginMethodButtonSurface(
     surfaceColor: Color = PremiumLoginWhite,
     isPressed: Boolean = false
 ): Modifier {
-    val blueShadowAlpha = if (isPressed) 0.18f else 0.34f
-    val darkShadowAlpha = if (isPressed) 0.10f else 0.18f
+    val lightRadius = if (isPressed) 8.dp else 15.dp
+    val darkRadius = if (isPressed) 8.dp else 15.dp
+    val lightOffset = if (isPressed) (-3).dp else (-6).dp
+    val darkOffset = if (isPressed) 3.dp else 6.dp
+    val surface = if (isPressed) PremiumLoginRowPressedSurface else surfaceColor
 
     return this
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 26.dp,
+                radius = lightRadius,
                 spread = 0.dp,
-                color = Color.White.copy(alpha = 0.90f),
-                offset = DpOffset(x = (-7).dp, y = (-9).dp)
+                color = PremiumLoginShadowLight,
+                offset = DpOffset(x = lightOffset, y = lightOffset)
             )
         )
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 30.dp,
-                spread = 1.dp,
-                color = Color(0xFF62C9F2).copy(alpha = blueShadowAlpha),
-                offset = DpOffset(x = 0.dp, y = 13.dp)
-            )
-        )
-        .dropShadow(
-            shape = shape,
-            shadow = Shadow(
-                radius = 18.dp,
+                radius = darkRadius,
                 spread = 0.dp,
-                color = Color(0xFF5D6E86).copy(alpha = darkShadowAlpha),
-                offset = DpOffset(x = 7.dp, y = 9.dp)
+                color = PremiumLoginShadowDark,
+                offset = DpOffset(x = darkOffset, y = darkOffset)
             )
         )
         .background(
-            color = surfaceColor,
+            color = surface,
             shape = shape
         )
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 6.dp,
+                radius = 7.dp,
                 spread = 0.dp,
-                color = Color.White.copy(alpha = 0.72f),
-                offset = DpOffset(x = (-1).dp, y = (-2).dp)
+                color = PremiumLoginInnerHighlight,
+                offset = DpOffset(x = (-2).dp, y = (-2).dp)
+            )
+        )
+        .innerShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 7.dp,
+                spread = 0.dp,
+                color = PremiumLoginInnerShade,
+                offset = DpOffset(x = 2.dp, y = 2.dp)
             )
         )
         .border(
-            width = 0.7.dp,
-            color = Color.White.copy(alpha = 0.78f),
+            width = 0.275.dp,
+            color = PremiumLoginGoldBorder,
             shape = shape
         )
 }

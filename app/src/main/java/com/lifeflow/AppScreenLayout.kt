@@ -40,7 +40,7 @@ private val ScreenTopBandContentSpacing = 22.dp
 private const val ScreenWhiteStartRatio = 0.20f
 internal const val ScreenSplashWhiteStartRatio = 0.25f
 
-private val ScreenSurfaceTone = Color(0xFFFFFFFF)
+private val ScreenSurfaceTone = Color(0xFFF2F3F7)
 private val ScreenTopBlueStart = Color(0xFF22CDF7)
 private val ScreenTopBlueEnd = Color(0xFF2F8FFF)
 
