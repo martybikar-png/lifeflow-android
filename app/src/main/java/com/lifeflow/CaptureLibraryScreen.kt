@@ -71,9 +71,9 @@ fun CaptureLibraryScreen(
 
     PublicShellInfoActionScreen(
         screenTitle = if (isDetailOpen) "Capture Detail" else "Capture Library",
-        screenSubtitle = if (isDetailOpen) detailPosition else "Review light captures.",
+        screenSubtitle = if (isDetailOpen) detailPosition else "Review saved notes.",
         infoTitle = if (isDetailOpen) detailPosition else "Library",
-        infoBody = if (isEditing) "Edit one short note." else detailCapture?.note ?: presentation.infoBody,
+        infoBody = if (isEditing) "Refine one note." else detailCapture?.note ?: presentation.infoBody,
         infoMarkers = if (isDetailOpen) {
             listOf(detailPosition, "Local", if (isEditing) "Editing" else "Calm")
         } else {
@@ -95,7 +95,7 @@ fun CaptureLibraryScreen(
                     )
 
                     LifeFlowPrimaryActionButton(
-                        label = "Save edit",
+                        label = "Save",
                         onClick = {
                             onUpdateCapture(currentCapture.id, editNote)
                         },
@@ -103,7 +103,7 @@ fun CaptureLibraryScreen(
                     )
 
                     LifeFlowSecondaryActionButton(
-                        label = "Cancel edit",
+                        label = "Cancel",
                         onClick = {
                             editCaptureId = null
                             editNote = ""
@@ -113,7 +113,7 @@ fun CaptureLibraryScreen(
                 } else {
                     if (currentIndex < presentation.recentCaptures.lastIndex) {
                         LifeFlowSecondaryActionButton(
-                            label = "Previous capture",
+                            label = "Previous",
                             onClick = {
                                 openedCaptureId =
                                     presentation.recentCaptures[currentIndex + 1].id
@@ -124,7 +124,7 @@ fun CaptureLibraryScreen(
 
                     if (currentIndex > 0) {
                         LifeFlowSecondaryActionButton(
-                            label = "Next capture",
+                            label = "Next",
                             onClick = {
                                 openedCaptureId =
                                     presentation.recentCaptures[currentIndex - 1].id
@@ -134,7 +134,7 @@ fun CaptureLibraryScreen(
                     }
 
                     LifeFlowSecondaryActionButton(
-                        label = "Edit capture",
+                        label = "Edit",
                         onClick = {
                             editCaptureId = currentCapture.id
                             editNote = currentCapture.note
@@ -143,7 +143,7 @@ fun CaptureLibraryScreen(
                     )
 
                     LifeFlowSecondaryActionButton(
-                        label = "Delete capture",
+                        label = "Delete",
                         onClick = {
                             onDeleteCapture(currentCapture.id)
                         },

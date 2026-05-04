@@ -25,21 +25,21 @@ data class QuickCaptureLibraryPresentation(
     companion object {
         fun initial(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
-                infoBody = "Light captures appear here.",
-                markers = listOf("Saved", "Light", "Clear"),
+                infoBody = "Saved notes appear here.",
+                markers = listOf("Saved", "Local", "Clear"),
                 recentCaptures = emptyList()
             )
 
         fun loading(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
-                infoBody = "Loading captures.",
-                markers = listOf("Loading", "Local", "Secure"),
+                infoBody = "Loading saved notes.",
+                markers = listOf("Loading", "Local", "Ready"),
                 recentCaptures = emptyList()
             )
 
         fun unavailable(): QuickCaptureLibraryPresentation =
             QuickCaptureLibraryPresentation(
-                infoBody = "Capture library unavailable.",
+                infoBody = "Library needs verified access.",
                 markers = listOf("Locked", "Local", "Retry"),
                 recentCaptures = emptyList()
             )
@@ -181,14 +181,14 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
     return when (readiness) {
         DiaryReadiness.BLOCKED ->
             QuickCaptureLibraryPresentation(
-                infoBody = "Capture library locked.",
+                infoBody = "Library locked.",
                 markers = listOf("Locked", "Protected", "Retry"),
                 recentCaptures = emptyList()
             )
 
         DiaryReadiness.EMPTY ->
             QuickCaptureLibraryPresentation(
-                infoBody = "No captures yet.",
+                infoBody = "No notes yet.",
                 markers = listOf("Empty", "Local", "Ready"),
                 recentCaptures = emptyList()
             )
@@ -204,8 +204,8 @@ private fun ShadowDiaryState.toQuickCaptureLibraryPresentation(): QuickCaptureLi
                 .joinToString(separator = "\n")
 
             QuickCaptureLibraryPresentation(
-                infoBody = "$count saved capture$suffix.\nRecent:\n$recentSummary",
-                markers = listOf("$count Saved", formatDiarySignal(dominantSignal), "Local"),
+                infoBody = "$count saved note$suffix.\nRecent:\n$recentSummary",
+                markers = listOf("$count Saved", "Local", "Clear"),
                 recentCaptures = recentCaptures
             )
         }

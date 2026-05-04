@@ -24,10 +24,10 @@ fun QuickCaptureScreen(
 
     PublicShellInfoActionScreen(
         screenTitle = "Quick Capture",
-        screenSubtitle = "Save one thing quickly.",
-        infoTitle = "Capture",
-        infoBody = "Save one small thing.",
-        infoMarkers = listOf("Fast", "Local", "Light"),
+        screenSubtitle = "Start with one clean note.",
+        infoTitle = "Quick capture",
+        infoBody = "Save it before it fades.",
+        infoMarkers = listOf("Simple", "Local", "Ready"),
         infoNote = captureInfoNote(
             primaryNote = if (enrichedCaptureLocked) {
                 enrichedCapturePresentation?.detailMessage ?: "Core required."
@@ -39,13 +39,13 @@ fun QuickCaptureScreen(
     ) {
         PublicShellActionPanel {
             LifeFlowPrimaryActionButton(
-                label = "Start Capture",
+                label = "New capture",
                 onClick = onPrimaryCapture,
                 modifier = Modifier.fillMaxWidth()
             )
 
             LifeFlowSecondaryActionButton(
-                label = "Library",
+                label = "Open Library",
                 onClick = onOpenCaptureLibrary,
                 modifier = Modifier.fillMaxWidth()
             )
