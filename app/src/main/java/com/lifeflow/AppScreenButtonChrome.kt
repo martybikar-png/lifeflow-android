@@ -56,8 +56,8 @@ private val LifeFlowButtonPressedInnerHighlight = Color(0xFFFFFFFF).copy(alpha =
 private val LifeFlowButtonPressedInnerShade = Color(0xFFD2D6DF).copy(alpha = 0.34f)
 
 internal val LifeFlowButtonIdleBorder = Color(0xFFE8D9AA).copy(alpha = 0.92f)
-internal val LifeFlowButtonHoverBorder = Color(0xFFE1CD8D).copy(alpha = 0.96f)
-internal val LifeFlowButtonPressedBorder = Color(0xFFD4B66A).copy(alpha = 0.98f)
+internal val LifeFlowButtonHoverBorder = LifeFlowButtonAccent
+internal val LifeFlowButtonPressedBorder = LifeFlowButtonAccent
 internal val LifeFlowButtonDisabledBorder = Color(0xFFF2E8C9).copy(alpha = 0.82f)
 
 internal val LifeFlowButtonPrimaryText = Color(0xFF35415C)
