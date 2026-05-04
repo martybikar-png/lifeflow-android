@@ -20,24 +20,24 @@ fun CaptureEntryScreen(
 
     PublicShellInfoActionScreen(
         screenTitle = "Capture Entry",
-        screenSubtitle = "Finish a simple capture.",
+        screenSubtitle = "Save one clear note.",
         infoTitle = "New capture",
-        infoBody = "Add one short note.",
-        infoMarkers = listOf("Simple", "Draft", "Done"),
+        infoBody = "Write it down. Keep going.",
+        infoMarkers = listOf("Simple", "Draft", "Save"),
         infoNote = captureInfoNote(
-            primaryNote = if (hasSubmittedCapture) "Submitted." else ""
+            primaryNote = if (hasSubmittedCapture) "Saved." else ""
         ),
     ) {
         PublicShellActionPanel {
             LifeFlowSoftTextInput(
                 value = note,
                 onValueChange = { note = it },
-                placeholder = "Add a note",
+                placeholder = "Write a note",
                 modifier = Modifier.fillMaxWidth()
             )
 
             LifeFlowPrimaryActionButton(
-                label = "Done",
+                label = "Save",
                 onClick = {
                     val saveAction = onSaveCapture
                     if (saveAction != null) {
