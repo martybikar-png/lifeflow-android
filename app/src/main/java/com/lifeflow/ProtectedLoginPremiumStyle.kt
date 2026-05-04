@@ -30,6 +30,10 @@ internal val PremiumLoginRowPressedSurface = Color(0xFFFFFFFF)
 internal val PremiumLoginTextPrimary = Color(0xFF35415C)
 internal val PremiumLoginTextSecondary = Color(0xFF8792AA)
 internal val PremiumLoginLink = Color(0xFF22CDF7)
+internal val PremiumLoginMethodSelectedSurface = Color(0xFFFFFFFF)
+internal val PremiumLoginMethodIconSelectedSurface = Color(0xFFEAFBFF)
+internal val PremiumLoginMethodSelectedBorder = Color(0xFF22CDF7).copy(alpha = 0.38f)
+internal val PremiumLoginMethodIdleBorder = Color(0xFFE8D9AA).copy(alpha = 0.42f)
 
 internal val PremiumLoginGoldDividerBrush = SolidColor(Color(0xFFD4AF37))
 

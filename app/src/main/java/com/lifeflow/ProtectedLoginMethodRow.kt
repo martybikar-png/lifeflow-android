@@ -2,6 +2,7 @@ package com.lifeflow
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -44,7 +45,9 @@ internal fun PremiumLoginMethodRow(
         isPressed || selected -> PremiumLoginLink
         else -> PremiumLoginTextPrimary
     }
-    val methodSurface = if (selected) PremiumLoginRowPressedSurface else PremiumLoginWhite
+    val methodSurface = if (selected) PremiumLoginMethodSelectedSurface else PremiumLoginWhite
+    val iconSurface = if (selected) PremiumLoginMethodIconSelectedSurface else PremiumLoginWhite
+    val borderColor = if (selected) PremiumLoginMethodSelectedBorder else PremiumLoginMethodIdleBorder
 
     Box(
         modifier = modifier
@@ -54,6 +57,11 @@ internal fun PremiumLoginMethodRow(
                 shape = PremiumLoginRowShape,
                 surfaceColor = methodSurface,
                 isPressed = isPressed
+            )
+            .border(
+                width = if (selected) 0.8.dp else 0.275.dp,
+                color = borderColor,
+                shape = PremiumLoginRowShape
             )
     ) {
         Row(
@@ -73,10 +81,10 @@ internal fun PremiumLoginMethodRow(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(CircleShape)
-                    .background(PremiumLoginWhite)
+                    .background(iconSurface)
                     .premiumLoginMethodButtonSurface(
                         shape = CircleShape,
-                        surfaceColor = PremiumLoginWhite,
+                        surfaceColor = iconSurface,
                         isPressed = isPressed
                     ),
                 contentAlignment = Alignment.Center
