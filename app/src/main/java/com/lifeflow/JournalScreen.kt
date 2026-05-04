@@ -17,15 +17,15 @@ fun JournalScreen(
     }
 
     val body = if (isProtectedSurface) {
-        "Your protected journal surface is ready for local entries."
+        "Your private journal space is ready."
     } else {
-        "Journal preview explains the surface without opening protected entries."
+        "Preview the journal without opening entries."
     }
 
     PublicShellInfoActionScreen(
         screenTitle = "Journal",
-        screenSubtitle = if (isProtectedSurface) "Protected surface." else "Public preview.",
-        infoTitle = if (isProtectedSurface) "Protected journal" else "Journal preview",
+        screenSubtitle = if (isProtectedSurface) "Private space." else "Quiet preview.",
+        infoTitle = if (isProtectedSurface) "Private journal" else "Journal",
         infoBody = buildJournalBody(body, statusMessage),
         infoMarkers = markers,
         showGoldEdge = true

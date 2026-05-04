@@ -17,15 +17,15 @@ fun WellbeingScreen(
     }
 
     val body = if (isProtectedSurface) {
-        "Your protected wellbeing surface is ready for deeper signals."
+        "Private wellbeing signals are ready."
     } else {
-        "Wellbeing preview stays calm and never shows protected health data."
+        "Explore wellbeing without showing health data."
     }
 
     PublicShellInfoActionScreen(
         screenTitle = "Wellbeing",
-        screenSubtitle = if (isProtectedSurface) "Protected surface." else "Public preview.",
-        infoTitle = if (isProtectedSurface) "Protected wellbeing" else "Wellbeing preview",
+        screenSubtitle = if (isProtectedSurface) "Private signals." else "Quiet preview.",
+        infoTitle = if (isProtectedSurface) "Private wellbeing" else "Wellbeing",
         infoBody = buildWellbeingBody(body, statusMessage),
         infoMarkers = markers,
         showGoldEdge = true
