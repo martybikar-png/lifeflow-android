@@ -1,11 +1,11 @@
 package com.lifeflow
 
 import android.content.Intent
-import android.widget.FrameLayout
-import android.view.ViewTreeObserver
-import android.view.View
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
+import android.view.ViewTreeObserver
+import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -15,9 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.fragment.app.FragmentActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.fragment.app.FragmentActivity
 import com.lifeflow.navigation.PublicShellNavHost
 import com.lifeflow.ui.theme.LifeFlowTheme
 import kotlinx.coroutines.Dispatchers
@@ -70,9 +71,7 @@ private fun View.runAfterFirstDraw(action: () -> Unit) {
 
     val listener = object : ViewTreeObserver.OnDrawListener {
         override fun onDraw() {
-            if (didPost) {
-                return
-            }
+            if (didPost) return
 
             didPost = true
             target.post {
@@ -121,6 +120,9 @@ private fun MainActivityAppContent(
         } else {
             failedStartupBindings()
         }
+
+        withFrameNanos { }
+        activity.reportFullyDrawn()
     }
 
     if (!onboardingCompleted) {

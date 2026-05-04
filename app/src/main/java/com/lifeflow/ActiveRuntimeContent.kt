@@ -31,9 +31,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.lifeflow.security.BiometricAuthManager
-import kotlinx.coroutines.delay
 
-private const val INTRO_SPLASH_DURATION_MS = 3000L
 
 @Composable
 internal fun ActiveRuntimeContent(
@@ -44,7 +42,7 @@ internal fun ActiveRuntimeContent(
     showIntroSplashOnStart: Boolean = true
 ) {
     var pendingSettingsRefresh by rememberSaveable { mutableStateOf(false) }
-    var showIntroSplash by rememberSaveable { mutableStateOf(showIntroSplashOnStart) }
+    var showIntroSplash by rememberSaveable { mutableStateOf(false) }
     val setLastAction: (String) -> Unit = { _ -> }
     val applicationContext = LocalContext.current.applicationContext
 
@@ -89,12 +87,6 @@ internal fun ActiveRuntimeContent(
             setLastAction = setLastAction
         )
     }
-
-    LaunchedEffect(Unit) {
-        delay(INTRO_SPLASH_DURATION_MS)
-        showIntroSplash = false
-    }
-
     val screen = collectActiveRuntimeScreenSnapshot(
         viewModel = viewModel
     )

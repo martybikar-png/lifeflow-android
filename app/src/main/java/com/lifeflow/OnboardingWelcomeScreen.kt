@@ -18,9 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 
-private const val ONBOARDING_SPLASH_DURATION_MS = 3000L
 
 private val WelcomeTextPrimary = Color(0xFF1E2430)
 private val WelcomeTextSecondary = Color(0xFF667385)
@@ -31,7 +29,6 @@ fun OnboardingWelcomeScreen(
     onSplashFinished: () -> Unit = {}
 ) {
     LaunchedEffect(Unit) {
-        delay(ONBOARDING_SPLASH_DURATION_MS)
         onSplashFinished()
     }
 
