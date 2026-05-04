@@ -9,14 +9,16 @@ internal fun FragmentActivity.resolveStartupBindings(
 ): StartupBindings {
     val startupReady = startupRuntimeEntryPoint.ensureStarted()
 
-    if (!startupReady) {
-        return StartupBindings(
-            startupReady = false,
-            viewModel = null,
-            biometricAuthManager = null
-        )
+    return if (startupReady) {
+        resolveStartedStartupBindings(startupRuntimeEntryPoint)
+    } else {
+        failedStartupBindings()
     }
+}
 
+internal fun FragmentActivity.resolveStartedStartupBindings(
+    startupRuntimeEntryPoint: StartupRuntimeEntryPoint
+): StartupBindings {
     startupRuntimeEntryPoint.scheduleIntegrityTrustStartupCheck()
 
     return StartupBindings(
@@ -29,6 +31,14 @@ internal fun FragmentActivity.resolveStartupBindings(
             activity = this,
             authPerUseCryptoProvider = startupRuntimeEntryPoint.authPerUseCryptoProviderOrNull()
         )
+    )
+}
+
+internal fun failedStartupBindings(): StartupBindings {
+    return StartupBindings(
+        startupReady = false,
+        viewModel = null,
+        biometricAuthManager = null
     )
 }
 

@@ -215,7 +215,7 @@ object LifeFlowScreenMap {
         return if (isOnboardingComplete) {
             home.route
         } else {
-            onboardingWelcome.route
+            onboardingPermissions.route
         }
     }
 

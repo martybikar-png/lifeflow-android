@@ -25,6 +25,6 @@ internal fun publicShellActiveRoute(currentRoute: String): String {
         LifeFlowScreenMap.privacy.route,
         PublicShellDashboardPreviewRoute -> currentRoute
 
-        else -> LifeFlowScreenMap.onboardingWelcome.route
+        else -> LifeFlowScreenMap.onboardingPermissions.route
     }
 }

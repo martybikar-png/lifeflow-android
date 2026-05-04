@@ -505,6 +505,7 @@ val verifyReleaseSecurityBaseline by tasks.registering {
 }
 
 dependencies {
+    implementation(libs.androidx.core.splashscreen)
     implementation(project(":core"))
     implementation(project(":domain"))
     implementation(project(":data"))

@@ -10,7 +10,6 @@ import com.lifeflow.OnboardingTuneScreen
 import com.lifeflow.OnboardingTwinScreen
 import com.lifeflow.OnboardingVoiceScreen
 import com.lifeflow.OnboardingWellScreen
-import com.lifeflow.OnboardingWelcomeScreen
 
 @Composable
 internal fun PublicShellOnboardingRouteContent(
@@ -19,14 +18,7 @@ internal fun PublicShellOnboardingRouteContent(
     onCompleteOnboarding: () -> Unit
 ) {
     when (activeRoute) {
-        LifeFlowScreenMap.onboardingWelcome.route -> {
-            OnboardingWelcomeScreen(
-                onSplashFinished = {
-                    onRouteChange(LifeFlowScreenMap.onboardingPermissions.route)
-                }
-            )
-        }
-
+        LifeFlowScreenMap.onboardingWelcome.route,
         LifeFlowScreenMap.onboardingPermissions.route -> {
             OnboardingPermissionsScreen(
                 onContinue = {

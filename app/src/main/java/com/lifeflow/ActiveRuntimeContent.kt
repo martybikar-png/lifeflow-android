@@ -40,10 +40,11 @@ internal fun ActiveRuntimeContent(
     viewModel: ActiveRuntimeViewModelContract,
     biometricAuthManager: BiometricAuthManager,
     appPackageName: String,
-    onStartIntent: (Intent) -> Unit
+    onStartIntent: (Intent) -> Unit,
+    showIntroSplashOnStart: Boolean = true
 ) {
     var pendingSettingsRefresh by rememberSaveable { mutableStateOf(false) }
-    var showIntroSplash by rememberSaveable { mutableStateOf(true) }
+    var showIntroSplash by rememberSaveable { mutableStateOf(showIntroSplashOnStart) }
     val setLastAction: (String) -> Unit = { _ -> }
     val applicationContext = LocalContext.current.applicationContext
 
@@ -187,12 +188,13 @@ internal fun ActiveRuntimeContent(
 }
 
 @Composable
-private fun IntroSplashScreen() {
+internal fun IntroSplashScreen() {
     ScreenContainer(
         title = "Welcome to LifeFlow",
         centerHeader = true,
         showGoldEdge = true,
-        whiteStartRatio = ScreenSplashWhiteStartRatio
+        whiteStartRatio = ScreenSplashWhiteStartRatio,
+        surfaceTone = Color(0xFFFCFCFC)
     ) {
         Box(
             modifier = Modifier

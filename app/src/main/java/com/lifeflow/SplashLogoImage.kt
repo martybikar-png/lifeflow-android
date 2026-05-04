@@ -20,10 +20,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 private val SplashLogoSize = 196.dp
-private const val SplashMaskOpaqueStop = 0.68f
-private const val SplashMaskSoftStop = 0.88f
-private const val SplashMaskSoftAlpha = 0.34f
-private const val SplashMaskRadiusMultiplier = 0.52f
+private const val SplashMaskOpaqueStop = 0.80f
+private const val SplashMaskSoftStop = 0.96f
+private const val SplashMaskSoftAlpha = 0.14f
+private const val SplashMaskRadiusMultiplier = 0.66f
 
 @Composable
 internal fun LifeFlowSplashLogo(
@@ -37,6 +37,19 @@ internal fun LifeFlowSplashLogo(
                 compositingStrategy = CompositingStrategy.Offscreen
             }
             .drawWithCache {
+                val glow = Brush.radialGradient(
+                    colorStops = arrayOf(
+                        0.0f to Color(0xFFFCFCFC),
+                        0.72f to Color(0xFFFCFCFC),
+                        0.92f to Color(0xFFFCFCFC).copy(alpha = 0.72f),
+                        1.0f to Color.Transparent
+                    ),
+                    center = Offset(
+                        x = size.width / 2f,
+                        y = size.height / 2f
+                    ),
+                    radius = size.minDimension * 0.82f
+                )
                 val mask = Brush.radialGradient(
                     colorStops = arrayOf(
                         0.0f to Color.White,
@@ -52,6 +65,7 @@ internal fun LifeFlowSplashLogo(
                 )
 
                 onDrawWithContent {
+                    drawRect(brush = glow)
                     drawContent()
                     drawRect(
                         brush = mask,

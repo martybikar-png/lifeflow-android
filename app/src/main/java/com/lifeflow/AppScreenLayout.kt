@@ -68,6 +68,7 @@ internal fun ScreenContainer(
     centerHeader: Boolean = false,
     showGoldEdge: Boolean = false,
     whiteStartRatio: Float = ScreenWhiteStartRatio,
+    surfaceTone: Color = ScreenSurfaceTone,
     scrollContent: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -128,7 +129,7 @@ internal fun ScreenContainer(
                     )
                 )
                 .clip(ScreenWhiteForegroundShape)
-                .background(ScreenSurfaceTone)
+                .background(surfaceTone)
         )
 
         if (showGoldEdge) {

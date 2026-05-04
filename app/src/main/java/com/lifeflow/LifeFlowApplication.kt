@@ -8,7 +8,6 @@ class LifeFlowApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        requireStartupRuntimeEntryPoint().ensureStarted()
     }
 
     internal fun requireStartupRuntimeEntryPoint(): StartupRuntimeEntryPoint {

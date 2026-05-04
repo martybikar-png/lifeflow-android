@@ -19,7 +19,7 @@ internal fun PublicShellNavHost(
             if (startAtHome) {
                 LifeFlowScreenMap.home.route
             } else {
-                LifeFlowScreenMap.onboardingWelcome.route
+                LifeFlowScreenMap.onboardingPermissions.route
             }
         )
     }

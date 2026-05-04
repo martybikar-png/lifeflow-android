@@ -13,7 +13,7 @@ private const val EnableStartupFailureVisualReview = false
 @Composable
 internal fun AppEntry(
     startupRuntimeEntryPoint: StartupRuntimeEntryPoint,
-    startupBindings: StartupBindings,
+    startupBindings: StartupBindings?,
     initialOnboardingCompleted: Boolean,
     onMarkOnboardingCompleted: () -> Unit,
     appPackageName: String,
@@ -54,7 +54,12 @@ internal fun AppEntry(
         return
     }
 
-    if (!startupBindings.startupReady) {
+    val bindings = startupBindings ?: run {
+        IntroSplashScreen()
+        return
+    }
+
+    if (!bindings.startupReady) {
         StartupFailureContent(
             initialStartupFailureMessage = readStartupFailureMessage(startupRuntimeEntryPoint),
             retryStartup = {
@@ -71,9 +76,10 @@ internal fun AppEntry(
     }
 
     ActiveRuntimeContent(
-        viewModel = requireNotNull(startupBindings.viewModel),
-        biometricAuthManager = requireNotNull(startupBindings.biometricAuthManager),
+        viewModel = requireNotNull(bindings.viewModel),
+        biometricAuthManager = requireNotNull(bindings.biometricAuthManager),
         appPackageName = appPackageName,
-        onStartIntent = onStartIntent
+        onStartIntent = onStartIntent,
+        showIntroSplashOnStart = false
     )
 }
