@@ -18,7 +18,8 @@ internal val PremiumLoginRowShape = RoundedCornerShape(22.dp)
 
 internal val PremiumLoginScreenBackground = Color(0xFFFFFFFF)
 internal val PremiumLoginBlueTop = Color(0xFF22CDF7)
-internal val PremiumLoginBlueBottom = Color(0xFF2F8FFF)
+internal val PremiumLoginBlueEdge = Color(0xFF0646D9)
+internal val PremiumLoginBlueBottom = Color(0xFF03186F)
 internal val PremiumLoginWhite = Color(0xFFF2F3F7)
 
 internal const val PremiumLoginWhiteStartRatio = 0.20f

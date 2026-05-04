@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 
 private val PremiumLoginShadowLight = Color(0xFFFFFFFF)
 private val PremiumLoginShadowDark = Color(0xFFD2D6DF).copy(alpha = 0.72f)
+private val PremiumLoginBlueDividerShadow = Color(0xFF03186F).copy(alpha = 0.52f)
 private val PremiumLoginGoldBorder = Color(0xFFE8D9AA).copy(alpha = 0.92f)
 private val PremiumLoginInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.94f)
 private val PremiumLoginInnerShade = Color(0xFFD2D6DF).copy(alpha = 0.18f)
@@ -77,10 +78,10 @@ internal fun Modifier.premiumLoginBodyCardSurface(
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 18.dp,
+                radius = 22.dp,
                 spread = 0.dp,
-                color = PremiumLoginShadowLight,
-                offset = DpOffset(x = (-8).dp, y = (-8).dp)
+                color = PremiumLoginBlueDividerShadow,
+                offset = DpOffset(x = 0.dp, y = (-9).dp)
             )
         )
         .dropShadow(

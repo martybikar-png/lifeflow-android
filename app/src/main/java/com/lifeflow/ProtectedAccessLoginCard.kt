@@ -59,9 +59,11 @@ internal fun ProtectedAccessLoginCard(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        PremiumLoginBlueTop,
-                        PremiumLoginBlueBottom
+                    colorStops = arrayOf(
+                        0.0f to PremiumLoginBlueTop,
+                        0.15f to PremiumLoginBlueEdge,
+                        0.24f to PremiumLoginBlueBottom,
+                        1.0f to PremiumLoginBlueBottom
                     )
                 )
             ),

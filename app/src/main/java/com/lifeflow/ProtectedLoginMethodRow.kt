@@ -40,15 +40,19 @@ internal fun PremiumLoginMethodRow(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val titleColor = if (isPressed) PremiumLoginLink else PremiumLoginTextPrimary
+    val titleColor = when {
+        isPressed || selected -> PremiumLoginLink
+        else -> PremiumLoginTextPrimary
+    }
+    val methodSurface = if (selected) PremiumLoginRowPressedSurface else PremiumLoginWhite
 
     Box(
         modifier = modifier
             .padding(vertical = 5.dp)
-            .height(70.dp)
+            .height(72.dp)
             .premiumLoginMethodButtonSurface(
                 shape = PremiumLoginRowShape,
-                surfaceColor = PremiumLoginWhite,
+                surfaceColor = methodSurface,
                 isPressed = isPressed
             )
     ) {
