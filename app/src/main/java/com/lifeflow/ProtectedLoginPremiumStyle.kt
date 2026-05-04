@@ -3,6 +3,7 @@ package com.lifeflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 
 internal val PremiumLoginTopShape = RoundedCornerShape(0.dp)
@@ -30,15 +31,7 @@ internal val PremiumLoginTextPrimary = Color(0xFF35415C)
 internal val PremiumLoginTextSecondary = Color(0xFF8792AA)
 internal val PremiumLoginLink = Color(0xFF22CDF7)
 
-internal val PremiumLoginGoldDividerBrush = Brush.horizontalGradient(
-    colors = listOf(
-        Color(0xFFD4AF37),
-        Color(0xFFFFF1B0),
-        Color(0xFFFFF6D8),
-        Color(0xFFB8791F),
-        Color(0xFFD4AF37)
-    )
-)
+internal val PremiumLoginGoldDividerBrush = SolidColor(Color(0xFFD4AF37))
 
 internal val PremiumLoginGoldCircleBrush = Brush.sweepGradient(
     colors = listOf(
