@@ -44,6 +44,23 @@ class MainViewModel(
     private var sessionExpiryNotified = false
     private var pendingForegroundRefresh = false
     private val sessionPollMs = 1000L
+    private val activeRuntimeGateway = MainViewModelActiveRuntimeGateway(
+        scope = viewModelScope,
+        beginAuthenticationSuccessFlow = ::beginAuthenticationSuccessFlow,
+        runAuthenticationBootstrap = ::runAuthenticationBootstrap,
+        failClosedAuthentication = ::failClosedAuthentication,
+        isFreeTier = ::isFreeTier,
+        isAuthenticatedUiNow = ::isAuthenticatedUiNow,
+        pendingForegroundRefresh = { pendingForegroundRefresh },
+        updatePendingForegroundRefresh = { pendingForegroundRefresh = it },
+        currentSecurityEvaluation = ::currentSecurityEvaluation,
+        isSessionExpiryNotified = { sessionExpiryNotified },
+        setSessionExpiryNotified = ::setSessionExpiryNotified,
+        canExposeProtectedUiDataNow = ::canExposeProtectedUiDataNow,
+        launchRuntimeRefresh = ::launchRuntimeRefresh,
+        runVaultReset = ::runVaultReset,
+        updateGrantedHealthPermissions = { wellbeingState.grantedHealthPermissions.value = it }
+    )
 
     override val healthConnectState = wellbeingState.healthConnectState
     override val requiredHealthPermissions = wellbeingState.requiredHealthPermissions
@@ -252,48 +269,20 @@ class MainViewModel(
         captureGateway.updateQuickCapture(id, note)
 
     override fun onHealthPermissionsResult(granted: Set<String>) =
-        handleMainViewModelHealthPermissionsResult(
-            granted = granted,
-            updateGrantedHealthPermissions = { wellbeingState.grantedHealthPermissions.value = it },
-            launchRuntimeRefresh = ::launchRuntimeRefresh
-        )
+        activeRuntimeGateway.onHealthPermissionsResult(granted)
 
     override fun onAuthenticationSuccess() =
-        launchMainViewModelAuthenticationSuccess(
-            scope = viewModelScope,
-            beginAuthenticationSuccessFlow = ::beginAuthenticationSuccessFlow,
-            runAuthenticationBootstrap = ::runAuthenticationBootstrap
-        )
+        activeRuntimeGateway.onAuthenticationSuccess()
 
     override fun onAuthenticationError(message: String) =
-        handleMainViewModelAuthenticationError(
-            message = message,
-            failClosedAuthentication = ::failClosedAuthentication
-        )
+        activeRuntimeGateway.onAuthenticationError(message)
 
     override fun onAppBackgrounded() =
-        handleMainViewModelAppBackgrounded(
-            isFreeTier = ::isFreeTier,
-            isAuthenticatedUiNow = ::isAuthenticatedUiNow,
-            updatePendingForegroundRefresh = { pendingForegroundRefresh = it }
-        )
+        activeRuntimeGateway.onAppBackgrounded()
 
     override fun onAppForegrounded() =
-        handleMainViewModelAppForegrounded(
-            pendingForegroundRefresh = pendingForegroundRefresh,
-            updatePendingForegroundRefresh = { pendingForegroundRefresh = it },
-            currentSecurityEvaluation = ::currentSecurityEvaluation,
-            isSessionExpiryNotified = { sessionExpiryNotified },
-            setSessionExpiryNotified = ::setSessionExpiryNotified,
-            failClosedAuthentication = ::failClosedAuthentication,
-            canExposeProtectedUiDataNow = ::canExposeProtectedUiDataNow,
-            launchRuntimeRefresh = ::launchRuntimeRefresh
-        )
+        activeRuntimeGateway.onAppForegrounded()
 
     override fun resetVault() =
-        launchMainViewModelVaultReset(
-            scope = viewModelScope,
-            beginAuthenticationSuccessFlow = ::beginAuthenticationSuccessFlow,
-            runVaultReset = ::runVaultReset
-        )
+        activeRuntimeGateway.resetVault()
 }
