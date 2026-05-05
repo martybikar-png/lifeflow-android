@@ -27,8 +27,11 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import com.lifeflow.navigation.PublicShellNavHost
 import com.lifeflow.ui.theme.LifeFlowTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private const val StartupHandoffMinimumVisibleMs = 4_000L
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,21 +82,29 @@ private fun MainActivityAppContent(
     }
 
     LaunchedEffect(Unit) {
+        val handoffStartedAtMs = System.nanoTime() / 1_000_000L
+
         val entryPoint = withContext(Dispatchers.Default) {
             activity.requireStartupRuntimeEntryPoint()
         }
 
+        val resolvedBindings = withContext(Dispatchers.Default) {
+            val startupReady = entryPoint.ensureStarted()
+            if (startupReady) {
+                activity.resolveStartedStartupBindings(entryPoint)
+            } else {
+                failedStartupBindings()
+            }
+        }
+
+        val elapsedMs = (System.nanoTime() / 1_000_000L) - handoffStartedAtMs
+        val remainingMs = StartupHandoffMinimumVisibleMs - elapsedMs
+        if (remainingMs > 0L) {
+            delay(remainingMs)
+        }
+
+        startupBindings = resolvedBindings
         startupRuntimeEntryPoint = entryPoint
-
-        val startupReady = withContext(Dispatchers.Default) {
-            entryPoint.ensureStarted()
-        }
-
-        startupBindings = if (startupReady) {
-            activity.resolveStartedStartupBindings(entryPoint)
-        } else {
-            failedStartupBindings()
-        }
 
         withFrameNanos { }
         activity.reportFullyDrawn()
