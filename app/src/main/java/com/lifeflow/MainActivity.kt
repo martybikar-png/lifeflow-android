@@ -77,6 +77,9 @@ private fun MainActivityAppContent(
     var startupBindings by remember {
         mutableStateOf<StartupBindings?>(null)
     }
+    var startupHandoffFinished by remember {
+        mutableStateOf(false)
+    }
     var onboardingCompleted by remember(onboardingStore) {
         mutableStateOf(onboardingStore.isCompleted())
     }
@@ -105,9 +108,15 @@ private fun MainActivityAppContent(
 
         startupBindings = resolvedBindings
         startupRuntimeEntryPoint = entryPoint
+        startupHandoffFinished = true
 
         withFrameNanos { }
         activity.reportFullyDrawn()
+    }
+
+    if (!startupHandoffFinished) {
+        StartupHandoffScreen()
+        return
     }
 
     if (!onboardingCompleted) {
