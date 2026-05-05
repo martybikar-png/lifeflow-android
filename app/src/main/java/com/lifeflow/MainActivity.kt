@@ -143,18 +143,18 @@ private fun StartupHandoffScreen() {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "LifeFlow se připravuje.",
+                text = "Preparing LifeFlow.",
                 color = Color(0xFF111111),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Zabezpečené spouštění...",
+                text = "Secure startup...",
                 color = Color(0xFF4A4F57),
                 fontSize = 15.sp
             )
             Text(
-                text = "Synchronizace dat...",
+                text = "Syncing data...",
                 color = Color(0xFF4A4F57),
                 fontSize = 15.sp
             )
