@@ -39,27 +39,90 @@ internal fun PremiumLoginMethodRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    PremiumLoginButtonCard(
+        title = title,
+        subtitle = subtitle,
+        iconResId = iconResId,
+        selected = selected,
+        enabled = true,
+        onClick = onClick,
+        modifier = modifier
+    )
+}
+
+@Composable
+internal fun PremiumLoginEnterButton(
+    label: String,
+    subtitle: String,
+    iconResId: Int,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    PremiumLoginButtonCard(
+        title = label,
+        subtitle = subtitle,
+        iconResId = iconResId,
+        selected = false,
+        enabled = enabled,
+        onClick = onClick,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun PremiumLoginButtonCard(
+    title: String,
+    subtitle: String,
+    iconResId: Int,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val isActive = isPressed || selected
+
     val titleColor = when {
-        isPressed || selected -> PremiumLoginLink
+        !enabled -> PremiumLoginTextSecondary
+        isActive -> PremiumLoginLink
         else -> PremiumLoginTextPrimary
     }
-    val methodSurface = if (selected) PremiumLoginMethodSelectedSurface else PremiumLoginWhite
-    val iconSurface = if (selected) PremiumLoginMethodIconSelectedSurface else PremiumLoginWhite
-    val borderColor = if (selected) PremiumLoginMethodSelectedBorder else PremiumLoginMethodIdleBorder
+
+    val iconTint = when {
+        !enabled -> PremiumLoginTextSecondary
+        else -> PremiumLoginLink
+    }
+
+    val methodSurface = if (selected) {
+        PremiumLoginMethodSelectedSurface
+    } else {
+        PremiumLoginWhite
+    }
+
+    val iconSurface = if (selected) {
+        PremiumLoginMethodIconSelectedSurface
+    } else {
+        PremiumLoginWhite
+    }
+
+    val borderColor = if (isActive) {
+        PremiumLoginMethodSelectedBorder.copy(alpha = 0.92f)
+    } else {
+        PremiumLoginMethodIdleBorder
+    }
 
     Box(
         modifier = modifier
-            .padding(vertical = 5.dp)
-            .height(72.dp)
+            .height(PremiumLoginMethodButtonHeight)
             .premiumLoginMethodButtonSurface(
                 shape = PremiumLoginRowShape,
                 surfaceColor = methodSurface,
                 isPressed = isPressed
             )
             .border(
-                width = if (selected) 0.8.dp else 0.275.dp,
+                width = if (isActive) 0.8.dp else 0.275.dp,
                 color = borderColor,
                 shape = PremiumLoginRowShape
             )
@@ -69,6 +132,7 @@ internal fun PremiumLoginMethodRow(
                 .fillMaxSize()
                 .clip(PremiumLoginRowShape)
                 .clickable(
+                    enabled = enabled,
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = onClick
@@ -93,7 +157,7 @@ internal fun PremiumLoginMethodRow(
                     painter = painterResource(id = iconResId),
                     contentDescription = null,
                     modifier = Modifier.size(13.dp),
-                    colorFilter = ColorFilter.tint(PremiumLoginLink)
+                    colorFilter = ColorFilter.tint(iconTint)
                 )
             }
 
@@ -106,7 +170,7 @@ internal fun PremiumLoginMethodRow(
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 11.sp,
                         lineHeight = 13.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Medium
                     )
                 )
 

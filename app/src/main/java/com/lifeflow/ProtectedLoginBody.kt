@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -85,7 +86,10 @@ private fun PremiumLoginMethodGrid(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(
+            space = PremiumLoginMethodColumnGap,
+            alignment = Alignment.CenterHorizontally
+        )
     ) {
         PremiumLoginMethodRow(
             title = "Biometric",
@@ -93,7 +97,7 @@ private fun PremiumLoginMethodGrid(
             iconResId = R.drawable.lf_ic_authenticate,
             selected = selectedMethod == LoginMethod.BIOMETRIC_ID,
             onClick = { onSelectMethod(LoginMethod.BIOMETRIC_ID) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
         )
 
         PremiumLoginMethodRow(
@@ -102,13 +106,18 @@ private fun PremiumLoginMethodGrid(
             iconResId = R.drawable.lf_ic_authenticate,
             selected = selectedMethod == LoginMethod.SECURE_PROMPT,
             onClick = { onSelectMethod(LoginMethod.SECURE_PROMPT) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
         )
     }
 
+    Spacer(modifier = Modifier.height(PremiumLoginMethodRowGap))
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(
+            space = PremiumLoginMethodColumnGap,
+            alignment = Alignment.CenterHorizontally
+        )
     ) {
         PremiumLoginMethodRow(
             title = "Device bound",
@@ -116,7 +125,7 @@ private fun PremiumLoginMethodGrid(
             iconResId = R.drawable.lf_ic_authenticate,
             selected = selectedMethod == LoginMethod.DEVICE_BOUND,
             onClick = { onSelectMethod(LoginMethod.DEVICE_BOUND) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
         )
 
         PremiumLoginMethodRow(
@@ -125,7 +134,7 @@ private fun PremiumLoginMethodGrid(
             iconResId = R.drawable.lf_ic_permissions,
             selected = selectedMethod == LoginMethod.LOCAL_VAULT,
             onClick = { onSelectMethod(LoginMethod.LOCAL_VAULT) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
         )
     }
 }
@@ -142,15 +151,16 @@ private fun ColumnScope.PremiumLoginActionArea(
             .fillMaxWidth()
             .weight(1f)
     ) {
-        LifeFlowPrimaryActionButton(
+        PremiumLoginEnterButton(
             label = if (isAuthenticating) "Signing in…" else "Enter",
-            onClick = onAuthenticate,
+            subtitle = "Protected",
+            iconResId = R.drawable.lf_ic_authenticate,
             enabled = !isAuthenticating,
+            onClick = onAuthenticate,
             modifier = Modifier
-                .fillMaxWidth()
+                .width(PremiumLoginEnterButtonWidth)
                 .align(Alignment.Center)
-                .offset(y = LifeFlowLoginEnterBaselineOffset),
-            iconResId = R.drawable.lf_ic_authenticate
+                .offset(y = LifeFlowLoginEnterBaselineOffset)
         )
 
         Row(
