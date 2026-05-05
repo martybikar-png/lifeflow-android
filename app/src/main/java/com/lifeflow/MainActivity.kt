@@ -39,7 +39,7 @@ class MainActivity : FragmentActivity() {
 
         val onboardingStore = OnboardingStateStore(this)
 
-        window.decorView.post { installComposeContent(onboardingStore = onboardingStore) }
+        installComposeContent(onboardingStore = onboardingStore)
     }
 
     private fun installComposeContent(onboardingStore: OnboardingStateStore) {
