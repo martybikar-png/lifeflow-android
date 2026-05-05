@@ -28,7 +28,7 @@ class ProtectedRuntimeNavigationSmokeInstrumentedTest {
         composeTestRule.onNodeWithText("Wellbeing").performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Protected wellbeing").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Private wellbeing").assertIsDisplayed()
         composeTestRule.onNodeWithText("Home").performClick()
         composeTestRule.waitForIdle()
 
@@ -43,7 +43,7 @@ class ProtectedRuntimeNavigationSmokeInstrumentedTest {
         composeTestRule.onNodeWithText("Journal").performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Protected journal").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Private journal").assertIsDisplayed()
         composeTestRule.onNodeWithText("Home").performClick()
         composeTestRule.waitForIdle()
 
