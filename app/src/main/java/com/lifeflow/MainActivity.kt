@@ -2,8 +2,17 @@ package com.lifeflow
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.compose.foundation.layout.Box
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -13,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import com.lifeflow.navigation.PublicShellNavHost
@@ -29,7 +39,7 @@ class MainActivity : FragmentActivity() {
 
         val onboardingStore = OnboardingStateStore(this)
 
-        installComposeContent(onboardingStore = onboardingStore)
+        window.decorView.post { installComposeContent(onboardingStore = onboardingStore) }
     }
 
     private fun installComposeContent(onboardingStore: OnboardingStateStore) {
@@ -57,6 +67,7 @@ private fun MainActivityAppContent(
     onStartIntent: (Intent) -> Unit,
     onRecreateActivity: () -> Unit
 ) {
+
     var startupRuntimeEntryPoint by remember {
         mutableStateOf<StartupRuntimeEntryPoint?>(null)
     }
@@ -101,7 +112,7 @@ private fun MainActivityAppContent(
     }
 
     val entryPoint = startupRuntimeEntryPoint ?: run {
-        IntroSplashScreen()
+        StartupHandoffScreen()
         return
     }
 
@@ -117,4 +128,36 @@ private fun MainActivityAppContent(
         onStartIntent = onStartIntent,
         onRecreateActivity = onRecreateActivity
     )
+}
+
+@Composable
+private fun StartupHandoffScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "LifeFlow se připravuje.",
+                color = Color(0xFF111111),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Zabezpečené spouštění...",
+                color = Color(0xFF4A4F57),
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Synchronizace dat...",
+                color = Color(0xFF4A4F57),
+                fontSize = 15.sp
+            )
+        }
+    }
 }

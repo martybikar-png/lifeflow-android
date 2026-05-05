@@ -11,10 +11,10 @@
 
     <style name="Theme.LifeFlow.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#F2F3F7</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/lifeflow_system_splash_icon</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/lifeflow_system_splash_blank_icon</item>
         <item name="postSplashScreenTheme">@style/Theme.LifeFlow</item>
         <item name="android:windowSplashScreenBackground">#F2F3F7</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/lifeflow_system_splash_icon</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/lifeflow_system_splash_blank_icon</item>
         <item name="android:windowBackground">#F2F3F7</item>
     </style>
 </resources>
