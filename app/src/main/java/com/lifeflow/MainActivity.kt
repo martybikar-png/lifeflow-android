@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private const val StartupHandoffMinimumVisibleMs = 4_000L
+private const val LifeFlowRootBlankCanvasMode = true
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,19 +50,30 @@ class MainActivity : FragmentActivity() {
         setContent {
             LifeFlowTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MainActivityAppContent(
-                        activity = this@MainActivity,
-                        onboardingStore = onboardingStore,
-                        appPackageName = packageName,
-                        onStartIntent = { intent -> startActivity(intent) },
-                        onRecreateActivity = { recreate() }
-                    )
+                    if (LifeFlowRootBlankCanvasMode) {
+                        LifeFlowRootBlankCanvas()
+                    } else {
+                        MainActivityAppContent(
+                            activity = this@MainActivity,
+                            onboardingStore = onboardingStore,
+                            appPackageName = packageName,
+                            onStartIntent = { intent -> startActivity(intent) },
+                            onRecreateActivity = { recreate() }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+@Composable
+private fun LifeFlowRootBlankCanvas() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color.White
+    ) {}
+}
 @Composable
 private fun MainActivityAppContent(
     activity: FragmentActivity,
