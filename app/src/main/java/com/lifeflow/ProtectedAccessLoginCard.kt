@@ -33,6 +33,9 @@ internal fun ProtectedAccessLoginCard(
     var selectedMethod by rememberSaveable {
         mutableStateOf(LoginMethod.BIOMETRIC_ID)
     }
+    var openedMethod by rememberSaveable {
+        mutableStateOf<LoginMethod?>(null)
+    }
 
     val hasMissingPermissions = hasMissingHealthPermissions(
         requiredCount = requiredCount,
@@ -78,18 +81,34 @@ internal fun ProtectedAccessLoginCard(
                 .height(whiteStart)
         )
 
-        PremiumLoginBody(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxSize()
-                .padding(top = whiteStart),
-            selectedMethod = selectedMethod,
-            onSelectMethod = { selectedMethod = it },
-            isAuthenticating = isAuthenticating,
-            accessStatus = accessStatus,
-            onReviewAccess = reviewAccessAction,
-            onAuthenticate = onAuthenticate
-        )
+        val methodDetail = openedMethod
+
+        if (methodDetail == null) {
+            PremiumLoginBody(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxSize()
+                    .padding(top = whiteStart),
+                selectedMethod = selectedMethod,
+                onSelectMethod = { method ->
+                    selectedMethod = method
+                    openedMethod = method
+                },
+                isAuthenticating = isAuthenticating,
+                accessStatus = accessStatus,
+                onReviewAccess = reviewAccessAction,
+                onAuthenticate = onAuthenticate
+            )
+        } else {
+            PremiumLoginMethodDetailBody(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxSize()
+                    .padding(top = whiteStart),
+                method = methodDetail,
+                onBack = { openedMethod = null }
+            )
+        }
 
         PremiumLoginGoldDivider(
             modifier = Modifier
