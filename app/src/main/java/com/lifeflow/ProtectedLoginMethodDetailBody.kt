@@ -94,25 +94,25 @@ private fun LoginMethod.detailContent(): LoginMethodDetailContent {
     return when (this) {
         LoginMethod.BIOMETRIC_ID -> LoginMethodDetailContent(
             title = "Biometric",
-            subtitle = "Strong ID.",
-            body = "Unlock with a strong biometric check\nbound to this secure session."
+            subtitle = "Strong check.",
+            body = "Unlock with biometric proof\nbound to this secure session."
         )
 
         LoginMethod.SECURE_PROMPT -> LoginMethodDetailContent(
-            title = "Prompt",
-            subtitle = "Protected UI.",
-            body = "A guarded login prompt keeps the protected\nentry flow clear and controlled."
+            title = "Secure prompt",
+            subtitle = "Guarded flow.",
+            body = "A guarded prompt keeps protected\nentry clear and controlled."
         )
 
         LoginMethod.DEVICE_BOUND -> LoginMethodDetailContent(
             title = "Device bound",
-            subtitle = "This phone only.",
-            body = "Protected access is tied to this device\nso the session cannot move silently."
+            subtitle = "This device.",
+            body = "Access is tied to this device\nso the session cannot move silently."
         )
 
         LoginMethod.LOCAL_VAULT -> LoginMethodDetailContent(
             title = "Local vault",
-            subtitle = "Encrypted.",
+            subtitle = "Encrypted vault.",
             body = "Sensitive local data stays protected\ninside the encrypted LifeFlow vault."
         )
     }

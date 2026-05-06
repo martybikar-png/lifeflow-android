@@ -6,12 +6,10 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-private val SettingsActionPanelVerticalOffset = (-20).dp
 private val SettingsActionRowLargeGap = 58.dp
 private val SettingsActionColumnGap = 16.dp
 
@@ -27,10 +25,9 @@ fun SettingsScreen(
         infoTitle = "Controls",
         infoBody = "Privacy and trust controls.",
         infoMarkers = listOf("Privacy", "Trust", "Control"),
+        actionAnchor = LifeFlowActionAnchor.LoginLowerTwoRows
     ) {
-        PublicShellActionPanel(
-            modifier = Modifier.offset(y = SettingsActionPanelVerticalOffset)
-        ) {
+        PublicShellActionPanel {
             SettingsActionRow {
                 LifeFlowHomePrimaryActionButton(
                     label = "Privacy",

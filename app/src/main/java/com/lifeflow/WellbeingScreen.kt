@@ -1,12 +1,9 @@
 package com.lifeflow
 
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-
-private val WellbeingActionPanelVerticalOffset = (-20).dp
 
 @Composable
 fun WellbeingScreen(
@@ -34,9 +31,7 @@ fun WellbeingScreen(
         infoMarkers = markers,
         showGoldEdge = true
     ) {
-        PublicShellActionPanel(
-            modifier = Modifier.offset(y = WellbeingActionPanelVerticalOffset)
-        ) {
+        PublicShellActionPanel {
             LifeFlowHomeSecondaryActionButton(
                 label = "Home",
                 onClick = onBackToHome,

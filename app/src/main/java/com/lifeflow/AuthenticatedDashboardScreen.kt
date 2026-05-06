@@ -26,6 +26,7 @@ private val DashboardInfoTopGap = 44.dp
 private val DashboardInfoBodyGap = 8.dp
 private val DashboardActionHorizontalPadding = 12.dp
 private val DashboardActionColumnGap = 16.dp
+private val DashboardLowerRowMatchOffset = (-47.8f).dp
 
 @Composable
 internal fun AuthenticatedDashboardScreen(
@@ -62,7 +63,47 @@ internal fun AuthenticatedDashboardScreen(
         title = "LifeFlow Dashboard",
         subtitle = "Protected wellbeing overview.",
         showGoldEdge = true,
-        scrollContent = false
+        scrollContent = false,
+        actionContent = {
+            LifeFlowActionFrame(
+                modifier = Modifier.padding(horizontal = DashboardHorizontalPadding)
+            ) {
+                LifeFlowGoldAnchoredActions(
+                    anchor = LifeFlowActionAnchor.LoginLowerSingleRow,
+                    modifier = Modifier.padding(horizontal = DashboardActionHorizontalPadding)
+                ) {
+                    DashboardActionRow {
+                        LifeFlowHomePrimaryActionButton(
+                            label = primaryDashboardActionLabel(
+                                dashboardState = dashboardState,
+                                isSessionAuthorized = isSessionAuthorized
+                            ),
+                            onClick = {
+                                if (!isSessionAuthorized) {
+                                    onReAuthenticate()
+                                    return@LifeFlowHomePrimaryActionButton
+                                }
+
+                                when (dashboardState) {
+                                    DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
+                                    DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
+                                    DashboardState.LOADING,
+                                    DashboardState.NO_DATA,
+                                    DashboardState.ATTENTION,
+                                    DashboardState.READY -> onRefreshNow()
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        LifeFlowHomeSecondaryActionButton(
+                            label = "Home",
+                            onClick = onOpenHome,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
     ) {
         LifeFlowActionFrame(
             modifier = Modifier.padding(horizontal = DashboardHorizontalPadding)
@@ -134,39 +175,7 @@ internal fun AuthenticatedDashboardScreen(
                 }
             }
 
-            LifeFlowBottomAnchoredActions(
-                modifier = Modifier.padding(horizontal = DashboardActionHorizontalPadding)
-            ) {
-                DashboardActionRow {
-                    LifeFlowHomePrimaryActionButton(
-                        label = primaryDashboardActionLabel(
-                            dashboardState = dashboardState,
-                            isSessionAuthorized = isSessionAuthorized
-                        ),
-                        onClick = {
-                            if (!isSessionAuthorized) {
-                                onReAuthenticate()
-                                return@LifeFlowHomePrimaryActionButton
-                            }
 
-                            when (dashboardState) {
-                                DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
-                                DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
-                                DashboardState.LOADING,
-                                DashboardState.NO_DATA,
-                                DashboardState.ATTENTION,
-                                DashboardState.READY -> onRefreshNow()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                    LifeFlowHomeSecondaryActionButton(
-                        label = "Home",
-                        onClick = onOpenHome,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
         }
     }
 }

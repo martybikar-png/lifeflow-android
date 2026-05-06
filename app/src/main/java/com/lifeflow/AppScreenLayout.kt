@@ -31,13 +31,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val ScreenOuterHorizontalPadding = 20.dp
-private val ScreenOuterVerticalPadding = 12.dp
+internal val ScreenOuterVerticalPadding = 12.dp
 private val ScreenContentMaxWidth = 580.dp
 private val ScreenHeaderSpacing = 14.dp
 private val ScreenHeaderTextSpacing = 4.dp
 private val ScreenHeaderTopPadding = 52.dp
-private val ScreenTopBandContentSpacing = 22.dp
-private const val ScreenWhiteStartRatio = 0.20f
+internal val ScreenTopBandContentSpacing = 22.dp
+internal const val ScreenWhiteStartRatio = 0.20f
 internal const val ScreenSplashWhiteStartRatio = 0.25f
 
 private val ScreenSurfaceTone = Color(0xFFF2F3F7)
@@ -70,6 +70,7 @@ internal fun ScreenContainer(
     whiteStartRatio: Float = ScreenWhiteStartRatio,
     surfaceTone: Color = ScreenSurfaceTone,
     scrollContent: Boolean = true,
+    actionContent: @Composable (LifeFlowScreenGeometry) -> Unit = {},
     content: @Composable () -> Unit
 ) {
     val showHeader = (showBackButton && onBack != null) || title.isNotBlank() || subtitle.isNotBlank()
@@ -86,7 +87,8 @@ internal fun ScreenContainer(
                 )
             )
     ) {
-        val whiteStart = maxHeight * whiteStartRatio
+        val screenHeightDp = maxHeight
+        val whiteStart = screenHeightDp * whiteStartRatio
 
         Box(
             modifier = Modifier
@@ -199,26 +201,38 @@ internal fun ScreenContainer(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-                .padding(
-                    start = ScreenOuterHorizontalPadding,
-                    end = ScreenOuterHorizontalPadding,
-                    top = whiteStart + ScreenTopBandContentSpacing,
-                    bottom = ScreenOuterVerticalPadding
-                )
+        val screenGeometry = LifeFlowScreenGeometry(
+            screenHeight = screenHeightDp,
+            goldY = whiteStart,
+            contentTop = whiteStart + ScreenTopBandContentSpacing
+        )
+
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalLifeFlowScreenGeometry provides screenGeometry
         ) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .then(if (scrollContent) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
-                    .widthIn(max = ScreenContentMaxWidth)
-                    .align(Alignment.TopCenter),
-                verticalArrangement = Arrangement.Top
+                    .fillMaxSize()
+                    .then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                    .padding(
+                        start = ScreenOuterHorizontalPadding,
+                        end = ScreenOuterHorizontalPadding,
+                        top = whiteStart + ScreenTopBandContentSpacing,
+                        bottom = ScreenOuterVerticalPadding
+                    )
             ) {
-                content()
+                Column(
+                    modifier = Modifier
+                        .then(if (scrollContent) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
+                        .widthIn(max = ScreenContentMaxWidth)
+                        .align(Alignment.TopCenter),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    content()
+                }
             }
+
+            actionContent(screenGeometry)
         }
     }
 }

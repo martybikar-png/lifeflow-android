@@ -33,13 +33,23 @@ internal fun PublicShellInfoActionScreen(
     infoNote: String = "",
     infoMarkers: List<String> = emptyList(),
     showGoldEdge: Boolean = true,
+    actionAnchor: LifeFlowActionAnchor = LifeFlowActionAnchor.LoginLowerSingleRow,
     content: @Composable ColumnScope.() -> Unit
 ) {
     ScreenContainer(
         title = screenTitle,
         subtitle = screenSubtitle,
         showGoldEdge = showGoldEdge,
-        scrollContent = false
+        scrollContent = false,
+        actionContent = {
+            LifeFlowActionFrame(
+                modifier = Modifier.padding(horizontal = PublicShellHorizontalPadding)
+            ) {
+                LifeFlowGoldAnchoredActions(anchor = actionAnchor) {
+                    content()
+                }
+            }
+        }
     ) {
         LifeFlowActionFrame(
             modifier = Modifier.padding(horizontal = PublicShellHorizontalPadding)
@@ -93,10 +103,6 @@ internal fun PublicShellInfoActionScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-
-            LifeFlowBottomAnchoredActions {
-                content()
             }
         }
     }

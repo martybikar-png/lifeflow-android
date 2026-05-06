@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -18,7 +17,6 @@ import com.lifeflow.boundary.shouldShowUpgradeAction
 import com.lifeflow.domain.core.boundary.BoundaryAuditExpectation
 import com.lifeflow.domain.core.boundary.EntitlementStatus
 
-private val QuickCaptureActionPanelVerticalOffset = (-20).dp
 private val QuickCaptureActionRowLargeGap = 58.dp
 private val QuickCaptureActionColumnGap = 16.dp
 
@@ -47,11 +45,10 @@ fun QuickCaptureScreen(
                 ""
             },
             statusMessage = statusMessage
-        )
+        ),
+        actionAnchor = LifeFlowActionAnchor.LoginLowerTwoRows
     ) {
-        PublicShellActionPanel(
-            modifier = Modifier.offset(y = QuickCaptureActionPanelVerticalOffset)
-        ) {
+        PublicShellActionPanel {
             if (showUpgradeAction) {
                 QuickCaptureActionsWithUpgrade(
                     onPrimaryCapture = onPrimaryCapture,
@@ -101,7 +98,8 @@ private fun QuickCaptureActionsWithUpgrade(
         LifeFlowHomeSecondaryActionButton(
             label = "Back",
             onClick = onBackToHome,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
         )
     }
 }
@@ -131,7 +129,8 @@ private fun QuickCaptureActionsBase(
         LifeFlowHomeSecondaryActionButton(
             label = "Back",
             onClick = onBackToHome,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
         )
         Spacer(modifier = Modifier.weight(1f))
     }

@@ -61,7 +61,7 @@ internal fun PremiumLoginTopPanel(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Protected log in",
+                text = "Protected access",
                 color = Color.White.copy(alpha = 0.92f),
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 11.sp,

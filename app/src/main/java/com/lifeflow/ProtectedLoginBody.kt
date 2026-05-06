@@ -39,7 +39,7 @@ internal fun PremiumLoginBody(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Log in",
+            text = "Unlock LifeFlow",
             color = PremiumLoginTextPrimary,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontSize = 15.sp,
@@ -50,7 +50,7 @@ internal fun PremiumLoginBody(
         )
 
         Text(
-            text = "Private access. Device-bound.",
+            text = "Private. Device-bound. Verified.",
             color = PremiumLoginTextSecondary,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 10.sp,
@@ -140,7 +140,7 @@ private fun ColumnScope.PremiumLoginActionArea(
     ) {
         PremiumLoginEnterButton(
             label = if (isAuthenticating) "Signing in…" else "Enter",
-            subtitle = "Protected",
+            subtitle = "Verified",
             iconResId = R.drawable.lf_ic_authenticate,
             enabled = !isAuthenticating,
             onClick = onAuthenticate,
@@ -169,7 +169,7 @@ private fun ColumnScope.PremiumLoginActionArea(
             )
 
             Text(
-                text = "Review access",
+                text = "Review trust",
                 color = PremiumLoginTextPrimary,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 9.sp,
@@ -193,25 +193,25 @@ private val PremiumLoginMethodOptions = listOf(
     PremiumLoginMethodOption(
         method = LoginMethod.BIOMETRIC_ID,
         title = "Biometric",
-        subtitle = "Strong ID",
+        subtitle = "Strong check",
         iconResId = R.drawable.lf_ic_authenticate
     ),
     PremiumLoginMethodOption(
         method = LoginMethod.SECURE_PROMPT,
-        title = "Prompt",
-        subtitle = "Protected UI",
+        title = "Secure prompt",
+        subtitle = "Guarded flow",
         iconResId = R.drawable.lf_ic_authenticate
     ),
     PremiumLoginMethodOption(
         method = LoginMethod.DEVICE_BOUND,
         title = "Device bound",
-        subtitle = "This phone only",
+        subtitle = "This device",
         iconResId = R.drawable.lf_ic_authenticate
     ),
     PremiumLoginMethodOption(
         method = LoginMethod.LOCAL_VAULT,
         title = "Local vault",
-        subtitle = "Encrypted",
+        subtitle = "Encrypted vault",
         iconResId = R.drawable.lf_ic_permissions
     )
 )

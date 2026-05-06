@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,8 +17,6 @@ import androidx.compose.ui.unit.dp
 private const val HomePrimaryPage = 0
 private const val HomeSecondaryPage = 1
 private val HomeActionRowLargeGap = 58.dp
-private val HomeActionPanelVerticalOffset = (-20).dp
-
 @Composable
 fun HomeScreen(
     onOpenDashboard: () -> Unit = {},
@@ -37,11 +34,10 @@ fun HomeScreen(
         infoTitle = "Begin with one small signal.",
         infoBody = "Capture, wellbeing, and journal stay close without exposing protected data.",
         infoMarkers = listOf("Simple", "Calm", "Ready"),
-        showGoldEdge = true
+        showGoldEdge = true,
+        actionAnchor = LifeFlowActionAnchor.LoginLowerTwoRows
     ) {
-        PublicShellActionPanel(
-            modifier = Modifier.offset(y = HomeActionPanelVerticalOffset)
-        ) {
+        PublicShellActionPanel {
             if (page == HomePrimaryPage) {
                 HomePrimaryActions(
                     onOpenDashboard = onOpenDashboard,
