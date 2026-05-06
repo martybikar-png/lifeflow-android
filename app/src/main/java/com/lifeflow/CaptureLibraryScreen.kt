@@ -1,6 +1,11 @@
 package com.lifeflow
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -8,6 +13,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+private val CaptureLibraryActionColumnGap = 16.dp
+private val CaptureLibraryActionRowGap = 28.dp
 
 @Composable
 fun CaptureLibraryScreen(
@@ -94,87 +103,139 @@ fun CaptureLibraryScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    LifeFlowPrimaryActionButton(
-                        label = "Save",
-                        onClick = {
-                            onUpdateCapture(currentCapture.id, editNote)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    CaptureLibraryActionRow {
+                        LifeFlowHomePrimaryActionButton(
+                            label = "Save",
+                            onClick = {
+                                onUpdateCapture(currentCapture.id, editNote)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    LifeFlowSecondaryActionButton(
-                        label = "Cancel",
-                        onClick = {
-                            editCaptureId = null
-                            editNote = ""
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        LifeFlowHomeSecondaryActionButton(
+                            label = "Cancel",
+                            onClick = {
+                                editCaptureId = null
+                                editNote = ""
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 } else {
-                    if (currentIndex < presentation.recentCaptures.lastIndex) {
-                        LifeFlowSecondaryActionButton(
-                            label = "Previous",
-                            onClick = {
-                                openedCaptureId =
-                                    presentation.recentCaptures[currentIndex + 1].id
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                    if (
+                        currentIndex < presentation.recentCaptures.lastIndex ||
+                        currentIndex > 0
+                    ) {
+                        CaptureLibraryActionRow {
+                            if (currentIndex < presentation.recentCaptures.lastIndex) {
+                                LifeFlowHomeSecondaryActionButton(
+                                    label = "Previous",
+                                    onClick = {
+                                        openedCaptureId =
+                                            presentation.recentCaptures[currentIndex + 1].id
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+
+                            if (currentIndex > 0) {
+                                LifeFlowHomeSecondaryActionButton(
+                                    label = "Next",
+                                    onClick = {
+                                        openedCaptureId =
+                                            presentation.recentCaptures[currentIndex - 1].id
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(CaptureLibraryActionRowGap))
                     }
 
-                    if (currentIndex > 0) {
-                        LifeFlowSecondaryActionButton(
-                            label = "Next",
+                    CaptureLibraryActionRow {
+                        LifeFlowHomePrimaryActionButton(
+                            label = "Edit",
                             onClick = {
-                                openedCaptureId =
-                                    presentation.recentCaptures[currentIndex - 1].id
+                                editCaptureId = currentCapture.id
+                                editNote = currentCapture.note
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        LifeFlowHomeSecondaryActionButton(
+                            label = "Delete",
+                            onClick = {
+                                onDeleteCapture(currentCapture.id)
+                            },
+                            modifier = Modifier.weight(1f)
                         )
                     }
-
-                    LifeFlowSecondaryActionButton(
-                        label = "Edit",
-                        onClick = {
-                            editCaptureId = currentCapture.id
-                            editNote = currentCapture.note
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    LifeFlowSecondaryActionButton(
-                        label = "Delete",
-                        onClick = {
-                            onDeleteCapture(currentCapture.id)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
 
-                LifeFlowPrimaryActionButton(
-                    label = "Back to Library",
-                    onClick = {
-                        openedCaptureId = null
-                        editCaptureId = null
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Spacer(modifier = Modifier.height(CaptureLibraryActionRowGap))
+
+                CaptureLibraryCenteredAction {
+                    LifeFlowHomeSecondaryActionButton(
+                        label = "Back",
+                        onClick = {
+                            openedCaptureId = null
+                            editCaptureId = null
+                        }
+                    )
+                }
             } else {
                 if (latestCapture != null) {
-                    LifeFlowPrimaryActionButton(
-                        label = "Open latest",
-                        onClick = { openedCaptureId = latestCapture.id },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                    CaptureLibraryActionRow {
+                        LifeFlowHomePrimaryActionButton(
+                            label = "Open latest",
+                            onClick = { openedCaptureId = latestCapture.id },
+                            modifier = Modifier.weight(1f)
+                        )
 
-                LifeFlowSecondaryActionButton(
-                    label = "Back to Capture",
-                    onClick = onBackToQuickCapture,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        LifeFlowHomeSecondaryActionButton(
+                            label = "Back",
+                            onClick = onBackToQuickCapture,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                } else {
+                    CaptureLibraryCenteredAction {
+                        LifeFlowHomeSecondaryActionButton(
+                            label = "Back",
+                            onClick = onBackToQuickCapture
+                        )
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun CaptureLibraryActionRow(
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CaptureLibraryActionColumnGap),
+        content = content
+    )
+}
+
+@Composable
+private fun CaptureLibraryCenteredAction(
+    content: @Composable () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        content()
     }
 }
 

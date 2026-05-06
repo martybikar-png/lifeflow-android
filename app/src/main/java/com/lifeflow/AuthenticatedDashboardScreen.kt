@@ -1,5 +1,8 @@
 package com.lifeflow
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +25,7 @@ private val DashboardHorizontalPadding = 20.dp
 private val DashboardInfoTopGap = 44.dp
 private val DashboardInfoBodyGap = 8.dp
 private val DashboardActionHorizontalPadding = 12.dp
+private val DashboardActionColumnGap = 16.dp
 
 @Composable
 internal fun AuthenticatedDashboardScreen(
@@ -133,38 +137,50 @@ internal fun AuthenticatedDashboardScreen(
             LifeFlowBottomAnchoredActions(
                 modifier = Modifier.padding(horizontal = DashboardActionHorizontalPadding)
             ) {
-                LifeFlowPrimaryActionButton(
-                    label = primaryDashboardActionLabel(
-                        dashboardState = dashboardState,
-                        isSessionAuthorized = isSessionAuthorized
-                    ),
-                    onClick = {
-                        if (!isSessionAuthorized) {
-                            onReAuthenticate()
-                            return@LifeFlowPrimaryActionButton
-                        }
+                DashboardActionRow {
+                    LifeFlowHomePrimaryActionButton(
+                        label = primaryDashboardActionLabel(
+                            dashboardState = dashboardState,
+                            isSessionAuthorized = isSessionAuthorized
+                        ),
+                        onClick = {
+                            if (!isSessionAuthorized) {
+                                onReAuthenticate()
+                                return@LifeFlowHomePrimaryActionButton
+                            }
 
-                        when (dashboardState) {
-                            DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
-                            DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
-                            DashboardState.LOADING,
-                            DashboardState.NO_DATA,
-                            DashboardState.ATTENTION,
-                            DashboardState.READY -> onRefreshNow()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                LifeFlowSecondaryActionButton(
-                    label = "Home",
-                    onClick = onOpenHome,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                            when (dashboardState) {
+                                DashboardState.HC_UNAVAILABLE -> onOpenHealthConnectSettings()
+                                DashboardState.NEEDS_PERMISSIONS -> onGrantHealthPermissions()
+                                DashboardState.LOADING,
+                                DashboardState.NO_DATA,
+                                DashboardState.ATTENTION,
+                                DashboardState.READY -> onRefreshNow()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    LifeFlowHomeSecondaryActionButton(
+                        label = "Home",
+                        onClick = onOpenHome,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
+@Composable
+private fun DashboardActionRow(
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(DashboardActionColumnGap),
+        content = content
+    )
+}
 private fun dashboardTitle(
     dashboardState: DashboardState
 ): String {
