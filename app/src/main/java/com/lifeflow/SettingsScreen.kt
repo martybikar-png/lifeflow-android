@@ -21,10 +21,10 @@ fun SettingsScreen(
 ) {
     PublicShellInfoActionScreen(
         screenTitle = "Settings",
-        screenSubtitle = "Controls for privacy and trust.",
-        infoTitle = "Controls",
-        infoBody = "Privacy and trust controls.",
-        infoMarkers = listOf("Privacy", "Trust", "Control"),
+        screenSubtitle = "Privacy and trust controls.",
+        infoTitle = "Control center",
+        infoBody = "Privacy and trust stay close without exposing protected data.",
+        infoMarkers = listOf("Privacy", "Trust", "Local"),
         actionAnchor = LifeFlowActionAnchor.LoginLowerTwoRows
     ) {
         PublicShellActionPanel {

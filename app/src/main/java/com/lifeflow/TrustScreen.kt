@@ -17,10 +17,11 @@ fun TrustScreen(
 ) {
     PublicShellInfoActionScreen(
         screenTitle = "Trust",
-        screenSubtitle = "Security and access.",
-        infoTitle = "Trust",
-        infoBody = "Security and access stay visible.",
-        infoMarkers = listOf("Secure", "Visible", "Yours"),
+        screenSubtitle = "Security posture and access.",
+        infoTitle = "Trust boundary",
+        infoBody = "Device trust, recovery, and access rules stay visible before protected data opens.",
+        infoMarkers = listOf("Device", "Recovery", "Fail closed"),
+        actionAnchor = LifeFlowActionAnchor.LoginLowerSingleRow
     ) {
         PublicShellActionPanel {
             TrustActionRow {
