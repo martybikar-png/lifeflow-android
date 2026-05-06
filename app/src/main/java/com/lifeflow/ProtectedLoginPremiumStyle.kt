@@ -16,10 +16,12 @@ internal val PremiumLoginBodyShape = RoundedCornerShape(
 )
 
 internal val PremiumLoginRowShape = RoundedCornerShape(22.dp)
+internal const val PremiumLoginMethodGridColumns = 2
 internal val PremiumLoginMethodButtonWidth = 141.dp
 internal val PremiumLoginMethodButtonHeight = 72.dp
 internal val PremiumLoginMethodColumnGap = 16.dp
-internal val PremiumLoginMethodRowGap = 16.dp
+internal val PremiumLoginMethodRowGap = 90.dp
+internal val PremiumLoginMethodGridTopGap = 126.dp
 internal val PremiumLoginEnterButtonWidth = PremiumLoginMethodButtonWidth
 
 internal val PremiumLoginScreenBackground = Color(0xFFFFFFFF)

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +29,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -66,6 +68,12 @@ internal fun LifeFlowSecondaryActionButton(
     )
 }
 
+
+@Composable
+internal fun LifeFlowHomePrimaryActionButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, iconResId: Int? = null) { LifeFlowSoftActionButton(label = label, onClick = onClick, modifier = modifier, enabled = enabled, iconResId = iconResId, variant = LifeFlowButtonVariant.Primary, shape = LifeFlowHomeButtonShape, maxWidth = LifeFlowHomeButtonMaxWidth, minHeight = LifeFlowHomeButtonMinHeight, horizontalPadding = LifeFlowHomeButtonHorizontalPadding, verticalPadding = LifeFlowHomeButtonVerticalPadding) }
+
+@Composable
+internal fun LifeFlowHomeSecondaryActionButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, iconResId: Int? = null) { LifeFlowSoftActionButton(label = label, onClick = onClick, modifier = modifier, enabled = enabled, iconResId = iconResId, variant = LifeFlowButtonVariant.Secondary, shape = LifeFlowHomeButtonShape, maxWidth = LifeFlowHomeButtonMaxWidth, minHeight = LifeFlowHomeButtonMinHeight, horizontalPadding = LifeFlowHomeButtonHorizontalPadding, verticalPadding = LifeFlowHomeButtonVerticalPadding) }
 @Composable
 internal fun LifeFlowOnBlueActionButton(
     label: String,
@@ -90,7 +98,12 @@ private fun LifeFlowSoftActionButton(
     modifier: Modifier,
     enabled: Boolean,
     iconResId: Int?,
-    variant: LifeFlowButtonVariant
+    variant: LifeFlowButtonVariant,
+    shape: RoundedCornerShape = LifeFlowButtonShape,
+    maxWidth: Dp = LifeFlowButtonMaxWidth,
+    minHeight: Dp = LifeFlowButtonMinHeight,
+    horizontalPadding: Dp = LifeFlowButtonHorizontalPadding,
+    verticalPadding: Dp = LifeFlowButtonVerticalPadding
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -119,33 +132,33 @@ private fun LifeFlowSoftActionButton(
 
     val chromeModifier = when {
         variant == LifeFlowButtonVariant.OnBlue && !isPressed -> Modifier.lifeFlowRaisedOnBlueButtonChrome(
-            shape = LifeFlowButtonShape,
+            shape = shape,
             surfaceColor = surfaceColor,
             borderColor = borderColor
         )
 
         !enabled -> Modifier.lifeFlowRaisedButtonChrome(
-            shape = LifeFlowButtonShape,
+            shape = shape,
             surfaceColor = surfaceColor,
             borderColor = borderColor,
             darkShadowColor = LifeFlowButtonDisabledDark
         )
 
         isPressed -> Modifier.lifeFlowPressedButtonChrome(
-            shape = LifeFlowButtonShape,
+            shape = shape,
             surfaceColor = surfaceColor,
             borderColor = borderColor
         )
 
         isHovered -> Modifier.lifeFlowRaisedButtonChrome(
-            shape = LifeFlowButtonShape,
+            shape = shape,
             surfaceColor = surfaceColor,
             borderColor = borderColor,
             darkShadowColor = LifeFlowButtonHoverDark
         )
 
         else -> Modifier.lifeFlowRaisedButtonChrome(
-            shape = LifeFlowButtonShape,
+            shape = shape,
             surfaceColor = surfaceColor,
             borderColor = borderColor,
             darkShadowColor = LifeFlowButtonLiftDark
@@ -178,12 +191,12 @@ private fun LifeFlowSoftActionButton(
     ) {
         Row(
             modifier = chromeModifier
-                .widthIn(max = LifeFlowButtonMaxWidth)
+                .widthIn(max = maxWidth)
                 .fillMaxWidth()
-                .heightIn(min = LifeFlowButtonMinHeight)
+                .heightIn(min = minHeight)
                 .padding(
-                    horizontal = LifeFlowButtonHorizontalPadding,
-                    vertical = LifeFlowButtonVerticalPadding
+                    horizontal = horizontalPadding,
+                    vertical = verticalPadding
                 ),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically

@@ -69,7 +69,7 @@ fun ErrorScreen(
         infoNote = content.nextStepMessage
     ) {
         PublicShellActionPanel {
-            LifeFlowPrimaryActionButton(
+            LifeFlowHomePrimaryActionButton(
                 label = content.buttonLabel,
                 onClick = onRetry,
                 modifier = Modifier.fillMaxWidth()

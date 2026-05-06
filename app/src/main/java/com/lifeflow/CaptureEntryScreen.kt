@@ -1,12 +1,20 @@
 package com.lifeflow
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+private val CaptureEntryActionPanelVerticalOffset = (-44).dp
+private val CaptureEntryActionColumnGap = 16.dp
 
 @Composable
 fun CaptureEntryScreen(
@@ -28,7 +36,9 @@ fun CaptureEntryScreen(
             primaryNote = if (hasSubmittedCapture) "Saved." else ""
         ),
     ) {
-        PublicShellActionPanel {
+        PublicShellActionPanel(
+            modifier = Modifier.offset(y = CaptureEntryActionPanelVerticalOffset)
+        ) {
             LifeFlowSoftTextInput(
                 value = note,
                 onValueChange = { note = it },
@@ -36,33 +46,46 @@ fun CaptureEntryScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            LifeFlowPrimaryActionButton(
-                label = "Save",
-                onClick = {
-                    val saveAction = onSaveCapture
-                    if (saveAction != null) {
-                        saveAction(note)
-                        hasSubmittedCapture = true
-                        note = ""
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = canSaveCapture
-            )
+            CaptureEntryActionRow {
+                if (hasSubmittedCapture) {
+                    LifeFlowHomePrimaryActionButton(
+                        label = "Open Library",
+                        onClick = onOpenCaptureLibrary,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    LifeFlowHomePrimaryActionButton(
+                        label = "Save",
+                        onClick = {
+                            val saveAction = onSaveCapture
+                            if (saveAction != null) {
+                                saveAction(note)
+                                hasSubmittedCapture = true
+                                note = ""
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = canSaveCapture
+                    )
+                }
 
-            if (hasSubmittedCapture) {
-                LifeFlowSecondaryActionButton(
-                    label = "Open Library",
-                    onClick = onOpenCaptureLibrary,
-                    modifier = Modifier.fillMaxWidth()
+                LifeFlowHomeSecondaryActionButton(
+                    label = "Back",
+                    onClick = onBackToQuickCapture,
+                    modifier = Modifier.weight(1f)
                 )
             }
-
-            LifeFlowSecondaryActionButton(
-                label = "Back",
-                onClick = onBackToQuickCapture,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
+}
+
+@Composable
+private fun CaptureEntryActionRow(
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CaptureEntryActionColumnGap),
+        content = content
+    )
 }

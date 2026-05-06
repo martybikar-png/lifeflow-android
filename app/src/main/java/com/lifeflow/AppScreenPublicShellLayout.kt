@@ -104,10 +104,11 @@ internal fun PublicShellInfoActionScreen(
 
 @Composable
 internal fun PublicShellActionPanel(
+    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = PublicShellActionHorizontalPadding),
         horizontalAlignment = Alignment.CenterHorizontally,

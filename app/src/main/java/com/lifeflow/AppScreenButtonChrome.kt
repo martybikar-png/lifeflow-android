@@ -30,6 +30,11 @@ internal val LifeFlowButtonOuterVerticalPadding = 4.dp
 internal val LifeFlowButtonHorizontalPadding = 18.dp
 internal val LifeFlowButtonVerticalPadding = 8.dp
 internal val LifeFlowButtonIconSize = 14.dp
+internal val LifeFlowHomeButtonShape = RoundedCornerShape(22.dp)
+internal val LifeFlowHomeButtonMinHeight = 72.dp
+internal val LifeFlowHomeButtonMaxWidth = 141.dp
+internal val LifeFlowHomeButtonHorizontalPadding = 10.dp
+internal val LifeFlowHomeButtonVerticalPadding = 9.dp
 
 internal val LifeFlowButtonAccent = Color(0xFF22CDF7)
 

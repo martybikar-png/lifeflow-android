@@ -1,8 +1,15 @@
 package com.lifeflow
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.lifeflow.boundary.BoundaryEntitlementSource
 import com.lifeflow.boundary.BoundaryPresentation
 import com.lifeflow.boundary.BoundaryPresentationState
@@ -10,6 +17,10 @@ import com.lifeflow.boundary.isLockedLike
 import com.lifeflow.boundary.shouldShowUpgradeAction
 import com.lifeflow.domain.core.boundary.BoundaryAuditExpectation
 import com.lifeflow.domain.core.boundary.EntitlementStatus
+
+private val QuickCaptureActionPanelVerticalOffset = (-20).dp
+private val QuickCaptureActionRowLargeGap = 58.dp
+private val QuickCaptureActionColumnGap = 16.dp
 
 @Composable
 fun QuickCaptureScreen(
@@ -21,6 +32,7 @@ fun QuickCaptureScreen(
     onBackToHome: () -> Unit = {},
 ) {
     val enrichedCaptureLocked = enrichedCapturePresentation.isLockedLike()
+    val showUpgradeAction = enrichedCapturePresentation?.shouldShowUpgradeAction() == true
 
     PublicShellInfoActionScreen(
         screenTitle = "Quick Capture",
@@ -37,34 +49,103 @@ fun QuickCaptureScreen(
             statusMessage = statusMessage
         )
     ) {
-        PublicShellActionPanel {
-            LifeFlowPrimaryActionButton(
-                label = "New capture",
-                onClick = onPrimaryCapture,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            LifeFlowSecondaryActionButton(
-                label = "Open Library",
-                onClick = onOpenCaptureLibrary,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (enrichedCapturePresentation?.shouldShowUpgradeAction() == true) {
-                LifeFlowSecondaryActionButton(
-                    label = "Upgrade to Core",
-                    onClick = onUpgradeToCore,
-                    modifier = Modifier.fillMaxWidth()
+        PublicShellActionPanel(
+            modifier = Modifier.offset(y = QuickCaptureActionPanelVerticalOffset)
+        ) {
+            if (showUpgradeAction) {
+                QuickCaptureActionsWithUpgrade(
+                    onPrimaryCapture = onPrimaryCapture,
+                    onOpenCaptureLibrary = onOpenCaptureLibrary,
+                    onUpgradeToCore = onUpgradeToCore,
+                    onBackToHome = onBackToHome
+                )
+            } else {
+                QuickCaptureActionsBase(
+                    onPrimaryCapture = onPrimaryCapture,
+                    onOpenCaptureLibrary = onOpenCaptureLibrary,
+                    onBackToHome = onBackToHome
                 )
             }
-
-            LifeFlowSecondaryActionButton(
-                label = "Back",
-                onClick = onBackToHome,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
+}
+
+@Composable
+private fun QuickCaptureActionsWithUpgrade(
+    onPrimaryCapture: () -> Unit,
+    onOpenCaptureLibrary: () -> Unit,
+    onUpgradeToCore: () -> Unit,
+    onBackToHome: () -> Unit
+) {
+    QuickCaptureActionRow {
+        LifeFlowHomePrimaryActionButton(
+            label = "New capture",
+            onClick = onPrimaryCapture,
+            modifier = Modifier.weight(1f)
+        )
+        LifeFlowHomeSecondaryActionButton(
+            label = "Open Library",
+            onClick = onOpenCaptureLibrary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    Spacer(modifier = Modifier.height(QuickCaptureActionRowLargeGap))
+
+    QuickCaptureActionRow {
+        LifeFlowHomeSecondaryActionButton(
+            label = "Upgrade",
+            onClick = onUpgradeToCore,
+            modifier = Modifier.weight(1f)
+        )
+        LifeFlowHomeSecondaryActionButton(
+            label = "Back",
+            onClick = onBackToHome,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun QuickCaptureActionsBase(
+    onPrimaryCapture: () -> Unit,
+    onOpenCaptureLibrary: () -> Unit,
+    onBackToHome: () -> Unit
+) {
+    QuickCaptureActionRow {
+        LifeFlowHomePrimaryActionButton(
+            label = "New capture",
+            onClick = onPrimaryCapture,
+            modifier = Modifier.weight(1f)
+        )
+        LifeFlowHomeSecondaryActionButton(
+            label = "Open Library",
+            onClick = onOpenCaptureLibrary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    Spacer(modifier = Modifier.height(QuickCaptureActionRowLargeGap))
+
+    QuickCaptureActionRow {
+        LifeFlowHomeSecondaryActionButton(
+            label = "Back",
+            onClick = onBackToHome,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun QuickCaptureActionRow(
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(QuickCaptureActionColumnGap),
+        content = content
+    )
 }
 
 internal fun publicShellEnrichedCapturePresentation(): BoundaryPresentation {

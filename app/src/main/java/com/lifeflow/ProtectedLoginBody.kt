@@ -6,10 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -50,8 +49,6 @@ internal fun PremiumLoginBody(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(3.dp))
-
         Text(
             text = "Private access. Device-bound.",
             color = PremiumLoginTextSecondary,
@@ -60,14 +57,15 @@ internal fun PremiumLoginBody(
                 lineHeight = 12.sp,
                 fontWeight = FontWeight.Medium
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 3.dp)
         )
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         PremiumLoginMethodGrid(
             selectedMethod = selectedMethod,
-            onSelectMethod = onSelectMethod
+            onSelectMethod = onSelectMethod,
+            modifier = Modifier.padding(top = PremiumLoginMethodGridTopGap)
         )
 
         PremiumLoginActionArea(
@@ -82,6 +80,30 @@ internal fun PremiumLoginBody(
 @Composable
 private fun PremiumLoginMethodGrid(
     selectedMethod: LoginMethod,
+    onSelectMethod: (LoginMethod) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PremiumLoginMethodRowGap)
+    ) {
+        PremiumLoginMethodOptions
+            .chunked(PremiumLoginMethodGridColumns)
+            .forEach { rowOptions ->
+                PremiumLoginMethodGridRow(
+                    options = rowOptions,
+                    selectedMethod = selectedMethod,
+                    onSelectMethod = onSelectMethod
+                )
+            }
+    }
+}
+
+@Composable
+private fun PremiumLoginMethodGridRow(
+    options: List<PremiumLoginMethodOption>,
+    selectedMethod: LoginMethod,
     onSelectMethod: (LoginMethod) -> Unit
 ) {
     Row(
@@ -91,51 +113,16 @@ private fun PremiumLoginMethodGrid(
             alignment = Alignment.CenterHorizontally
         )
     ) {
-        PremiumLoginMethodRow(
-            title = "Biometric",
-            subtitle = "Strong ID",
-            iconResId = R.drawable.lf_ic_authenticate,
-            selected = selectedMethod == LoginMethod.BIOMETRIC_ID,
-            onClick = { onSelectMethod(LoginMethod.BIOMETRIC_ID) },
-            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
-        )
-
-        PremiumLoginMethodRow(
-            title = "Prompt",
-            subtitle = "Protected UI",
-            iconResId = R.drawable.lf_ic_authenticate,
-            selected = selectedMethod == LoginMethod.SECURE_PROMPT,
-            onClick = { onSelectMethod(LoginMethod.SECURE_PROMPT) },
-            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
-        )
-    }
-
-    Spacer(modifier = Modifier.height(PremiumLoginMethodRowGap))
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(
-            space = PremiumLoginMethodColumnGap,
-            alignment = Alignment.CenterHorizontally
-        )
-    ) {
-        PremiumLoginMethodRow(
-            title = "Device bound",
-            subtitle = "This phone only",
-            iconResId = R.drawable.lf_ic_authenticate,
-            selected = selectedMethod == LoginMethod.DEVICE_BOUND,
-            onClick = { onSelectMethod(LoginMethod.DEVICE_BOUND) },
-            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
-        )
-
-        PremiumLoginMethodRow(
-            title = "Local vault",
-            subtitle = "Encrypted",
-            iconResId = R.drawable.lf_ic_permissions,
-            selected = selectedMethod == LoginMethod.LOCAL_VAULT,
-            onClick = { onSelectMethod(LoginMethod.LOCAL_VAULT) },
-            modifier = Modifier.width(PremiumLoginMethodButtonWidth)
-        )
+        options.forEach { option ->
+            PremiumLoginMethodRow(
+                title = option.title,
+                subtitle = option.subtitle,
+                iconResId = option.iconResId,
+                selected = selectedMethod == option.method,
+                onClick = { onSelectMethod(option.method) },
+                modifier = Modifier.width(PremiumLoginMethodButtonWidth)
+            )
+        }
     }
 }
 
@@ -167,7 +154,6 @@ private fun ColumnScope.PremiumLoginActionArea(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 0.dp)
                 .offset(y = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -195,3 +181,37 @@ private fun ColumnScope.PremiumLoginActionArea(
         }
     }
 }
+
+private data class PremiumLoginMethodOption(
+    val method: LoginMethod,
+    val title: String,
+    val subtitle: String,
+    val iconResId: Int
+)
+
+private val PremiumLoginMethodOptions = listOf(
+    PremiumLoginMethodOption(
+        method = LoginMethod.BIOMETRIC_ID,
+        title = "Biometric",
+        subtitle = "Strong ID",
+        iconResId = R.drawable.lf_ic_authenticate
+    ),
+    PremiumLoginMethodOption(
+        method = LoginMethod.SECURE_PROMPT,
+        title = "Prompt",
+        subtitle = "Protected UI",
+        iconResId = R.drawable.lf_ic_authenticate
+    ),
+    PremiumLoginMethodOption(
+        method = LoginMethod.DEVICE_BOUND,
+        title = "Device bound",
+        subtitle = "This phone only",
+        iconResId = R.drawable.lf_ic_authenticate
+    ),
+    PremiumLoginMethodOption(
+        method = LoginMethod.LOCAL_VAULT,
+        title = "Local vault",
+        subtitle = "Encrypted",
+        iconResId = R.drawable.lf_ic_permissions
+    )
+)
