@@ -69,10 +69,9 @@ class MainActivity : FragmentActivity() {
 
 @Composable
 private fun LifeFlowRootBlankCanvas() {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color.White
-    ) {}
+    LifeFlowRootBackground(
+        modifier = Modifier.fillMaxSize()
+    )
 }
 @Composable
 private fun MainActivityAppContent(
