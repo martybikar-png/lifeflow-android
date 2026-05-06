@@ -11,13 +11,15 @@ import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 
-internal val LifeFlowNeuSurfaceColor = Color(0xFFF2F3F7)
+internal val LifeFlowNeuSurfaceColor = Color(0xFFF5F7FC)
 
-private val LifeFlowNeuLightShadow = Color(0xFFFFFFFF)
-private val LifeFlowNeuSoftDepth = Color(0xFFD2D6DF).copy(alpha = 0.68f)
-private val LifeFlowNeuOutline = Color(0xFFE8D9AA).copy(alpha = 0.92f)
-private val LifeFlowNeuInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.94f)
-private val LifeFlowNeuInnerShade = Color(0xFFD2D6DF).copy(alpha = 0.18f)
+private val LifeFlowNeuLightShadow = Color(0xFFFFFFFF).copy(alpha = 0.98f)
+private val LifeFlowNeuAmbientLift = Color(0xFFE8F7FF).copy(alpha = 0.82f)
+private val LifeFlowNeuSoftDepth = Color(0xFFBFC8D8).copy(alpha = 0.56f)
+private val LifeFlowNeuBlueDepth = Color(0xFF2F8FFF).copy(alpha = 0.13f)
+private val LifeFlowNeuOutline = Color(0xFFFFFFFF).copy(alpha = 0.78f)
+private val LifeFlowNeuInnerHighlight = Color(0xFFFFFFFF).copy(alpha = 0.96f)
+private val LifeFlowNeuInnerShade = Color(0xFFB8C3D4).copy(alpha = 0.16f)
 
 internal fun Modifier.lifeFlowRaisedPanelChrome(
     shape: RoundedCornerShape
@@ -26,19 +28,37 @@ internal fun Modifier.lifeFlowRaisedPanelChrome(
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 15.dp,
+                radius = 24.dp,
                 spread = 0.dp,
-                color = LifeFlowNeuLightShadow,
-                offset = DpOffset(x = (-6).dp, y = (-6).dp)
+                color = LifeFlowNeuAmbientLift,
+                offset = DpOffset(x = (-10).dp, y = (-10).dp)
             )
         )
         .dropShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 15.dp,
+                radius = 18.dp,
+                spread = 0.dp,
+                color = LifeFlowNeuLightShadow,
+                offset = DpOffset(x = (-5).dp, y = (-5).dp)
+            )
+        )
+        .dropShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 22.dp,
                 spread = 0.dp,
                 color = LifeFlowNeuSoftDepth,
-                offset = DpOffset(x = 6.dp, y = 6.dp)
+                offset = DpOffset(x = 8.dp, y = 9.dp)
+            )
+        )
+        .dropShadow(
+            shape = shape,
+            shadow = Shadow(
+                radius = 30.dp,
+                spread = 0.dp,
+                color = LifeFlowNeuBlueDepth,
+                offset = DpOffset(x = 0.dp, y = 14.dp)
             )
         )
         .background(
@@ -48,7 +68,7 @@ internal fun Modifier.lifeFlowRaisedPanelChrome(
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 7.dp,
+                radius = 8.dp,
                 spread = 0.dp,
                 color = LifeFlowNeuInnerHighlight,
                 offset = DpOffset(x = (-2).dp, y = (-2).dp)
@@ -57,14 +77,14 @@ internal fun Modifier.lifeFlowRaisedPanelChrome(
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 7.dp,
+                radius = 9.dp,
                 spread = 0.dp,
                 color = LifeFlowNeuInnerShade,
                 offset = DpOffset(x = 2.dp, y = 2.dp)
             )
         )
         .border(
-            width = 0.275.dp,
+            width = 0.35.dp,
             color = LifeFlowNeuOutline,
             shape = shape
         )
